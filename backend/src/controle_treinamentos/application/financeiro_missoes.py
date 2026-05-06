@@ -837,6 +837,99 @@ def _total_calculations(calculations: list[dict]) -> str:
     return _decimal_text(total)
 
 
+def _mission_missing_operational_times(mission: dict) -> bool:
+    return not _clean_text(mission.get("horario_apresentacao")) or not _clean_text(mission.get("horario_abandono"))
+
+
+def _missing_times_zero_warning() -> dict:
+    return {
+        "code": "finance_hourly_missing_times_zeroed",
+        "message": (
+            "Lancamento salvo sem horario de apresentacao ou abandono; "
+            "calculo horario vigente foi zerado."
+        ),
+    }
+
+
+def _zero_hourly_calculation_for_missing_times(
+    mission: dict,
+    participant: dict,
+    *,
+    org_id: str,
+) -> dict:
+    mission_id = _optional_int(mission.get("id"), label="Missao")
+    tripulante_id = _optional_int(participant.get("tripulante_id"), label="Tripulante")
+    funcao = _clean_text(participant.get("funcao")).lower()
+    warning = _missing_times_zero_warning()
+    memory = {
+        "calculation_version": "finance-hourly-v1",
+        "org_id": org_id,
+        "competencia": _clean_text(mission.get("competencia")),
+        "source": {"type": "finance_mission_operational", "id": mission_id},
+        "participant": {
+            "tripulante_id": tripulante_id,
+            "funcao": funcao,
+        },
+        "inputs": {
+            "data_missao": _clean_text(mission.get("data_missao")),
+            "data_final": _clean_text(mission.get("data_final") or mission.get("data_missao")),
+            "horario_apresentacao": _clean_text(mission.get("horario_apresentacao")),
+            "horario_abandono": _clean_text(mission.get("horario_abandono")),
+            "pos_exec_min": _optional_int(mission.get("pos_exec_min"), label="Pos execucao") or 0,
+        },
+        "steps": [
+            {
+                "rule_key": "jornada_sem_horarios",
+                "rule_label": "Jornada sem horarios operacionais",
+                "entrada_usada": {
+                    "horario_apresentacao": _clean_text(mission.get("horario_apresentacao")),
+                    "horario_abandono": _clean_text(mission.get("horario_abandono")),
+                },
+                "parametro_usado": None,
+                "formula_conceitual": "horarios ausentes => calculo horario zerado",
+                "resultado_intermediario": {
+                    "jornada_total_minutos": 0,
+                    "minutos_diurnos": 0,
+                    "minutos_noturnos": 0,
+                },
+                "resultado_final": {
+                    "total": "0.00",
+                    "jornada_total_minutos": 0,
+                },
+                "notes": [
+                    "Quando apresentacao ou abandono ficam em branco, a linha permanece calculada com valor zero."
+                ],
+            }
+        ],
+        "warnings": [warning],
+    }
+    return {
+        "org_id": org_id,
+        "missao_operacional_id": mission_id,
+        "mission_id": mission_id,
+        "tripulante_id": tripulante_id,
+        "funcao": funcao,
+        "jornada_total_minutos": 0,
+        "minutos_diurnos": 0,
+        "minutos_noturnos": 0,
+        "minutos_noturnos_reais": 0,
+        "horas_noturnas_convertidas": "0.0000",
+        "minutos_pre": 0,
+        "minutos_pos": 0,
+        "domingo_feriado": False,
+        "valor_adicional_noturno": "0.00",
+        "valor_domingo_feriado_diurno": "0.00",
+        "valor_domingo_feriado_noturno": "0.00",
+        "valor_pre": "0.00",
+        "valor_pos": "0.00",
+        "total": "0.00",
+        "memoria_calculo": memory,
+        "parametros_usados": [],
+        "calculation_version": "finance-hourly-v1",
+        "status": "calculado",
+    }
+
+
 def _affected_calculation_payload(calculation: dict) -> dict:
     return {
         "id": calculation.get("id"),
@@ -1690,28 +1783,43 @@ def recalcular_missao_operacional(
         )
         before_by_key = {_calculation_key(row): row for row in current_before}
         participantes = _required_participants(mission)
-        feriados = _feriados_nacionais_da_missao(resolved_db, mission=mission, org_id=resolved_org_id)
+        missing_operational_times = _mission_missing_operational_times(mission)
+        warnings = []
+        if missing_operational_times:
+            warnings.append(_missing_times_zero_warning())
+        feriados = (
+            []
+            if missing_operational_times
+            else _feriados_nacionais_da_missao(resolved_db, mission=mission, org_id=resolved_org_id)
+        )
         saved_calculations = []
         affected_calculations = []
         for participante in participantes:
-            parametros = _buscar_parametros_vigentes(
-                resolved_db,
-                mission=mission,
-                funcao=participante["funcao"],
-                org_id=resolved_org_id,
-            )
-            calculation = calcular_bonificacao_horaria(
-                missao_operacional=mission,
-                participante={
-                    "mission_id": missao_operacional_id,
-                    "tripulante_id": participante["tripulante_id"],
-                    "funcao": participante["funcao"],
-                },
-                parametros_vigentes=parametros,
-                feriados=feriados,
-            )
-            calculation["org_id"] = resolved_org_id
-            calculation["missao_operacional_id"] = missao_operacional_id
+            if missing_operational_times:
+                calculation = _zero_hourly_calculation_for_missing_times(
+                    mission,
+                    participante,
+                    org_id=resolved_org_id,
+                )
+            else:
+                parametros = _buscar_parametros_vigentes(
+                    resolved_db,
+                    mission=mission,
+                    funcao=participante["funcao"],
+                    org_id=resolved_org_id,
+                )
+                calculation = calcular_bonificacao_horaria(
+                    missao_operacional=mission,
+                    participante={
+                        "mission_id": missao_operacional_id,
+                        "tripulante_id": participante["tripulante_id"],
+                        "funcao": participante["funcao"],
+                    },
+                    parametros_vigentes=parametros,
+                    feriados=feriados,
+                )
+                calculation["org_id"] = resolved_org_id
+                calculation["missao_operacional_id"] = missao_operacional_id
             saved = salvar_ou_atualizar_calculo_horario_vigente(
                 resolved_db,
                 data=calculation,
@@ -1748,7 +1856,6 @@ def recalcular_missao_operacional(
         )
         resolved_db.commit()
         recalculated_at = datetime.now(timezone.utc).isoformat()
-        warnings = []
         if superseded_duplicates:
             warnings.append(
                 {

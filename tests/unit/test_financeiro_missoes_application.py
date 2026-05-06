@@ -679,6 +679,66 @@ def test_recalcular_missao_operacional_calcula_persiste_e_audita(monkeypatch):
     assert result["current_result"]["total"] == "360.00"
 
 
+def test_recalcular_missao_operacional_persiste_zero_quando_horarios_ausentes(monkeypatch):
+    db = _FakeDB()
+    audit_calls = []
+    mission = _mission_detail(horario_apresentacao=None, horario_abandono=None)
+    saved_rows = []
+
+    def _save(_db, *, data, org_id=None):
+        row = {
+            **data,
+            "id": 900 + len(saved_rows),
+            "org_id": org_id or FINANCE_ORG_SCOPE_DEFAULT,
+            "status": "calculado",
+            "persistence_action": "inserted",
+            "minutos_noturnos": data.get("minutos_noturnos_reais", 0),
+        }
+        saved_rows.append(row)
+        return row
+
+    monkeypatch.setattr(usecases, "fetch_missao_operacional_detail", lambda *args, **kwargs: mission)
+    monkeypatch.setattr(usecases, "lock_missao_operacional", lambda *args, **kwargs: mission)
+    monkeypatch.setattr(usecases, "fetch_competencia_financeira", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        usecases,
+        "_feriados_nacionais_da_missao",
+        lambda *args, **kwargs: pytest.fail("calculo zerado nao deve consultar feriados"),
+    )
+    monkeypatch.setattr(
+        usecases,
+        "_buscar_parametros_vigentes",
+        lambda *args, **kwargs: pytest.fail("calculo zerado nao deve exigir parametros"),
+    )
+    monkeypatch.setattr(
+        usecases,
+        "calcular_bonificacao_horaria",
+        lambda *args, **kwargs: pytest.fail("calculo zerado nao deve chamar o motor horario"),
+    )
+    monkeypatch.setattr(usecases, "obsoletar_calculos_vigentes_duplicados_da_missao", lambda *args, **kwargs: [])
+    monkeypatch.setattr(usecases, "listar_calculos_horarios_vigentes_da_missao", lambda *args, **kwargs: [])
+    monkeypatch.setattr(usecases, "salvar_ou_atualizar_calculo_horario_vigente", _save)
+    monkeypatch.setattr(usecases, "record_audit_event", lambda *args, **kwargs: audit_calls.append(kwargs))
+
+    result = usecases.recalcular_missao_operacional(10, actor_user_id=55, db=db)
+
+    assert db.commit_count == 1
+    assert result["calculation_status"] == "calculado"
+    assert result["current_result"]["total"] == "0.00"
+    assert result["warnings"][0]["code"] == "finance_hourly_missing_times_zeroed"
+    assert len(result["calculations"]) == 2
+    assert {item["total"] for item in result["calculations"]} == {"0.00"}
+    assert {item["status"] for item in result["calculations"]} == {"calculado"}
+    assert {row["status"] for row in saved_rows} == {"calculado"}
+    assert saved_rows[0]["memoria_calculo"]["warnings"][0]["code"] == "finance_hourly_missing_times_zeroed"
+    assert [call["acao"] for call in audit_calls] == [
+        "finance.mission.recalculation.requested",
+        "finance.hourly_bonus.calculated",
+        "finance.hourly_bonus.calculated",
+        "finance.mission.recalculated",
+    ]
+
+
 def test_recalcular_missao_operacional_usa_ids_da_missao_quando_participantes_estao_ausentes(monkeypatch):
     db = _FakeDB()
     mission = _mission_detail()
