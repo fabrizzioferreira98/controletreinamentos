@@ -5,6 +5,20 @@ class _FakeDB:
     pass
 
 
+def test_lancamento_jornada_nao_exige_horarios_para_validacao_base():
+    missing = financeiro_lancamentos_jornada._line_missing_fields(
+        {
+            "competencia": "2026-04",
+            "data": "2026-04-10",
+            "tripulante_id": 7,
+            "funcao": "comandante",
+            "aeronave_id": 3,
+        }
+    )
+
+    assert missing == []
+
+
 def test_consolidado_produtividade_usa_recorte_e_exclui_nao_vigentes(monkeypatch):
     calls = {}
 

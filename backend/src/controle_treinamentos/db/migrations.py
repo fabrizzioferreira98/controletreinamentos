@@ -104,6 +104,8 @@ def execute_migrations(db):
         db.execute("ALTER TABLE financeiro_missoes_operacionais ADD COLUMN IF NOT EXISTS data_final DATE")
         db.execute("ALTER TABLE financeiro_missoes_operacionais ADD COLUMN IF NOT EXISTS pos_exec_min INTEGER NOT NULL DEFAULT 0")
         db.execute("ALTER TABLE financeiro_missoes_operacionais ADD COLUMN IF NOT EXISTS justificativa TEXT")
+        db.execute("ALTER TABLE financeiro_missoes_operacionais ALTER COLUMN horario_apresentacao DROP NOT NULL")
+        db.execute("ALTER TABLE financeiro_missoes_operacionais ALTER COLUMN horario_abandono DROP NOT NULL")
         db.execute(
             """
             UPDATE financeiro_missoes_operacionais
@@ -142,6 +144,15 @@ def execute_migrations(db):
                     ADD CONSTRAINT financeiro_missoes_operacionais_pos_exec_min_check
                     CHECK (pos_exec_min >= 0);
                 END IF;
+                ALTER TABLE financeiro_missoes_operacionais
+                DROP CONSTRAINT IF EXISTS financeiro_missoes_operacionais_horarios_validos;
+                ALTER TABLE financeiro_missoes_operacionais
+                ADD CONSTRAINT financeiro_missoes_operacionais_horarios_validos
+                CHECK (
+                    horario_apresentacao IS NULL
+                    OR horario_abandono IS NULL
+                    OR horario_abandono > horario_apresentacao
+                );
             END
             $$;
             """

@@ -62,7 +62,14 @@ def _request_targets_same_origin_frontend() -> bool:
     hostname, _port = _request_host_parts()
     if not request_origin or not hostname:
         return False
-    return hostname != "localhost" and not _request_targets_direct_backend()
+    if hostname == "localhost":
+        return False
+    try:
+        if ipaddress.ip_address(hostname).is_loopback:
+            return False
+    except ValueError:
+        pass
+    return not _request_targets_direct_backend()
 
 
 def frontend_redirect_origin() -> str:

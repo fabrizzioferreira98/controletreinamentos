@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import unicodedata
 
@@ -20,6 +21,40 @@ BASES_SEED = [
     ("SantarÃ©m", "PA", -2.4385, -54.6996, True),
     ("SÃ£o Paulo", "SP", -23.5505, -46.6333, True),
 ]
+
+
+_JORNADA_REGULAMENTAR_DURATION_ANCHORS = (
+    (0, 585),
+    (17 * 60, 555),
+    (18 * 60 + 30, 547),
+    (23 * 60 + 55, 588),
+    (24 * 60, 585),
+)
+
+
+def _format_minutes_as_hhmm(minutes: int) -> str:
+    normalized = int(minutes) % (24 * 60)
+    return f"{normalized // 60:02d}:{normalized % 60:02d}"
+
+
+def _interpolate_jornada_regulamentar_duration(minute_of_day: int) -> int:
+    anchors = _JORNADA_REGULAMENTAR_DURATION_ANCHORS
+    for (start_minute, start_duration), (end_minute, end_duration) in zip(anchors, anchors[1:]):
+        if start_minute <= minute_of_day <= end_minute:
+            span = end_minute - start_minute
+            if span <= 0:
+                return start_duration
+            ratio = (minute_of_day - start_minute) / span
+            return round(start_duration + ((end_duration - start_duration) * ratio))
+    return anchors[0][1]
+
+
+def _jornada_tabela_regulamentar_default_json() -> str:
+    table = {}
+    for minute_of_day in range(0, 24 * 60, 5):
+        duration = _interpolate_jornada_regulamentar_duration(minute_of_day)
+        table[_format_minutes_as_hhmm(minute_of_day)] = _format_minutes_as_hhmm(minute_of_day + duration)
+    return json.dumps(table, ensure_ascii=True, separators=(",", ":"))
 
 
 def _strip_accents(value: str) -> str:

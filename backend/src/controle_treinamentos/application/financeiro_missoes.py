@@ -188,6 +188,12 @@ def _parse_datetime_value(value, *, base_date: date, label: str) -> datetime:
         ) from exc
 
 
+def _parse_optional_datetime_value(value, *, base_date: date, label: str) -> datetime | None:
+    if value in (None, "") or _clean_text(value) == "":
+        return None
+    return _parse_datetime_value(value, base_date=base_date, label=label)
+
+
 def _normalize_non_negative_int(value, *, label: str, default: int = 0) -> int:
     number = _optional_int(value, label=label)
     if number is None:
@@ -197,7 +203,7 @@ def _normalize_non_negative_int(value, *, label: str, default: int = 0) -> int:
     return number
 
 
-def _mission_payload(payload: dict, *, org_id: str, actor_user_id: int | None = None) -> dict:
+def _mission_payload(payload: dict, *, org_id: str, actor_user_id: int | None = None, require_times: bool = True) -> dict:
     comandante_id = _required_int(payload, "comandante_tripulante_id", "Comandante")
     copiloto_id = _required_int(payload, "copiloto_tripulante_id", "Copiloto")
     if comandante_id == copiloto_id:
@@ -215,17 +221,18 @@ def _mission_payload(payload: dict, *, org_id: str, actor_user_id: int | None = 
             "Data final da missao nao pode ser anterior a data inicial.",
             code="missao_operacional_data_final_invalida",
         )
-    horario_apresentacao = _parse_datetime_value(
+    parse_time = _parse_datetime_value if require_times else _parse_optional_datetime_value
+    horario_apresentacao = parse_time(
         payload.get("horario_apresentacao"),
         base_date=data_missao_date,
         label="Horario de apresentacao",
     )
-    horario_abandono = _parse_datetime_value(
+    horario_abandono = parse_time(
         payload.get("horario_abandono"),
         base_date=data_missao_date,
         label="Horario de abandono",
     )
-    if horario_abandono <= horario_apresentacao:
+    if horario_apresentacao is not None and horario_abandono is not None and horario_abandono <= horario_apresentacao:
         horario_abandono += timedelta(days=1)
     quantidade_pernoites = _normalize_non_negative_int(
         payload.get("quantidade_pernoites"),
@@ -247,8 +254,8 @@ def _mission_payload(payload: dict, *, org_id: str, actor_user_id: int | None = 
         "categoria_financeira_aeronave": _clean_text(payload.get("categoria_financeira_aeronave")) or None,
         "comandante_tripulante_id": comandante_id,
         "copiloto_tripulante_id": copiloto_id,
-        "horario_apresentacao": horario_apresentacao.isoformat(timespec="minutes"),
-        "horario_abandono": horario_abandono.isoformat(timespec="minutes"),
+        "horario_apresentacao": horario_apresentacao.isoformat(timespec="minutes") if horario_apresentacao else None,
+        "horario_abandono": horario_abandono.isoformat(timespec="minutes") if horario_abandono else None,
         "pos_exec_min": pos_exec_min,
         "trecho": _clean_text(payload.get("trecho")) or None,
         "houve_pernoite": houve_pernoite,
@@ -264,28 +271,29 @@ def _mission_payload(payload: dict, *, org_id: str, actor_user_id: int | None = 
     return data
 
 
-def _normalize_update_times(data: dict, before_row: dict) -> None:
+def _normalize_update_times(data: dict, before_row: dict, *, require_times: bool = True) -> None:
     if "horario_apresentacao" not in data and "horario_abandono" not in data:
         return
 
     data_missao_raw = data.get("data_missao") or before_row["data_missao"]
     data_missao_date = _parse_date_value(data_missao_raw, label="Data da missao operacional")
-    horario_apresentacao = _parse_datetime_value(
+    parse_time = _parse_datetime_value if require_times else _parse_optional_datetime_value
+    horario_apresentacao = parse_time(
         data.get("horario_apresentacao", before_row.get("horario_apresentacao")),
         base_date=data_missao_date,
         label="Horario de apresentacao",
     )
-    horario_abandono = _parse_datetime_value(
+    horario_abandono = parse_time(
         data.get("horario_abandono", before_row.get("horario_abandono")),
         base_date=data_missao_date,
         label="Horario de abandono",
     )
-    if horario_abandono <= horario_apresentacao:
+    if horario_apresentacao is not None and horario_abandono is not None and horario_abandono <= horario_apresentacao:
         horario_abandono += timedelta(days=1)
     if "horario_apresentacao" in data:
-        data["horario_apresentacao"] = horario_apresentacao.isoformat(timespec="minutes")
+        data["horario_apresentacao"] = horario_apresentacao.isoformat(timespec="minutes") if horario_apresentacao else None
     if "horario_abandono" in data:
-        data["horario_abandono"] = horario_abandono.isoformat(timespec="minutes")
+        data["horario_abandono"] = horario_abandono.isoformat(timespec="minutes") if horario_abandono else None
 
 
 def _serialize_participant(row: dict) -> dict:
@@ -840,10 +848,17 @@ def _affected_calculation_payload(calculation: dict) -> dict:
     }
 
 
-def criar_missao_operacional(payload: dict, *, actor_user_id: int, org_id: str | None = None, db=None) -> dict:
+def criar_missao_operacional(
+    payload: dict,
+    *,
+    actor_user_id: int,
+    org_id: str | None = None,
+    db=None,
+    require_times: bool = True,
+) -> dict:
     resolved_db = _resolve_db(db)
     resolved_org_id = _resolve_org_id(org_id or payload.get("org_id"))
-    data = _mission_payload(payload, org_id=resolved_org_id, actor_user_id=actor_user_id)
+    data = _mission_payload(payload, org_id=resolved_org_id, actor_user_id=actor_user_id, require_times=require_times)
 
     try:
         validar_competencia_aberta_para_mutacao(resolved_db, competencia=data["competencia"], org_id=resolved_org_id)
@@ -997,6 +1012,7 @@ def atualizar_missao_operacional(
     actor_user_id: int,
     org_id: str | None = None,
     db=None,
+    require_times: bool = True,
 ) -> dict:
     resolved_db = _resolve_db(db)
     resolved_org_id = _resolve_org_id(org_id or payload.get("org_id"))
@@ -1017,7 +1033,7 @@ def atualizar_missao_operacional(
                 code="missao_operacional_data_final_invalida",
             )
         data["data_final"] = data_final_date.isoformat()
-    _normalize_update_times(data, before_row)
+    _normalize_update_times(data, before_row, require_times=require_times)
     if "pos_exec_min" in data:
         data["pos_exec_min"] = _normalize_non_negative_int(data.get("pos_exec_min"), label="Pos execucao em minutos")
     if "quantidade_pernoites" in data or "cobertura_base" in data or "houve_pernoite" in data:

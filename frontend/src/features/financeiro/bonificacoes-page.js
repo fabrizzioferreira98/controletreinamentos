@@ -1268,7 +1268,7 @@ function renderPreviewCell(row) {
     return `
       <div class="jornada-preview-line" data-row-preview="${escapeAttr(row.key)}">
         <span class="status-pill status-gray">Sem preview</span>
-        <small>Preencha data, aeronave, tripulação e horários.</small>
+        <small>Preencha data, aeronave e tripulação.</small>
       </div>
     `;
   }
@@ -1338,7 +1338,7 @@ function setGridRowPreview(row, preview) {
 async function runGridRowPreview(row, requestSeq) {
   if (!row?.key || jornadaState.editingRowKey === row.key) return;
   const payload = previewPayloadFromDraft(buildRowDraft(row));
-  const validationMessages = payloadValidationMessages(payload);
+  const validationMessages = payloadValidationMessages(payload, { forPreview: true });
   if (validationMessages.length) {
     setGridRowPreview(row, {
       status: "insufficient",
@@ -1866,16 +1866,22 @@ function previewPayloadFromDraft(draft) {
   };
 }
 
-function missingPreviewFields(payload) {
+function missingSaveFields(payload) {
   return [
     ["data_missao", "data"],
     ["aeronave_id", "aeronave"],
     ["categoria_financeira_aeronave", "tipo/categoria"],
     ["tripulante_id", "tripulante"],
     ["funcao", "função"],
+  ].filter(([key]) => !normalizeText(payload[key])).map(([, label]) => label);
+}
+
+function missingPreviewFields(payload) {
+  const previewOnlyFields = [
     ["horario_apresentacao", "apresentação"],
     ["horario_abandono", "abandono"],
   ].filter(([key]) => !normalizeText(payload[key])).map(([, label]) => label);
+  return [...missingSaveFields(payload), ...previewOnlyFields];
 }
 
 function crewValidationMessages(payload) {
@@ -1890,8 +1896,9 @@ function crewValidationMessages(payload) {
   return messages;
 }
 
-function payloadValidationMessages(payload) {
-  const baseMessages = missingPreviewFields(payload).map((label) => `Faltam: ${label}.`);
+function payloadValidationMessages(payload, { forPreview = false } = {}) {
+  const missingFields = forPreview ? missingPreviewFields(payload) : missingSaveFields(payload);
+  const baseMessages = missingFields.map((label) => `Faltam: ${label}.`);
   return [...crewValidationMessages(payload), ...baseMessages];
 }
 
@@ -1900,7 +1907,7 @@ function schedulePreview(rowElement) {
   if (!key) return;
   const draft = collectDraftFromElement(rowElement);
   const payload = previewPayloadFromDraft(draft);
-  const validationMessages = payloadValidationMessages(payload);
+  const validationMessages = payloadValidationMessages(payload, { forPreview: true });
   window.clearTimeout(previewTimers.get(key));
   if (validationMessages.length) {
     jornadaState.rowPreview[key] = {
@@ -1927,7 +1934,7 @@ function updatePreviewCell(rowElement, key) {
 
 async function runPreview(key, draft) {
   const payload = previewPayloadFromDraft(draft);
-  const validationMessages = payloadValidationMessages(payload);
+  const validationMessages = payloadValidationMessages(payload, { forPreview: true });
   if (validationMessages.length) {
     jornadaState.rowPreview[key] = {
       status: "insufficient",

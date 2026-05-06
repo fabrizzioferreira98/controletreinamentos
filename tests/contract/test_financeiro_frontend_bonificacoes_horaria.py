@@ -114,7 +114,7 @@ def test_financeiro_jornada_preview_states_use_backend_and_guard_races():
         "Preview financeiro pelo backend.",
         "Preview disponível",
         "Sem preview",
-        "Preencha data, aeronave, tripulação e horários.",
+        "Preencha data, aeronave e tripulação.",
         "Competência fechada",
         "Sem permissão financeira",
     ):

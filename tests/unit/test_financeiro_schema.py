@@ -58,8 +58,10 @@ def test_operational_mission_keeps_single_timeline_and_participants_have_no_time
     mission_sql = _table_sql("financeiro_missoes_operacionais")
     participant_sql = _table_sql("financeiro_missao_tripulantes")
 
-    assert "horario_apresentacao TIMESTAMP NOT NULL" in mission_sql
-    assert "horario_abandono TIMESTAMP NOT NULL" in mission_sql
+    assert "horario_apresentacao TIMESTAMP" in mission_sql
+    assert "horario_abandono TIMESTAMP" in mission_sql
+    assert "horario_apresentacao TIMESTAMP NOT NULL" not in mission_sql
+    assert "horario_abandono TIMESTAMP NOT NULL" not in mission_sql
     assert "comandante_tripulante_id INTEGER NOT NULL REFERENCES tripulantes (id)" in mission_sql
     assert "copiloto_tripulante_id INTEGER NOT NULL REFERENCES tripulantes (id)" in mission_sql
     assert "aeronave_id INTEGER REFERENCES equipamentos (id)" in mission_sql

@@ -192,6 +192,18 @@ def test_mission_payload_normaliza_horarios_time_only_da_grade_jornada():
     assert payload["horario_abandono"] == "2026-04-11T01:10"
 
 
+def test_mission_payload_permite_horarios_vazios_para_lancamento_jornada():
+    payload = usecases._mission_payload(
+        _payload(horario_apresentacao="", horario_abandono=""),
+        org_id=FINANCE_ORG_SCOPE_DEFAULT,
+        actor_user_id=55,
+        require_times=False,
+    )
+
+    assert payload["horario_apresentacao"] is None
+    assert payload["horario_abandono"] is None
+
+
 def test_mission_payload_bloqueia_data_final_anterior_e_pos_exec_negativo():
     with pytest.raises(usecases.FinanceiroDominioErro) as invalid_date:
         usecases._mission_payload(

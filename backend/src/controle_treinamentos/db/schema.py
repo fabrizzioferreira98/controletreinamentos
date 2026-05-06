@@ -302,8 +302,8 @@ CREATE TABLE IF NOT EXISTS financeiro_missoes_operacionais (
     categoria_financeira_aeronave TEXT,
     comandante_tripulante_id INTEGER NOT NULL REFERENCES tripulantes (id),
     copiloto_tripulante_id INTEGER NOT NULL REFERENCES tripulantes (id),
-    horario_apresentacao TIMESTAMP NOT NULL,
-    horario_abandono TIMESTAMP NOT NULL,
+    horario_apresentacao TIMESTAMP,
+    horario_abandono TIMESTAMP,
     pos_exec_min INTEGER NOT NULL DEFAULT 0 CHECK (pos_exec_min >= 0),
     trecho TEXT,
     houve_pernoite BOOLEAN NOT NULL DEFAULT FALSE,
@@ -325,7 +325,7 @@ CREATE TABLE IF NOT EXISTS financeiro_missoes_operacionais (
     CONSTRAINT financeiro_missoes_operacionais_periodo_valido
         CHECK (data_final IS NULL OR data_final >= data_missao),
     CONSTRAINT financeiro_missoes_operacionais_horarios_validos
-        CHECK (horario_abandono > horario_apresentacao)
+        CHECK (horario_apresentacao IS NULL OR horario_abandono IS NULL OR horario_abandono > horario_apresentacao)
 );
 
 CREATE TABLE IF NOT EXISTS financeiro_missao_tripulantes (

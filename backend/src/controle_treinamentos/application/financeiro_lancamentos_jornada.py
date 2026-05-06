@@ -191,10 +191,19 @@ def _line_missing_fields(payload: dict) -> list[str]:
         "tripulante_id": payload.get("tripulante_id"),
         "funcao": payload.get("funcao"),
         "aeronave_id": payload.get("aeronave_id"),
-        "hora_apresentacao": payload.get("hora_apresentacao") or payload.get("apresentacao") or payload.get("horario_apresentacao"),
-        "hora_abandono": payload.get("hora_abandono") or payload.get("abandono") or payload.get("horario_abandono"),
     }
     return [key for key, value in required.items() if value in (None, "")]
+
+
+def _optional_payload_text(payload: dict, keys: tuple[str, ...], *, existing: dict | None = None, existing_key: str) -> str | None:
+    for key in keys:
+        if key in payload:
+            value = _text(payload.get(key))
+            return value or None
+    if existing is not None:
+        value = _text(existing.get(existing_key))
+        return value or None
+    return None
 
 
 def _category_from_payload(payload: dict, equipamento: dict | None = None, existing: dict | None = None) -> str:
@@ -1153,8 +1162,18 @@ def _mission_payload_from_journey(
         "categoria_financeira_aeronave": _category_from_payload(payload, equipamento, existing),
         "comandante_tripulante_id": comandante_id,
         "copiloto_tripulante_id": copiloto_id,
-        "horario_apresentacao": _text(payload.get("hora_apresentacao") or payload.get("apresentacao") or payload.get("horario_apresentacao") or (existing or {}).get("horario_apresentacao")),
-        "horario_abandono": _text(payload.get("hora_abandono") or payload.get("abandono") or payload.get("horario_abandono") or (existing or {}).get("horario_abandono")),
+        "horario_apresentacao": _optional_payload_text(
+            payload,
+            ("hora_apresentacao", "apresentacao", "horario_apresentacao"),
+            existing=existing,
+            existing_key="horario_apresentacao",
+        ),
+        "horario_abandono": _optional_payload_text(
+            payload,
+            ("hora_abandono", "abandono", "horario_abandono"),
+            existing=existing,
+            existing_key="horario_abandono",
+        ),
         "pos_exec_min": pos_exec_min,
         "trecho": _optional_text(payload.get("trecho") if "trecho" in payload else (existing or {}).get("trecho")),
         "houve_pernoite": quantidade_pernoites > 0,
@@ -1255,7 +1274,13 @@ def criar_linha_jornada(payload: dict, *, actor_user_id: int, org_id: str | None
     resolved_org_id = _resolve_org_id(org_id or payload.get("org_id"))
     data = _mission_payload_from_journey(payload, org_id=resolved_org_id, actor_user_id=actor_user_id, db=resolved_db)
     validar_competencia_aberta_para_mutacao(resolved_db, competencia=data["competencia"], org_id=resolved_org_id)
-    mission = criar_missao_operacional(data, actor_user_id=actor_user_id, org_id=resolved_org_id, db=resolved_db)
+    mission = criar_missao_operacional(
+        data,
+        actor_user_id=actor_user_id,
+        org_id=resolved_org_id,
+        db=resolved_db,
+        require_times=False,
+    )
     recalculation = _recalculate_after_journey_save(
         _int(mission.get("id")),
         actor_user_id=actor_user_id,
@@ -1326,6 +1351,7 @@ def atualizar_linha_jornada(linha_id: int, payload: dict, *, actor_user_id: int,
         actor_user_id=actor_user_id,
         org_id=resolved_org_id,
         db=resolved_db,
+        require_times=False,
     )
     recalculation = _recalculate_after_journey_save(
         _int(before_row.get("missao_operacional_id")),
