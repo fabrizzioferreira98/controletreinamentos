@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Equipamentos</h1>
+        <p class="page-subtitle">Mantenha aqui os equipamentos usados nos treinamentos da operação.</p>
+    </div>
+    {% if can_access('equipamentos:create') %}
+    <a class="button-link" href="{{ url_for('cadastros.equipamentos_new') }}">Adicionar equipamento</a>
+    {% endif %}
+</div>
+<section class="panel">
+    <div class="table-wrap">
+        <table class="data-table responsive-cards">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Tipo</th>
+                    <th>Categoria financeira</th>
+                    <th>Ativo</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in equipamentos %}
+                <tr>
+                    <td data-label="Nome"><div class="primary-cell">{{ row.nome }}</div></td>
+                    <td data-label="Tipo">{{ row.tipo }}</td>
+                    <td data-label="Categoria financeira">
+                        {% if row.categoria_financeira == 'a' %}Categoria A
+                        {% elif row.categoria_financeira == 'b' %}Categoria B
+                        {% elif row.categoria_financeira == 'turbohelice_palmas' %}Turbo-helice Palmas
+                        {% elif row.categoria_financeira == 'nao_aplicavel' %}Nao aplicavel
+                        {% else %}-{% endif %}
+                    </td>
+                    <td data-label="Ativo"><span class="status-pill {% if row.ativo %}status-green{% else %}status-gray{% endif %}">{{ "Ativo" if row.ativo else "Inativo" }}</span></td>
+                    <td class="actions" data-label="Ações">
+                        {% if can_access('equipamentos:edit') %}
+                        <a href="{{ url_for('cadastros.equipamentos_edit', equipamento_id=row.id) }}">Editar</a>
+                        {% endif %}
+                        {% if can_access('equipamentos:delete') %}
+                        <form method="post" action="{{ url_for('cadastros.equipamentos_delete', equipamento_id=row.id) }}" onsubmit="return confirm('Excluir este equipamento?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="link-danger">Excluir</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="empty">Ainda não há equipamentos cadastrados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="pagination-bar">
+        <div class="pagination-meta">Página {{ pagination.page }} de {{ pagination.pages }} · {{ pagination.total }} registros</div>
+        <div class="pagination-actions">
+            {% if pagination.has_prev %}
+            <a class="button-link secondary" href="{{ pagination.prev_url }}">Anterior</a>
+            {% endif %}
+            {% if pagination.has_next %}
+            <a class="button-link secondary" href="{{ pagination.next_url }}">Próxima</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

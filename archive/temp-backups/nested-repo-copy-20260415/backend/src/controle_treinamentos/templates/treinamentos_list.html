@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Treinamentos</h1>
+        <p class="page-subtitle">Acompanhe o que já venceu, o que vence em breve e o que está regular.</p>
+    </div>
+    {% if can_access('treinamentos:create') %}
+    <a class="button-link" href="{{ url_for('cadastros.treinamentos_new') }}">Adicionar treinamento</a>
+    {% endif %}
+</div>
+
+<section class="panel">
+    <div class="quick-filters">
+        <a class="quick-filter {% if filtros.periodo == '30' %}active{% endif %}" href="{{ url_for('cadastros.treinamentos_list', tripulante=filtros.tripulante, equipamento=filtros.equipamento, tipo=filtros.tipo, status=filtros.status, periodo='30') }}">30 dias</a>
+        <a class="quick-filter {% if filtros.periodo == '60' %}active{% endif %}" href="{{ url_for('cadastros.treinamentos_list', tripulante=filtros.tripulante, equipamento=filtros.equipamento, tipo=filtros.tipo, status=filtros.status, periodo='60') }}">60 dias</a>
+        <a class="quick-filter {% if filtros.periodo == '90' %}active{% endif %}" href="{{ url_for('cadastros.treinamentos_list', tripulante=filtros.tripulante, equipamento=filtros.equipamento, tipo=filtros.tipo, status=filtros.status, periodo='90') }}">90 dias</a>
+    </div>
+
+    <div class="filters-toggle-row print-hide">
+        <button type="button" class="button-link secondary filters-toggle-btn" id="trainingFiltersToggle" aria-expanded="false" aria-controls="trainingFiltersPanel">Mostrar filtros detalhados</button>
+    </div>
+
+    <div class="filters-panel {% if filtros.tripulante or filtros.equipamento or filtros.tipo or filtros.status or filtros.periodo %}{% else %}collapsed{% endif %}" id="trainingFiltersPanel">
+        <form class="filters filters-wide" method="get">
+            <select name="tripulante">
+                <option value="">Tripulante</option>
+                {% for row in tripulantes %}
+                <option value="{{ row.id }}" {% if filtros.tripulante == row.id|string %}selected{% endif %}>{{ row.nome }}</option>
+                {% endfor %}
+            </select>
+            <select name="equipamento">
+                <option value="">Equipamento</option>
+                {% for row in equipamentos %}
+                <option value="{{ row.id }}" {% if filtros.equipamento == row.id|string %}selected{% endif %}>{{ row.nome }}</option>
+                {% endfor %}
+            </select>
+            <select name="tipo">
+                <option value="">Tipo de treinamento</option>
+                {% for row in tipos %}
+                <option value="{{ row.id }}" {% if filtros.tipo == row.id|string %}selected{% endif %}>{{ row.nome }}</option>
+                {% endfor %}
+            </select>
+            <select name="status">
+                <option value="">Status</option>
+                {% for item in ["vencido", "a vencer", "regular", "sem informação"] %}
+                <option value="{{ item }}" {% if filtros.status == item %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+            <select name="periodo">
+                <option value="">Período de vencimento</option>
+                <option value="7" {% if filtros.periodo == "7" %}selected{% endif %}>Até 7 dias</option>
+                <option value="30" {% if filtros.periodo == "30" %}selected{% endif %}>Até 30 dias</option>
+                <option value="60" {% if filtros.periodo == "60" %}selected{% endif %}>Até 60 dias</option>
+                <option value="90" {% if filtros.periodo == "90" %}selected{% endif %}>Até 90 dias</option>
+                <option value="expired" {% if filtros.periodo == "expired" %}selected{% endif %}>Vencidos</option>
+            </select>
+            <button type="submit">Aplicar filtros</button>
+            <a class="button-link secondary" href="{{ url_for('cadastros.treinamentos_list') }}">Limpar filtros</a>
+        </form>
+    </div>
+
+    <section class="summary-grid compact-summary-grid">
+        <div class="summary-card"><strong>Total</strong><span>{{ resumo.total }}</span></div>
+        <div class="summary-card"><strong>Vencidos</strong><span>{{ resumo.vencido }}</span></div>
+        <div class="summary-card"><strong>A vencer</strong><span>{{ resumo["a vencer"] }}</span></div>
+        <div class="summary-card"><strong>Regulares</strong><span>{{ resumo.regular }}</span></div>
+    </section>
+
+    <div class="table-wrap">
+        <table class="data-table responsive-cards">
+            <thead>
+                <tr>
+                    <th>Tripulante</th>
+                    <th>Equipamento</th>
+                    <th>Tipo de treinamento</th>
+                    <th>Realização</th>
+                    <th>Vencimento</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in treinamentos %}
+                <tr>
+                    <td data-label="Tripulante"><div class="primary-cell">{{ row.tripulante_nome }}</div></td>
+                    <td data-label="Equipamento">{{ row.equipamento_nome or "-" }}</td>
+                    <td data-label="Tipo de treinamento">{{ row.tipo_treinamento_nome }}</td>
+                    <td data-label="Realização">{{ row.data_realizacao|br_date }}</td>
+                    <td data-label="Vencimento"><span class="date-strong">{{ row.data_vencimento|br_date }}</span></td>
+                    <td data-label="Status"><span class="status-pill {{ row.status_class }}">{{ row.status_calculado }}</span></td>
+                    <td class="actions" data-label="Ações">
+                        {% if can_access('treinamentos:edit') %}
+                        <a href="{{ url_for('cadastros.treinamentos_edit', treinamento_id=row.id) }}">Editar</a>
+                        {% endif %}
+                        {% if can_access('treinamentos:delete') %}
+                        <form method="post" action="{{ url_for('cadastros.treinamentos_delete', treinamento_id=row.id) }}" onsubmit="return confirm('Excluir este treinamento?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="link-danger">Excluir</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="empty">Nenhum treinamento encontrado com os filtros atuais.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination-bar">
+        <div class="pagination-meta">Página {{ pagination.page }} de {{ pagination.pages }} · {{ pagination.total }} registros</div>
+        <div class="pagination-actions">
+            {% if pagination.has_prev %}
+            <a class="button-link secondary" href="{{ pagination.prev_url }}">Anterior</a>
+            {% endif %}
+            {% if pagination.has_next %}
+            <a class="button-link secondary" href="{{ pagination.next_url }}">Próxima</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+(() => {
+    const toggle = document.getElementById("trainingFiltersToggle");
+    const panel = document.getElementById("trainingFiltersPanel");
+    if (!toggle || !panel) return;
+    const mobileQuery = window.matchMedia("(max-width: 900px)");
+
+    function syncCollapsedState() {
+        const shouldCollapse = mobileQuery.matches;
+        if (!shouldCollapse) {
+            panel.classList.remove("collapsed");
+            toggle.setAttribute("aria-expanded", "true");
+            toggle.textContent = "Filtros detalhados";
+            return;
+        }
+
+        const expanded = !panel.classList.contains("collapsed");
+        toggle.setAttribute("aria-expanded", String(expanded));
+        toggle.textContent = expanded ? "Ocultar filtros detalhados" : "Mostrar filtros detalhados";
+    }
+
+    toggle.addEventListener("click", () => {
+        panel.classList.toggle("collapsed");
+        syncCollapsedState();
+    });
+
+    syncCollapsedState();
+    if (typeof mobileQuery.addEventListener === "function") {
+        mobileQuery.addEventListener("change", syncCollapsedState);
+    } else {
+        window.addEventListener("resize", syncCollapsedState, { passive: true });
+    }
+})();
+</script>
+{% endblock %}

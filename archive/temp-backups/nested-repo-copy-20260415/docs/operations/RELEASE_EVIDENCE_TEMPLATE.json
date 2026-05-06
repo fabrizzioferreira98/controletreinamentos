@@ -1,0 +1,63 @@
+{
+  "generated_at": "2026-03-29T00:00:00Z",
+  "environment": "homolog",
+  "release_id": "release_YYYYMMDD_HHMMSS",
+  "commit_sha": "preencha_commit_sha",
+  "artifacts_sha256": {
+    "C:/srv-data/controle-treinamentos/<env>/evidence/<release_id>/e2e/e2e_run_1.txt": "sha256_hex_aqui"
+  },
+  "signature_hmac_sha256": "assinatura_hmac_sha256_obrigatoria",
+  "checks": {
+    "e2e_homolog": {
+      "status": "PASS",
+      "artifacts": [
+        "C:/srv-data/controle-treinamentos/<env>/evidence/<release_id>/e2e/e2e_run_1.txt",
+        "C:/srv-data/controle-treinamentos/<env>/evidence/<release_id>/e2e/e2e_run_2.txt"
+      ],
+      "notes": "Duas execucoes consecutivas em homolog."
+    },
+    "load_authenticated_20w": {
+      "status": "PASS",
+      "artifacts": ["C:/srv-data/controle-treinamentos/<env>/evidence/<release_id>/perf/load_auth_20w.json"]
+    },
+    "load_authenticated_30w": {
+      "status": "PASS",
+      "artifacts": ["C:/srv-data/controle-treinamentos/<env>/evidence/<release_id>/perf/load_auth_30w.json"]
+    },
+    "jobs_concurrency_retry_dead_letter": {
+      "status": "PASS",
+      "artifacts": ["C:/srv-data/controle-treinamentos/<env>/evidence/<release_id>/jobs/jobs_concurrency_drill.json"]
+    },
+    "alerts_external_e2e": {
+      "status": "PASS",
+      "artifacts": ["C:/srv-data/controle-treinamentos/<env>/evidence/<release_id>/alerts/alerts_external_drill.json"],
+      "notes": "Payload deve incluir acknowledged=true, acknowledged_by e escalation_target."
+    },
+    "backup_restore_drill": {
+      "status": "PASS",
+      "artifacts": ["C:/srv-data/controle-treinamentos/<env>/evidence/<release_id>/backup/backup_restore_drill.json"]
+    },
+    "rollback_drill": {
+      "status": "PASS",
+      "artifacts": [
+        "C:/srv-data/controle-treinamentos/<env>/evidence/<release_id>/rollback/smoke_A_before.json",
+        "C:/srv-data/controle-treinamentos/<env>/evidence/<release_id>/rollback/smoke_B_after_rollback.json",
+        "C:/srv-data/controle-treinamentos/<env>/evidence/<release_id>/rollback/smoke_A_after_forward.json",
+        "C:/srv-data/controle-treinamentos/<env>/evidence/<release_id>/rollback/rollback_runtime_ids.json"
+      ]
+    },
+    "post_deploy_smoke": {
+      "status": "PASS",
+      "artifacts": ["C:/srv-data/controle-treinamentos/<env>/evidence/<release_id>/smoke/post_deploy_smoke.json"]
+    },
+    "metrics_hardening": {
+      "status": "PASS",
+      "artifacts": [
+        "C:/srv-data/controle-treinamentos/<env>/evidence/<release_id>/metrics/metrics_hardening.json",
+        "C:/srv-data/controle-treinamentos/<env>/evidence/<release_id>/metrics/metrics_no_token.json",
+        "C:/srv-data/controle-treinamentos/<env>/evidence/<release_id>/metrics/metrics_bad_token.json",
+        "C:/srv-data/controle-treinamentos/<env>/evidence/<release_id>/metrics/metrics_ok.json"
+      ]
+    }
+  }
+}

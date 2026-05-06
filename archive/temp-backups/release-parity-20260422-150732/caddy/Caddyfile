@@ -1,0 +1,117 @@
+﻿{
+    admin off
+}
+
+(common_security) {
+    encode zstd gzip
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}
+
+controle.brasilvida.app.br, app.brasilvida.app.br {
+    import common_security
+    root * C:/srv/controle-treinamentos/frontend/prod
+
+    @frontend_entry {
+        method GET HEAD
+        path / /login /logout
+    }
+    handle @frontend_entry {
+        rewrite * /index.html
+        file_server
+    }
+
+    @frontend_assets path /index.html /app.css /app.js /config.js /lib.js /shell.js /pages-dashboard-tripulantes.js /pages-treinamentos-relatorios.js /pages-training-workspace.js
+    handle @frontend_assets {
+        file_server
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:8101
+    }
+
+    log {
+        output file C:/srv/controle-treinamentos/logs/caddy/prod-access.log
+        format console
+    }
+}
+
+teste.brasilvida.app.br {
+    import common_security
+    root * C:/srv/controle-treinamentos/frontend/hml
+
+    @frontend_entry {
+        method GET HEAD
+        path / /login /logout
+    }
+    handle @frontend_entry {
+        rewrite * /index.html
+        file_server
+    }
+
+    @frontend_assets path /index.html /app.css /app.js /config.js /lib.js /shell.js /pages-dashboard-tripulantes.js /pages-treinamentos-relatorios.js /pages-training-workspace.js
+    handle @frontend_assets {
+        file_server
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:8102
+    }
+
+    log {
+        output file C:/srv/controle-treinamentos/logs/caddy/hml-access.log
+        format console
+    }
+}
+
+http://192.168.25.33 {
+    import common_security
+    root * C:/srv/controle-treinamentos/frontend/prod
+
+    @frontend_entry {
+        method GET HEAD
+        path / /login /logout
+    }
+    handle @frontend_entry {
+        rewrite * /index.html
+        file_server
+    }
+
+    @frontend_assets path /index.html /app.css /app.js /config.js /lib.js /shell.js /pages-dashboard-tripulantes.js /pages-treinamentos-relatorios.js /pages-training-workspace.js
+    handle @frontend_assets {
+        file_server
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:8101
+    }
+}
+
+http://192.168.25.33:8082 {
+    import common_security
+    root * C:/srv/controle-treinamentos/frontend/hml
+
+    @frontend_entry {
+        method GET HEAD
+        path / /login /logout
+    }
+    handle @frontend_entry {
+        rewrite * /index.html
+        file_server
+    }
+
+    @frontend_assets path /index.html /app.css /app.js /config.js /lib.js /shell.js /pages-dashboard-tripulantes.js /pages-treinamentos-relatorios.js /pages-training-workspace.js
+    handle @frontend_assets {
+        file_server
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:8102
+    }
+}
+
+
+

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ "Editar pernoite" if pernoite else "Registrar pernoite" }}</h1>
+        <p class="page-subtitle">Registre cobertura de base e pernoites operacionais para cálculo mensal confiável.</p>
+    </div>
+</div>
+
+<form method="post" class="form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <section class="form-section">
+        <h2 class="form-section-title">Lançamento operacional</h2>
+        <p class="form-section-subtitle">Vincule ao tripulante e registre o pernoite operacional.</p>
+    </section>
+    <label>
+        Tripulante
+        <select name="tripulante_id" required>
+            <option value="">Selecione</option>
+            {% for row in tripulantes %}
+            <option value="{{ row.id }}" {% if pernoite and pernoite.tripulante_id|string == row.id|string %}selected{% endif %}>{{ row.nome }} · {{ row.base }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>Data do pernoite<input type="date" name="data_pernoite" value="{{ pernoite.data_pernoite if pernoite else '' }}" required></label>
+    <label>
+        Tipo de pernoite
+        <select name="tipo_pernoite" required>
+            {% for item in tipo_options %}
+            <option value="{{ item }}" {% if (pernoite and pernoite.tipo_pernoite == item) or (not pernoite and item == 'cobertura_base') %}selected{% endif %}>{{ item.replace('_', ' ')|title }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>Quantidade<input type="number" min="1" step="1" name="quantidade" value="{{ pernoite.quantidade if pernoite else 1 }}" required></label>
+    <label class="full-width">Observações<textarea name="observacoes">{{ pernoite.observacoes if pernoite else '' }}</textarea></label>
+    <div class="form-actions full-width">
+        <button type="submit">Salvar</button>
+        <a class="button-link secondary" href="{{ url_for('operacoes.pernoites_list') }}">Voltar</a>
+    </div>
+</form>
+{% endblock %}

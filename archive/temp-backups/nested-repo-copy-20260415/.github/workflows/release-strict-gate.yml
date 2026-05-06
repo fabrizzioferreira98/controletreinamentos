@@ -1,0 +1,57 @@
+name: release-strict-gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "URL alvo do release (homolog/staging/prod)"
+        required: true
+        type: string
+      evidence_manifest:
+        description: "Caminho do manifest de evidências"
+        required: true
+        default: ""
+        type: string
+      regression_checklist:
+        description: "Caminho do checklist de regressão"
+        required: true
+        default: "docs/operations/REGRESSION_AUDIT_CHECKLIST.md"
+        type: string
+      evidence_max_age_hours:
+        description: "Janela máxima do manifest (horas)"
+        required: true
+        default: "24"
+        type: string
+
+jobs:
+  strict-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      E2E_DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
+      E2E_LOGIN: ${{ secrets.E2E_LOGIN }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      RELEASE_EVIDENCE_SIGNING_KEY: ${{ secrets.RELEASE_EVIDENCE_SIGNING_KEY }}
+      METRICS_TOKEN: ${{ secrets.METRICS_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -r requirements.txt
+
+      - name: Run strict release gate
+        run: |
+          .venv/bin/python ops/scripts/release/run_release_strict.py \
+            --base-url "${{ inputs.base_url }}" \
+            --evidence-manifest "${{ inputs.evidence_manifest }}" \
+            --regression-checklist "${{ inputs.regression_checklist }}" \
+            --evidence-max-age-hours "${{ inputs.evidence_max_age_hours }}"

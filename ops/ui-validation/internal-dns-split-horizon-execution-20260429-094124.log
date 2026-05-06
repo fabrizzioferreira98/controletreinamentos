@@ -1,0 +1,29 @@
+﻿**********************
+Início da transcrição do Windows PowerShell
+Hora de início: 20260429094124
+Nome de Usuário: BRASILVIDA\Fabrizzio.araujo
+Executar como Usuário: BRASILVIDA\Fabrizzio.araujo
+Nome da Configuração: 
+Computador: DESKTOP-9KM25F0 (Microsoft Windows NT 10.0.19045.0)
+Aplicativo Host: C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\apps\controle-treinamentos\ops\ui-validation\Invoke-InternalSplitDns-Control.ps1
+ID do Processo: 24524
+PSVersion: 5.1.19041.6456
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.19041.6456
+BuildVersion: 10.0.19041.6456
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+
+Credencial administrativa do DNS interno sera solicitada pelo Windows.
+Destino: DNS-BRVIDA.brasilvida.local
+Mudanca: controle.brasilvida.app.br -> 192.168.25.33
+
+PS>TerminatingError(Invoke-Command): "Não é possível associar o argumento ao parâmetro 'Credential' porque ele é nulo."
+>> TerminatingError(Invoke-InternalSplitDns-Control.ps1): "O comando em execução parou porque a variável preferencial "ErrorActionPreference" ou o parâmetro comum está definido como Stop: Não é possível associar o argumento ao parâmetro 'Credential' porque ele é nulo."
+**********************
+Fim da transcrição do Windows PowerShell
+Hora de término: 20260429094159
+**********************

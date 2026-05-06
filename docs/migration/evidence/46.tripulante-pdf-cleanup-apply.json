@@ -1,0 +1,227 @@
+{
+  "generated_at": "2026-04-28T12:10:47.401113Z",
+  "operation_id": "20260428T121047Z",
+  "mode": "apply_tripulante_pdf_cleanup",
+  "confirmed": true,
+  "destructive_execution_started": true,
+  "status": "completed",
+  "preflight": {
+    "dry_run_evidence": "docs\\migration\\evidence\\45.tripulante-pdf-cleanup-dry-run.json",
+    "same_signature": true,
+    "signature_diff": {},
+    "current_summary": {
+      "records_total": 19,
+      "records_by_status": {
+        "ativo": 13,
+        "removido": 6
+      },
+      "records_by_classification": {
+        "ativo_com_blob_disponivel": 1,
+        "irrecuperavel_confirmado": 12,
+        "removido_logicamente": 6
+      },
+      "active_with_blob_available": 1,
+      "active_without_blob": 12,
+      "removed_logically": 6,
+      "removed_logically_with_blob": 2,
+      "removed_logically_without_blob": 4,
+      "substituido": 0,
+      "legacy_fs_refs": 18,
+      "legacy_fs_refs_available": 2,
+      "legacy_fs_refs_missing_blob": 16,
+      "canonical_fs_refs": 1,
+      "db_blob_rows": 2,
+      "db_blob_bytes": 453018,
+      "referenced_physical_files_existing": 2,
+      "referenced_physical_bytes": 503608,
+      "orphan_storage_files": 0,
+      "orphan_storage_bytes": 0,
+      "blocked_by_acl": 0,
+      "missing_blob_records": 16,
+      "irrecoverable_confirmed": 12
+    },
+    "current_dry_run": {
+      "destructive_execution": false,
+      "strategy_candidate": "hard_delete_metadata_after_evidence_plus_physical_delete_available_blobs",
+      "database_rows_that_would_be_deleted": 19,
+      "database_blob_rows_that_would_be_removed_by_row_delete": 2,
+      "physical_files_that_would_be_deleted": 2,
+      "physical_paths_that_would_be_deleted": [
+        "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\31-fabrizzio-ferreira-araujo\\documentos\\d70665e5fb6e4cd9ba8dc759bd42b8f0_Relatorio_de_Voo_2024_1.pdf",
+        "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\tripulante-10\\documentos\\documento-d1e9053451374977ba7551719fadb2c0.pdf"
+      ],
+      "metadata_only_rows_due_to_missing_blob": 16,
+      "already_removed_records_that_would_be_deleted_from_metadata": 6,
+      "pending_due_to_acl": 0,
+      "pending_due_to_missing_blob": 0,
+      "pending_total": 0
+    }
+  },
+  "locked_preflight": {
+    "locked_rows_compatible": true,
+    "locked_diff": {}
+  },
+  "deleted_ids": [
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45
+  ],
+  "physical_files": [
+    {
+      "original_path": "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\31-fabrizzio-ferreira-araujo\\documentos\\d70665e5fb6e4cd9ba8dc759bd42b8f0_Relatorio_de_Voo_2024_1.pdf",
+      "quarantine_path": "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\31-fabrizzio-ferreira-araujo\\documentos\\d70665e5fb6e4cd9ba8dc759bd42b8f0_Relatorio_de_Voo_2024_1.pdf.delete-20260428T121047Z.quarantine",
+      "stage_status": "staged",
+      "final_delete_status": "deleted",
+      "error": ""
+    },
+    {
+      "original_path": "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\tripulante-10\\documentos\\documento-d1e9053451374977ba7551719fadb2c0.pdf",
+      "quarantine_path": "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\tripulante-10\\documentos\\documento-d1e9053451374977ba7551719fadb2c0.pdf.delete-20260428T121047Z.quarantine",
+      "stage_status": "staged",
+      "final_delete_status": "deleted",
+      "error": ""
+    }
+  ],
+  "postcheck": {
+    "tripulante_arquivos_pdf_count": 0,
+    "physical_paths_exist_after": {
+      "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\31-fabrizzio-ferreira-araujo\\documentos\\d70665e5fb6e4cd9ba8dc759bd42b8f0_Relatorio_de_Voo_2024_1.pdf": false,
+      "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\tripulante-10\\documentos\\documento-d1e9053451374977ba7551719fadb2c0.pdf": false
+    },
+    "quarantine_paths_exist_after": {
+      "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\31-fabrizzio-ferreira-araujo\\documentos\\d70665e5fb6e4cd9ba8dc759bd42b8f0_Relatorio_de_Voo_2024_1.pdf.delete-20260428T121047Z.quarantine": false,
+      "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\tripulante-10\\documentos\\documento-d1e9053451374977ba7551719fadb2c0.pdf.delete-20260428T121047Z.quarantine": false
+    },
+    "recent_cleanup_audit_rows": [
+      {
+        "entidade_id": 27,
+        "realizado_em": "2026-04-28T09:10:47.564625"
+      },
+      {
+        "entidade_id": 28,
+        "realizado_em": "2026-04-28T09:10:47.564625"
+      },
+      {
+        "entidade_id": 29,
+        "realizado_em": "2026-04-28T09:10:47.564625"
+      },
+      {
+        "entidade_id": 30,
+        "realizado_em": "2026-04-28T09:10:47.564625"
+      },
+      {
+        "entidade_id": 31,
+        "realizado_em": "2026-04-28T09:10:47.564625"
+      },
+      {
+        "entidade_id": 32,
+        "realizado_em": "2026-04-28T09:10:47.564625"
+      },
+      {
+        "entidade_id": 33,
+        "realizado_em": "2026-04-28T09:10:47.564625"
+      },
+      {
+        "entidade_id": 34,
+        "realizado_em": "2026-04-28T09:10:47.564625"
+      },
+      {
+        "entidade_id": 35,
+        "realizado_em": "2026-04-28T09:10:47.564625"
+      },
+      {
+        "entidade_id": 36,
+        "realizado_em": "2026-04-28T09:10:47.564625"
+      },
+      {
+        "entidade_id": 37,
+        "realizado_em": "2026-04-28T09:10:47.564625"
+      },
+      {
+        "entidade_id": 38,
+        "realizado_em": "2026-04-28T09:10:47.564625"
+      },
+      {
+        "entidade_id": 39,
+        "realizado_em": "2026-04-28T09:10:47.564625"
+      },
+      {
+        "entidade_id": 40,
+        "realizado_em": "2026-04-28T09:10:47.564625"
+      },
+      {
+        "entidade_id": 41,
+        "realizado_em": "2026-04-28T09:10:47.564625"
+      },
+      {
+        "entidade_id": 42,
+        "realizado_em": "2026-04-28T09:10:47.564625"
+      },
+      {
+        "entidade_id": 43,
+        "realizado_em": "2026-04-28T09:10:47.564625"
+      },
+      {
+        "entidade_id": 44,
+        "realizado_em": "2026-04-28T09:10:47.564625"
+      },
+      {
+        "entidade_id": 45,
+        "realizado_em": "2026-04-28T09:10:47.564625"
+      }
+    ]
+  },
+  "final_inventory_summary": {
+    "records_total": 0,
+    "records_by_status": {},
+    "records_by_classification": {},
+    "active_with_blob_available": 0,
+    "active_without_blob": 0,
+    "removed_logically": 0,
+    "removed_logically_with_blob": 0,
+    "removed_logically_without_blob": 0,
+    "substituido": 0,
+    "legacy_fs_refs": 0,
+    "legacy_fs_refs_available": 0,
+    "legacy_fs_refs_missing_blob": 0,
+    "canonical_fs_refs": 0,
+    "db_blob_rows": 0,
+    "db_blob_bytes": 0,
+    "referenced_physical_files_existing": 0,
+    "referenced_physical_bytes": 0,
+    "orphan_storage_files": 0,
+    "orphan_storage_bytes": 0,
+    "blocked_by_acl": 0,
+    "missing_blob_records": 0,
+    "irrecoverable_confirmed": 0
+  },
+  "final_inventory_dry_run": {
+    "destructive_execution": false,
+    "strategy_candidate": "hard_delete_metadata_after_evidence_plus_physical_delete_available_blobs",
+    "database_rows_that_would_be_deleted": 0,
+    "database_blob_rows_that_would_be_removed_by_row_delete": 0,
+    "physical_files_that_would_be_deleted": 0,
+    "physical_paths_that_would_be_deleted": [],
+    "metadata_only_rows_due_to_missing_blob": 0,
+    "already_removed_records_that_would_be_deleted_from_metadata": 0,
+    "pending_due_to_acl": 0,
+    "pending_due_to_missing_blob": 0,
+    "pending_total": 0
+  }
+}

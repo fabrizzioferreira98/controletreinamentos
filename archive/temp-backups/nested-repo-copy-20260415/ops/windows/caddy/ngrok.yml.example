@@ -1,0 +1,44 @@
+# ngrok Agent Configuration v3
+# Referencia oficial:
+# https://ngrok.com/docs/agent/config/v3
+#
+# Como usar:
+# 1. Copie este arquivo para C:\srv\controle-treinamentos\ngrok\ngrok.yml
+# 2. Troque NGROK_AUTHTOKEN_AQUI pelo seu authtoken real
+# 3. Troque a senha do basic-auth de homologacao
+# 4. Valide com:
+#    ngrok config check --config C:\srv\controle-treinamentos\ngrok\ngrok.yml
+# 5. Inicie com:
+#    ngrok start --all --config C:\srv\controle-treinamentos\ngrok\ngrok.yml
+
+version: 3
+
+agent:
+  authtoken: NGROK_AUTHTOKEN_AQUI
+  update_channel: stable
+  update_check: true
+  log_level: info
+  web_addr: 127.0.0.1:4040
+
+endpoints:
+  - name: ct-prod
+    description: Controle Treinamentos - Producao
+    metadata: ambiente=prod
+    upstream:
+      url: http://127.0.0.1:8101
+      protocol: http1
+
+  - name: ct-hml
+    description: Controle Treinamentos - Homologacao
+    metadata: ambiente=hml
+    traffic_policy:
+      on_http_request:
+        - actions:
+            - type: basic-auth
+              config:
+                realm: controle-hml
+                credentials:
+                  - "hmladmin:TROQUE_POR_UMA_SENHA_FORTE"
+    upstream:
+      url: http://127.0.0.1:8102
+      protocol: http1

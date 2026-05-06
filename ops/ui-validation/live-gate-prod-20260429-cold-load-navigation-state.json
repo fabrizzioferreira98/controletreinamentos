@@ -1,0 +1,199 @@
+﻿{
+    "generated_at":  "2026-04-29T02:38:22.9409195Z",
+    "environment":  "production",
+    "domain":  "controle.brasilvida.app.br",
+    "dns":  {
+                "Name":  "controle.brasilvida.app.br",
+                "Type":  1,
+                "IPAddress":  "201.16.254.25",
+                "NameHost":  null
+            },
+    "tcp_443":  {
+                    "remote_address":  "201.16.254.25",
+                    "tcp_test_succeeded":  false,
+                    "ping_succeeded":  true,
+                    "source_address":  null
+                },
+    "workspace_dist_build":  "20260428-195745",
+    "workspace_entrypoints":  {
+                                  "app.js":  "app.20260428-195745.f503f1a49298.js",
+                                  "app.css":  "app.20260428-195745.e292ee36887c.css",
+                                  "config.js":  "config.20260428-195745.765770e42a79.js"
+                              },
+    "probes":  [
+                   {
+                       "url":  "https://controle.brasilvida.app.br/",
+                       "method":  "GET",
+                       "status":  0,
+                       "ok":  false,
+                       "error":  "O tempo limite da operação foi atingido.",
+                       "duration_ms":  20032,
+                       "headers":  {
+
+                                   },
+                       "body_sample":  ""
+                   },
+                   {
+                       "url":  "http://controle.brasilvida.app.br/",
+                       "method":  "GET",
+                       "status":  200,
+                       "ok":  true,
+                       "error":  "",
+                       "duration_ms":  151,
+                       "headers":  {
+                                       "content-type":  "text/html; charset=UTF-8",
+                                       "cache-control":  "no-store, no-cache, must-revalidate",
+                                       "location":  null,
+                                       "etag":  null,
+                                       "server":  "nginx"
+                                   },
+                       "body_sample":  " \u003c!DOCTYPE html\u003e \u003chtml lang=\"en\"\u003e \t\u003chead\u003e \t\t\u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1\"\u003e \t    \u003clink rel=\"stylesheet\" href=\"/vendor/bootstrap/css/bootstrap.min.css\" type=\"text/css\"\u003e \t    \u003clink rel=\"stylesheet\" href=\"/css/login.css?v=1756397406\" type=\"text/css\"\u003e \t\t\u003ctitle\u003eError\u003c/title\u003e \t\u003cscript type=\"text/javascript\"\u003eif (top != self) {top.location.href = self.location.href;}\u003c/script\u003e\u003cscript type=\"text/javascript\"\u003evar csrfMagicToken = \"sid:a5f70c7ecc1984b152110f439c2a0bf644a2f09d,1777430699;ip:7485705ec5b0d8e122010203063138ab74aa43fe,1777430699\";var csrfMagicName = \"__csrf_"
+                   },
+                   {
+                       "url":  "http://controle.brasilvida.app.br/index.html",
+                       "method":  "GET",
+                       "status":  404,
+                       "ok":  false,
+                       "error":  "O servidor remoto retornou um erro: (404) Não Localizado.",
+                       "duration_ms":  72,
+                       "headers":  {
+                                       "content-type":  "text/html",
+                                       "cache-control":  null,
+                                       "location":  null,
+                                       "etag":  "\"68b07f5e-762\"",
+                                       "server":  "nginx"
+                                   },
+                       "body_sample":  ""
+                   },
+                   {
+                       "url":  "http://controle.brasilvida.app.br/asset-manifest.json",
+                       "method":  "GET",
+                       "status":  404,
+                       "ok":  false,
+                       "error":  "O servidor remoto retornou um erro: (404) Não Localizado.",
+                       "duration_ms":  15,
+                       "headers":  {
+                                       "content-type":  "text/html",
+                                       "cache-control":  null,
+                                       "location":  null,
+                                       "etag":  "\"68b07f5e-762\"",
+                                       "server":  "nginx"
+                                   },
+                       "body_sample":  ""
+                   },
+                   {
+                       "url":  "http://controle.brasilvida.app.br/login",
+                       "method":  "GET",
+                       "status":  404,
+                       "ok":  false,
+                       "error":  "O servidor remoto retornou um erro: (404) Não Localizado.",
+                       "duration_ms":  14,
+                       "headers":  {
+                                       "content-type":  "text/html",
+                                       "cache-control":  null,
+                                       "location":  null,
+                                       "etag":  "\"68b07f5e-762\"",
+                                       "server":  "nginx"
+                                   },
+                       "body_sample":  ""
+                   },
+                   {
+                       "url":  "http://controle.brasilvida.app.br/dashboard",
+                       "method":  "GET",
+                       "status":  404,
+                       "ok":  false,
+                       "error":  "O servidor remoto retornou um erro: (404) Não Localizado.",
+                       "duration_ms":  11,
+                       "headers":  {
+                                       "content-type":  "text/html",
+                                       "cache-control":  null,
+                                       "location":  null,
+                                       "etag":  "\"68b07f5e-762\"",
+                                       "server":  "nginx"
+                                   },
+                       "body_sample":  ""
+                   },
+                   {
+                       "url":  "http://controle.brasilvida.app.br/api/v1/session",
+                       "method":  "GET",
+                       "status":  404,
+                       "ok":  false,
+                       "error":  "O servidor remoto retornou um erro: (404) Não Localizado.",
+                       "duration_ms":  10,
+                       "headers":  {
+                                       "content-type":  "text/html",
+                                       "cache-control":  null,
+                                       "location":  null,
+                                       "etag":  "\"68b07f5e-762\"",
+                                       "server":  "nginx"
+                                   },
+                       "body_sample":  ""
+                   },
+                   {
+                       "url":  "http://controle.brasilvida.app.br/healthz",
+                       "method":  "GET",
+                       "status":  404,
+                       "ok":  false,
+                       "error":  "O servidor remoto retornou um erro: (404) Não Localizado.",
+                       "duration_ms":  14,
+                       "headers":  {
+                                       "content-type":  "text/html",
+                                       "cache-control":  null,
+                                       "location":  null,
+                                       "etag":  "\"68b07f5e-762\"",
+                                       "server":  "nginx"
+                                   },
+                       "body_sample":  ""
+                   },
+                   {
+                       "url":  "http://controle.brasilvida.app.br/app.20260428-195745.f503f1a49298.js",
+                       "method":  "HEAD",
+                       "status":  404,
+                       "ok":  false,
+                       "error":  "O servidor remoto retornou um erro: (404) Não Localizado.",
+                       "duration_ms":  4,
+                       "headers":  {
+                                       "content-type":  "text/html",
+                                       "cache-control":  null,
+                                       "location":  null,
+                                       "etag":  "\"68b07f5e-762\"",
+                                       "server":  "nginx"
+                                   },
+                       "body_sample":  ""
+                   },
+                   {
+                       "url":  "http://controle.brasilvida.app.br/app.20260428-195745.e292ee36887c.css",
+                       "method":  "HEAD",
+                       "status":  404,
+                       "ok":  false,
+                       "error":  "O servidor remoto retornou um erro: (404) Não Localizado.",
+                       "duration_ms":  8,
+                       "headers":  {
+                                       "content-type":  "text/html",
+                                       "cache-control":  null,
+                                       "location":  null,
+                                       "etag":  "\"68b07f5e-762\"",
+                                       "server":  "nginx"
+                                   },
+                       "body_sample":  ""
+                   },
+                   {
+                       "url":  "http://controle.brasilvida.app.br/config.20260428-195745.765770e42a79.js",
+                       "method":  "HEAD",
+                       "status":  404,
+                       "ok":  false,
+                       "error":  "O servidor remoto retornou um erro: (404) Não Localizado.",
+                       "duration_ms":  4,
+                       "headers":  {
+                                       "content-type":  "text/html",
+                                       "cache-control":  null,
+                                       "location":  null,
+                                       "etag":  "\"68b07f5e-762\"",
+                                       "server":  "nginx"
+                                   },
+                       "body_sample":  ""
+                   }
+               ],
+    "gate":  "nao fechado",
+    "gate_reason":  "HTTPS 443 inacessivel; HTTP root serve pagina de erro externa/legada; index.html, manifest e assets fingerprintados esperados retornam 404."
+}

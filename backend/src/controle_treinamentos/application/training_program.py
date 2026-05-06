@@ -1,0 +1,786 @@
+from __future__ import annotations
+
+import base64
+import binascii
+import io
+from decimal import Decimal
+
+try:
+    import psycopg2
+except ImportError:
+    psycopg2 = None  # type: ignore[assignment]
+
+from werkzeug.datastructures import FileStorage
+
+from ..constants import TRAINING_MASTER_STATUS_OPTIONS, TRAINING_PERIODICITY_OPTIONS, TRAINING_SEGMENT_MODEL_OPTIONS
+from ..core.audit_utils import audit_event, rollback_db
+from ..core.domain_errors import DomainConflictError, DomainNotFoundError, DomainValidationError
+from ..core.http_utils import (
+    get_optional_date,
+    get_optional_decimal,
+    get_optional_limited_text,
+    get_optional_text,
+    get_required_int,
+    get_required_text,
+    safe_pdf_filename,
+)
+from ..db import get_db
+from ..infra.media_storage import delete_media_ref, write_training_attachment
+from ..repositories.dashboard_cache import clear_catalog_options_cache, clear_panel_cache
+from ..repositories.training_program import (
+    create_training_master_hour,
+    create_training_master_segment,
+    create_training_master_type,
+    create_training_program_record,
+    delete_training_master_type_cascade,
+    fetch_training_master_hour_detail,
+    fetch_training_master_hour_for_write,
+    fetch_training_master_segment_detail,
+    fetch_training_master_segment_for_write,
+    fetch_training_master_type_detail,
+    fetch_training_master_type_for_write,
+    fetch_training_program_record_detail,
+    fetch_training_program_tripulante_detail,
+    sync_training_master_type_periodicidade,
+    training_master_segment_has_records,
+    training_master_type_has_records,
+    update_training_master_hour,
+    update_training_master_segment,
+    update_training_master_type,
+)
+from ..repositories.training_program import (
+    delete_training_master_hour as delete_training_master_hour_row,
+)
+from ..repositories.training_program import (
+    delete_training_master_segment as delete_training_master_segment_row,
+)
+from ..repositories.training_program import (
+    update_training_program_record as update_training_program_record_row,
+)
+from ..repositories.treinamentos import (
+    create_treinamento_attachment_record,
+    delete_treinamento,
+    delete_treinamento_attachments,
+    delete_treinamento_notifications,
+    fetch_treinamento_attachments,
+)
+from ..service_layers.training_completeness import (
+    TrainingCompletenessError,
+    ensure_program_training_completeness,
+)
+from ..service_layers.pure_validation import training_dates_are_valid, validate_pdf_upload
+from ..services import add_months
+from ..training_aircraft_model import (
+    TRAINING_AIRCRAFT_MODEL_REFERENCE_FIELD,
+    TRAINING_AIRCRAFT_MODEL_SNAPSHOT_FIELD,
+    resolve_training_aircraft_model_reference,
+)
+
+
+class TrainingProgramValidationError(DomainValidationError):
+    def __init__(self, message: str, *, code: str = "training_program_validation_error", status: int = 400):
+        super().__init__(message, code=code, status=status)
+
+
+class TrainingProgramNotFoundError(DomainNotFoundError):
+    def __init__(self, message: str, *, code: str = "training_program_not_found", status: int = 404):
+        super().__init__(message, code=code, status=status)
+
+
+class TrainingProgramConflictError(DomainConflictError):
+    def __init__(self, message: str, *, code: str = "training_program_conflict", status: int = 409):
+        super().__init__(message, code=code, status=status)
+
+
+class TrainingProgramAttachmentError(DomainValidationError):
+    def __init__(self, message: str, *, code: str = "training_program_attachment_error", status: int = 400):
+        super().__init__(message, code=code, status=status)
+
+
+def _normalize_status(value: str, *, field_name: str = "Status") -> int:
+    raw = str(value or "").strip().lower()
+    if raw in {"ativo", "1", "true", "sim", "yes", "on"}:
+        return 1
+    if raw in {"inativo", "0", "false", "nao", "não", "off"}:
+        return 0
+    raise TrainingProgramValidationError(
+        f"{field_name} invalido. Use uma das opcoes: {', '.join(TRAINING_MASTER_STATUS_OPTIONS)}.",
+        code="training_program_invalid_status",
+    )
+
+
+def _normalize_segment_model(value: str) -> str:
+    raw = str(value or "").strip()
+    allowed = {item.lower(): item for item in TRAINING_SEGMENT_MODEL_OPTIONS}
+    resolved = allowed.get(raw.lower())
+    if not resolved:
+        raise TrainingProgramValidationError(
+            "Modelo do segmento invalido.",
+            code="training_program_invalid_segment_model",
+        )
+    return resolved
+
+
+def _normalize_periodicity(value) -> int:
+    raw = str(value or "").strip().lower()
+    mapping = {
+        "12": 12,
+        "12 meses": 12,
+        "24": 24,
+        "24 meses": 24,
+        "36": 36,
+        "36 meses": 36,
+        "0": 0,
+        "sem validade": 0,
+    }
+    if raw not in mapping:
+        allowed = ", ".join(item["label"] for item in TRAINING_PERIODICITY_OPTIONS)
+        raise TrainingProgramValidationError(
+            f"Periodicidade invalida. Use uma das opcoes: {allowed}.",
+            code="training_program_invalid_periodicity",
+        )
+    return int(mapping[raw])
+
+
+def _normalize_requires_aircraft(value) -> int:
+    raw = str(value or "").strip().lower()
+    if raw in {"sim", "1", "true", "yes", "on"}:
+        return 1
+    if raw in {"nao", "não", "0", "false", "no", "off"}:
+        return 0
+    raise TrainingProgramValidationError(
+        "Exige aeronave invalido.",
+        code="training_program_invalid_requires_aircraft",
+    )
+
+
+def _optional_decimal_to_value(payload: dict, field_name: str, label: str) -> Decimal:
+    value = get_optional_decimal(payload, field_name, label)
+    return value if value is not None else Decimal("0")
+
+
+def _optional_decimal_or_none(payload: dict, field_name: str, label: str) -> Decimal | None:
+    raw_value = payload.get(field_name, "")
+    if raw_value in ("", None):
+        return None
+    if isinstance(raw_value, Decimal):
+        return raw_value
+    if isinstance(raw_value, int):
+        return Decimal(raw_value)
+    if isinstance(raw_value, float):
+        return Decimal(str(raw_value))
+
+    value = get_optional_text(payload, field_name)
+    if not value:
+        return None
+
+    normalized = value.replace(".", "").replace(",", ".") if "," in value else value
+    try:
+        return Decimal(normalized)
+    except Exception as exc:
+        raise TrainingProgramValidationError(
+            f"O campo '{label}' e invalido.",
+            code="training_program_invalid_decimal",
+        ) from exc
+
+
+def _ensure_tripulante_exists(db, *, tripulante_id: int) -> dict:
+    row = fetch_training_program_tripulante_detail(db, tripulante_id=tripulante_id)
+    if not row:
+        raise TrainingProgramValidationError("Tripulante invalido.", code="training_program_tripulante_not_found")
+    return row
+
+
+def _ensure_tipo_exists(db, *, tipo_treinamento_id: int, include_inactive: bool = False) -> dict:
+    row = fetch_training_master_type_for_write(
+        db,
+        tipo_treinamento_id=tipo_treinamento_id,
+        include_inactive=include_inactive,
+    )
+    if not row:
+        raise TrainingProgramValidationError("Tipo de treinamento invalido.", code="training_program_type_not_found")
+    return row
+
+
+def _ensure_segment_exists(db, *, segmento_id: int, tipo_treinamento_id: int | None = None, include_inactive: bool = False) -> dict:
+    row = fetch_training_master_segment_for_write(
+        db,
+        segmento_id=segmento_id,
+        tipo_treinamento_id=tipo_treinamento_id,
+        include_inactive=include_inactive,
+    )
+    if not row:
+        raise TrainingProgramValidationError("Segmento teorico invalido.", code="training_program_segment_not_found")
+    return row
+
+
+def _ensure_hour_exists(db, *, hora_id: int, include_inactive: bool = False) -> dict:
+    row = fetch_training_master_hour_for_write(
+        db,
+        hora_id=hora_id,
+        include_inactive=include_inactive,
+    )
+    if not row:
+        raise TrainingProgramValidationError("Registro de horas de voo invalido.", code="training_program_hour_not_found")
+    return row
+
+
+def _sync_tipo_periodicidade(db, *, tipo_treinamento_id: int) -> None:
+    sync_training_master_type_periodicidade(db, tipo_treinamento_id=tipo_treinamento_id)
+
+
+def _hours_require_ctac(hours_row: dict | None) -> bool:
+    return bool(hours_row and "conforme ctac" in str(hours_row.get("observacao") or "").strip().lower())
+
+
+def _parse_type_payload(payload: dict) -> dict:
+    nome = get_required_text(payload, "nome", "Nome do treinamento")
+    codigo = get_required_text(payload, "codigo", "Codigo do treinamento")
+    return {
+        "nome": nome,
+        "codigo": codigo,
+        "descricao": get_optional_limited_text(payload, "descricao", "Descricao"),
+        "ativo": _normalize_status(payload.get("status"), field_name="Status do treinamento"),
+        "exige_equipamento": _normalize_requires_aircraft(payload.get("exige_aeronave") or payload.get("exige_equipamento") or "Nao"),
+    }
+
+
+def save_training_master_type(payload: dict, *, tipo_treinamento_id: int | None = None) -> dict:
+    db = get_db()
+    current = fetch_training_master_type_detail(db, tipo_treinamento_id=tipo_treinamento_id) if tipo_treinamento_id else None
+    if tipo_treinamento_id and not current:
+        raise TrainingProgramNotFoundError("Tipo de treinamento nao encontrado.", code="training_program_type_not_found")
+    data = _parse_type_payload(payload)
+    try:
+        if tipo_treinamento_id is None:
+            tipo_treinamento_id = create_training_master_type(db, data=data)
+            audit_event(db, "tipo_treinamento", tipo_treinamento_id, "create", novo=data)
+            operation = "created"
+        else:
+            update_training_master_type(db, tipo_treinamento_id=tipo_treinamento_id, data=data)
+            audit_event(db, "tipo_treinamento", tipo_treinamento_id, "update", anterior=current, novo=data)
+            operation = "updated"
+        _sync_tipo_periodicidade(db, tipo_treinamento_id=tipo_treinamento_id)
+        db.commit()
+        clear_catalog_options_cache()
+        clear_panel_cache()
+    except Exception as exc:
+        rollback_db(db)
+        if psycopg2 is not None and isinstance(exc, psycopg2.IntegrityError):
+            raise TrainingProgramConflictError(
+                "Ja existe um tipo de treinamento com este codigo.",
+                code="training_program_type_conflict",
+            ) from exc
+        raise
+    return {
+        "operation": operation,
+        "tipo": fetch_training_master_type_detail(db, tipo_treinamento_id=tipo_treinamento_id),
+    }
+
+
+def delete_training_master_type(*, tipo_treinamento_id: int) -> dict:
+    db = get_db()
+    current = fetch_training_master_type_detail(db, tipo_treinamento_id=tipo_treinamento_id)
+    if not current:
+        raise TrainingProgramNotFoundError("Tipo de treinamento nao encontrado.", code="training_program_type_not_found")
+    if training_master_type_has_records(db, tipo_treinamento_id=tipo_treinamento_id):
+        raise TrainingProgramConflictError(
+            "Nao e possivel excluir este tipo porque existem treinamentos registrados.",
+            code="training_program_type_in_use",
+        )
+    try:
+        audit_event(db, "tipo_treinamento", tipo_treinamento_id, "delete", anterior=current)
+        delete_training_master_type_cascade(db, tipo_treinamento_id=tipo_treinamento_id)
+        db.commit()
+        clear_catalog_options_cache()
+        clear_panel_cache()
+    except Exception:
+        rollback_db(db)
+        raise
+    return {"deleted_id": tipo_treinamento_id}
+
+
+def _parse_segment_payload(payload: dict, *, current: dict | None = None) -> dict:
+    db = get_db()
+    tipo_treinamento_id = get_required_int(payload, "tipo_treinamento_id", "Tipo de treinamento")
+    _ensure_tipo_exists(db, tipo_treinamento_id=tipo_treinamento_id, include_inactive=bool(current))
+    return {
+        "tipo_treinamento_id": tipo_treinamento_id,
+        "modelo_segmento": _normalize_segment_model(payload.get("modelo_segmento")),
+        "nome_segmento": get_required_text(payload, "nome_segmento", "Nome do segmento"),
+        "carga_horaria": _optional_decimal_to_value(payload, "carga_horaria", "Carga horaria"),
+        "carga_teorica": _optional_decimal_to_value(payload, "carga_teorica", "Carga teorica"),
+        "carga_pratica": _optional_decimal_to_value(payload, "carga_pratica", "Carga pratica"),
+        "periodicidade_meses": _normalize_periodicity(payload.get("periodicidade_meses")),
+        "observacao": get_optional_limited_text(payload, "observacao", "Observacao"),
+        "ativo": 1 if payload.get("ativo", "1") not in {"0", 0, False, "false"} else 0,
+    }
+
+
+def save_training_master_segment(payload: dict, *, segmento_id: int | None = None) -> dict:
+    db = get_db()
+    current = fetch_training_master_segment_detail(db, segmento_id=segmento_id) if segmento_id else None
+    if segmento_id and not current:
+        raise TrainingProgramNotFoundError("Segmento teorico nao encontrado.", code="training_program_segment_not_found")
+    data = _parse_segment_payload(payload, current=current)
+    try:
+        if segmento_id is None:
+            segmento_id = create_training_master_segment(db, data=data)
+            audit_event(db, "segmento_teorico", segmento_id, "create", novo=data)
+            operation = "created"
+        else:
+            update_training_master_segment(db, segmento_id=segmento_id, data=data)
+            audit_event(db, "segmento_teorico", segmento_id, "update", anterior=current, novo=data)
+            operation = "updated"
+        _sync_tipo_periodicidade(db, tipo_treinamento_id=data["tipo_treinamento_id"])
+        if current and int(current["tipo_treinamento_id"]) != int(data["tipo_treinamento_id"]):
+            _sync_tipo_periodicidade(db, tipo_treinamento_id=int(current["tipo_treinamento_id"]))
+        db.commit()
+        clear_catalog_options_cache()
+        clear_panel_cache()
+    except Exception:
+        rollback_db(db)
+        raise
+    return {
+        "operation": operation,
+        "segmento": fetch_training_master_segment_detail(db, segmento_id=segmento_id),
+    }
+
+
+def delete_training_master_segment(*, segmento_id: int) -> dict:
+    db = get_db()
+    current = fetch_training_master_segment_detail(db, segmento_id=segmento_id)
+    if not current:
+        raise TrainingProgramNotFoundError("Segmento teorico nao encontrado.", code="training_program_segment_not_found")
+    if training_master_segment_has_records(db, segmento_id=segmento_id):
+        raise TrainingProgramConflictError(
+            "Nao e possivel excluir este segmento porque existem registros vinculados.",
+            code="training_program_segment_in_use",
+        )
+    try:
+        audit_event(db, "segmento_teorico", segmento_id, "delete", anterior=current)
+        delete_training_master_segment_row(db, segmento_id=segmento_id)
+        _sync_tipo_periodicidade(db, tipo_treinamento_id=int(current["tipo_treinamento_id"]))
+        db.commit()
+        clear_catalog_options_cache()
+        clear_panel_cache()
+    except Exception:
+        rollback_db(db)
+        raise
+    return {"deleted_id": segmento_id}
+
+
+def _parse_hour_payload(payload: dict, *, current: dict | None = None) -> dict:
+    db = get_db()
+    tipo_treinamento_id = get_required_int(payload, "tipo_treinamento_id", "Tipo de treinamento")
+    _ensure_tipo_exists(db, tipo_treinamento_id=tipo_treinamento_id, include_inactive=bool(current))
+    return {
+        "tipo_treinamento_id": tipo_treinamento_id,
+        "aeronave_modelo": get_required_text(payload, "aeronave_modelo", "Modelo de aeronave"),
+        "solo_horas": _optional_decimal_to_value(payload, "solo_horas", "Solo horas"),
+        "voo_pic_sic_horas": _optional_decimal_to_value(payload, "voo_pic_sic_horas", "Voo PIC/SIC horas"),
+        "voo_crew_horas": _optional_decimal_to_value(payload, "voo_crew_horas", "Voo CREW horas"),
+        "observacao": get_optional_limited_text(payload, "observacao", "Observacao"),
+        "ativo": 1 if payload.get("ativo", "1") not in {"0", 0, False, "false"} else 0,
+    }
+
+
+def save_training_master_hour(payload: dict, *, hora_id: int | None = None) -> dict:
+    db = get_db()
+    current = fetch_training_master_hour_detail(db, hora_id=hora_id) if hora_id else None
+    if hora_id and not current:
+        raise TrainingProgramNotFoundError("Registro de horas de voo nao encontrado.", code="training_program_hour_not_found")
+    data = _parse_hour_payload(payload, current=current)
+    try:
+        if hora_id is None:
+            hora_id = create_training_master_hour(db, data=data)
+            audit_event(db, "horas_voo_aeronave", hora_id, "create", novo=data)
+            operation = "created"
+        else:
+            update_training_master_hour(db, hora_id=hora_id, data=data)
+            audit_event(db, "horas_voo_aeronave", hora_id, "update", anterior=current, novo=data)
+            operation = "updated"
+        db.commit()
+        clear_catalog_options_cache()
+        clear_panel_cache()
+    except Exception as exc:
+        rollback_db(db)
+        if psycopg2 is not None and isinstance(exc, psycopg2.IntegrityError):
+            raise TrainingProgramConflictError("Conflito ao salvar horas de voo.") from exc
+        raise
+    return {
+        "operation": operation,
+        "hora_voo": fetch_training_master_hour_detail(db, hora_id=hora_id),
+    }
+
+
+def delete_training_master_hour(*, hora_id: int) -> dict:
+    db = get_db()
+    current = fetch_training_master_hour_detail(db, hora_id=hora_id)
+    if not current:
+        raise TrainingProgramNotFoundError("Registro de horas de voo nao encontrado.", code="training_program_hour_not_found")
+    try:
+        audit_event(db, "horas_voo_aeronave", hora_id, "delete", anterior=current)
+        delete_training_master_hour_row(db, hora_id=hora_id)
+        db.commit()
+        clear_catalog_options_cache()
+        clear_panel_cache()
+    except Exception:
+        rollback_db(db)
+        raise
+    return {"deleted_id": hora_id}
+
+
+def _resolve_training_program_aircraft_reference(payload: dict) -> str | None:
+    return resolve_training_aircraft_model_reference(payload)
+
+
+def build_training_program_template(*, tipo_treinamento_id: int, aeronave_modelo_referencia: str | None = None) -> dict:
+    from ..repositories.training_program import (
+        fetch_training_program_hour_for_type_and_model,
+        fetch_training_program_segments_for_type,
+    )
+
+    db = get_db()
+    tipo = _ensure_tipo_exists(db, tipo_treinamento_id=tipo_treinamento_id)
+    aeronave_referencia = (aeronave_modelo_referencia or "").strip()
+    if tipo["exige_equipamento"] and not aeronave_referencia:
+        raise TrainingProgramValidationError(
+            "Selecione o modelo de aeronave para carregar a referencia de horas de voo.",
+            code="training_program_missing_aircraft_model",
+        )
+    segments = fetch_training_program_segments_for_type(db, tipo_treinamento_id=tipo_treinamento_id)
+    hours_row = None
+    if aeronave_referencia:
+        hours_row = fetch_training_program_hour_for_type_and_model(
+            db,
+            tipo_treinamento_id=tipo_treinamento_id,
+            aeronave_modelo=aeronave_referencia,
+        )
+        if tipo["exige_equipamento"] and hours_row is None:
+            raise TrainingProgramValidationError(
+                "Nao ha referencia de horas de voo para o modelo de aeronave selecionado.",
+                code="training_program_aircraft_hours_not_found",
+            )
+    return {
+        "tipo": tipo,
+        TRAINING_AIRCRAFT_MODEL_REFERENCE_FIELD: aeronave_referencia,
+        "segmentos": segments,
+        "horas_voo": hours_row,
+        "ctac_required": _hours_require_ctac(hours_row),
+    }
+
+
+def _data_url_to_file_storage(data_url: str | None, *, filename: str | None, content_type: str | None = None) -> FileStorage | None:
+    raw = str(data_url or "").strip()
+    if not raw:
+        return None
+    declared_content_type = str(content_type or "").strip()
+    encoded = raw
+    if raw.lower().startswith("data:") and "," in raw:
+        header, encoded = raw.split(",", 1)
+        header_mime = header[5:].split(";", 1)[0].strip()
+        if header_mime:
+            declared_content_type = header_mime
+    try:
+        content = base64.b64decode(encoded, validate=True)
+    except (ValueError, binascii.Error) as exc:
+        raise TrainingProgramAttachmentError("Arquivo PDF invalido.", code="training_program_invalid_pdf") from exc
+    return FileStorage(
+        stream=io.BytesIO(content),
+        filename=filename or "anexo.pdf",
+        content_type=declared_content_type,
+    )
+
+
+def _create_attachment_for_training(
+    db,
+    *,
+    treinamento_id: int,
+    tripulante_id: int,
+    tripulante_nome: str | None,
+    payload: dict,
+    enviado_por: int,
+) -> dict | None:
+    raw_filename = str(payload.get("filename") or "").strip()
+    fallback_filename = str(payload.get("filename_fallback") or "anexo.pdf")
+    payload["filename_effective"] = safe_pdf_filename(raw_filename, fallback=fallback_filename)
+    payload["filename_source"] = "upload" if raw_filename else "fallback"
+    payload["filename_was_fallback"] = not bool(raw_filename)
+    content_type = str(payload.get("content_type") or payload.get("mime_type") or "").strip()
+    file_storage = _data_url_to_file_storage(
+        payload.get("arquivo_base64"),
+        filename=payload["filename_effective"],
+        content_type=content_type,
+    )
+    if file_storage is None:
+        return None
+    parsed = validate_pdf_upload(file_storage)
+    payload.update(
+        {
+            "filename_effective": parsed["nome_original"],
+            "validated_mime_type": parsed["mime_type"],
+            "detected_mime_type": parsed["detected_mime_type"],
+            "upload_policy": parsed["upload_policy"],
+            "tamanho_bytes": parsed["tamanho_bytes"],
+            "arquivo_hash": parsed["arquivo_hash"],
+        }
+    )
+    parsed["storage_ref"] = write_training_attachment(
+        tripulante_id,
+        tripulante_nome,
+        treinamento_id,
+        parsed["nome_interno"],
+        parsed["arquivo_pdf"],
+    )
+    try:
+        anexo_id = create_treinamento_attachment_record(
+            db,
+            treinamento_id=treinamento_id,
+            parsed=parsed,
+            enviado_por=enviado_por,
+        )
+        audit_event(
+            db,
+            "treinamento_anexo_pdf",
+            anexo_id,
+            "create",
+            novo={"treinamento_id": treinamento_id, "nome_original": parsed["nome_original"]},
+        )
+        return {"id": anexo_id, "storage_ref": parsed["storage_ref"]}
+    except Exception:
+        delete_media_ref(parsed.get("storage_ref"))
+        raise
+
+
+def _parse_batch_segment_item(payload: dict, *, segment_lookup: dict[int, dict], ctac_required: bool) -> dict:
+    segment_id = get_required_int(payload, "segmento_id", "Segmento")
+    segment = segment_lookup.get(segment_id)
+    if not segment:
+        raise TrainingProgramValidationError(
+            "Ha um segmento invalido na selecao.",
+            code="training_program_segment_not_found",
+        )
+    data_realizacao = get_optional_date(payload, "data_realizacao", "Data de realizacao")
+    if not data_realizacao:
+        raise TrainingProgramValidationError(
+            f"Informe a data de realizacao para o segmento '{segment['nome_segmento']}'.",
+            code="training_program_missing_realization_date",
+        )
+    data_vencimento = add_months(data_realizacao, int(segment.get("periodicidade_meses") or 0))
+    if int(segment.get("periodicidade_meses") or 0) == 0:
+        data_vencimento = None
+    if not training_dates_are_valid(data_realizacao, data_vencimento):
+        raise TrainingProgramValidationError(
+            "A data de realizacao nao pode ser posterior a data de vencimento.",
+            code="training_program_invalid_dates",
+        )
+    item = {
+        "segmento_id": segment_id,
+        "segmento": segment,
+        "data_realizacao": data_realizacao,
+        "data_vencimento": data_vencimento,
+        "observacao": get_optional_limited_text(payload, "observacao", "Observacao"),
+        "arquivo_base64": get_optional_text(payload, "arquivo_base64"),
+        "filename": get_optional_text(payload, "filename"),
+        "content_type": get_optional_text(payload, "content_type") or get_optional_text(payload, "mime_type"),
+        "ctac_solo_horas": None,
+        "ctac_voo_pic_sic_horas": None,
+        "ctac_voo_crew_horas": None,
+    }
+    if ctac_required:
+        item["ctac_solo_horas"] = _optional_decimal_or_none(payload, "ctac_solo_horas", "Solo horas CTAC")
+        item["ctac_voo_pic_sic_horas"] = _optional_decimal_or_none(payload, "ctac_voo_pic_sic_horas", "Voo PIC/SIC horas CTAC")
+        item["ctac_voo_crew_horas"] = _optional_decimal_or_none(payload, "ctac_voo_crew_horas", "Voo CREW horas CTAC")
+    return item
+
+
+def create_tripulante_training_batch(payload: dict, *, criado_por: int) -> dict:
+    db = get_db()
+    tripulante_id = get_required_int(payload, "tripulante_id", "Tripulante")
+    tipo_treinamento_id = get_required_int(payload, "tipo_treinamento_id", "Tipo de treinamento")
+    tripulante = _ensure_tripulante_exists(db, tripulante_id=tripulante_id)
+    template = build_training_program_template(
+        tipo_treinamento_id=tipo_treinamento_id,
+        aeronave_modelo_referencia=_resolve_training_program_aircraft_reference(payload),
+    )
+    segmentos_payload = payload.get("segmentos")
+    if not isinstance(segmentos_payload, list) or not segmentos_payload:
+        raise TrainingProgramValidationError(
+            "Selecione ao menos um segmento para registrar.",
+            code="training_program_missing_segments",
+        )
+    segment_lookup = {int(item["id"]): item for item in template["segmentos"]}
+    items = []
+    for item in segmentos_payload:
+        raw_item = item if isinstance(item, dict) else {}
+        parsed_item = _parse_batch_segment_item(
+            raw_item,
+            segment_lookup=segment_lookup,
+            ctac_required=template["ctac_required"],
+        )
+        items.append({"raw": raw_item, "parsed": parsed_item})
+    created_ids: list[int] = []
+    created_storage_refs: list[str] = []
+    try:
+        for item_entry in items:
+            item = item_entry["parsed"]
+            record_data = {
+                "tripulante_id": tripulante_id,
+                "equipamento_id": None,
+                "tipo_treinamento_id": tipo_treinamento_id,
+                "segmento_teorico_id": item["segmento_id"],
+                TRAINING_AIRCRAFT_MODEL_SNAPSHOT_FIELD: template[TRAINING_AIRCRAFT_MODEL_REFERENCE_FIELD] or None,
+                "ctac_solo_horas": item["ctac_solo_horas"],
+                "ctac_voo_pic_sic_horas": item["ctac_voo_pic_sic_horas"],
+                "ctac_voo_crew_horas": item["ctac_voo_crew_horas"],
+                "data_realizacao": item["data_realizacao"],
+                "data_vencimento": item["data_vencimento"],
+                "observacao": item["observacao"],
+            }
+            try:
+                ensure_program_training_completeness(
+                    record_data,
+                    requires_aircraft_model=bool(template["tipo"].get("exige_equipamento")),
+                    ctac_required=bool(template["ctac_required"]),
+                    raw_source=item_entry["raw"],
+                )
+            except TrainingCompletenessError as exc:
+                raise TrainingProgramValidationError(str(exc), code=exc.code) from exc
+
+            treinamento_id = create_training_program_record(db, data=record_data)
+            created_ids.append(treinamento_id)
+            attachment = _create_attachment_for_training(
+                db,
+                treinamento_id=treinamento_id,
+                tripulante_id=tripulante_id,
+                tripulante_nome=tripulante.get("nome"),
+                payload=item,
+                enviado_por=criado_por,
+            )
+            if attachment and attachment.get("storage_ref"):
+                created_storage_refs.append(str(attachment["storage_ref"]))
+            audit_event(
+                db,
+                "treinamento",
+                treinamento_id,
+                "create",
+                novo={
+                    "tripulante_id": tripulante_id,
+                    "tipo_treinamento_id": tipo_treinamento_id,
+                    "segmento_teorico_id": item["segmento_id"],
+                    TRAINING_AIRCRAFT_MODEL_SNAPSHOT_FIELD: template[TRAINING_AIRCRAFT_MODEL_REFERENCE_FIELD],
+                    "data_realizacao": item["data_realizacao"],
+                    "data_vencimento": item["data_vencimento"],
+                },
+            )
+        db.commit()
+        clear_panel_cache()
+        records = [fetch_training_program_record_detail(db, treinamento_id=item_id) for item_id in created_ids]
+        return {
+            "created_ids": created_ids,
+            "items": [item for item in records if item],
+            "template": template,
+        }
+    except Exception:
+        rollback_db(db)
+        for storage_ref in created_storage_refs:
+            delete_media_ref(storage_ref)
+        raise
+
+
+def update_tripulante_training_record(payload: dict, *, treinamento_id: int) -> dict:
+    db = get_db()
+    current = fetch_training_program_record_detail(db, treinamento_id=treinamento_id)
+    if not current:
+        raise TrainingProgramNotFoundError("Registro de treinamento nao encontrado.", code="training_program_record_not_found")
+    tripulante_id = get_required_int(payload, "tripulante_id", "Tripulante")
+    tipo_treinamento_id = get_required_int(payload, "tipo_treinamento_id", "Tipo de treinamento")
+    segmento_id = get_required_int(payload, "segmento_id", "Segmento")
+    tripulante = _ensure_tripulante_exists(db, tripulante_id=tripulante_id)
+    template = build_training_program_template(
+        tipo_treinamento_id=tipo_treinamento_id,
+        aeronave_modelo_referencia=_resolve_training_program_aircraft_reference(payload),
+    )
+    segment = _ensure_segment_exists(db, segmento_id=segmento_id, tipo_treinamento_id=tipo_treinamento_id, include_inactive=True)
+    data_realizacao = get_optional_date(payload, "data_realizacao", "Data de realizacao")
+    if not data_realizacao:
+        raise TrainingProgramValidationError("Informe a data de realizacao.", code="training_program_missing_realization_date")
+    data_vencimento = add_months(data_realizacao, int(segment.get("periodicidade_meses") or 0))
+    if int(segment.get("periodicidade_meses") or 0) == 0:
+        data_vencimento = None
+    if not training_dates_are_valid(data_realizacao, data_vencimento):
+        raise TrainingProgramValidationError("Datas invalidas para o treinamento.", code="training_program_invalid_dates")
+    record_data = {
+        "tripulante_id": tripulante_id,
+        "equipamento_id": None,
+        "tipo_treinamento_id": tipo_treinamento_id,
+        "segmento_teorico_id": segmento_id,
+        TRAINING_AIRCRAFT_MODEL_SNAPSHOT_FIELD: template[TRAINING_AIRCRAFT_MODEL_REFERENCE_FIELD] or None,
+        "ctac_solo_horas": _optional_decimal_or_none(payload, "ctac_solo_horas", "Solo horas CTAC")
+        if template["ctac_required"]
+        else None,
+        "ctac_voo_pic_sic_horas": _optional_decimal_or_none(payload, "ctac_voo_pic_sic_horas", "Voo PIC/SIC horas CTAC")
+        if template["ctac_required"]
+        else None,
+        "ctac_voo_crew_horas": _optional_decimal_or_none(payload, "ctac_voo_crew_horas", "Voo CREW horas CTAC")
+        if template["ctac_required"]
+        else None,
+        "data_realizacao": data_realizacao,
+        "data_vencimento": data_vencimento,
+        "observacao": get_optional_limited_text(payload, "observacao", "Observacao"),
+    }
+    try:
+        ensure_program_training_completeness(
+            record_data,
+            requires_aircraft_model=bool(template["tipo"].get("exige_equipamento")),
+            ctac_required=bool(template["ctac_required"]),
+            raw_source=payload,
+        )
+    except TrainingCompletenessError as exc:
+        raise TrainingProgramValidationError(str(exc), code=exc.code) from exc
+    try:
+        update_training_program_record_row(db, treinamento_id=treinamento_id, data=record_data)
+        audit_event(
+            db,
+            "treinamento",
+            treinamento_id,
+            "update",
+            anterior=current,
+            novo={
+                "tripulante_id": tripulante_id,
+                "tripulante_nome": tripulante.get("nome"),
+                "tipo_treinamento_id": tipo_treinamento_id,
+                "segmento_teorico_id": segmento_id,
+                TRAINING_AIRCRAFT_MODEL_SNAPSHOT_FIELD: template[TRAINING_AIRCRAFT_MODEL_REFERENCE_FIELD],
+                "data_realizacao": data_realizacao,
+                "data_vencimento": data_vencimento,
+            },
+        )
+        db.commit()
+        clear_panel_cache()
+    except Exception:
+        rollback_db(db)
+        raise
+    return {"item": fetch_training_program_record_detail(db, treinamento_id=treinamento_id)}
+
+
+def delete_tripulante_training_record(*, treinamento_id: int) -> dict:
+    db = get_db()
+    current = fetch_training_program_record_detail(db, treinamento_id=treinamento_id)
+    if not current:
+        raise TrainingProgramNotFoundError("Registro de treinamento nao encontrado.", code="training_program_record_not_found")
+    attachments = fetch_treinamento_attachments(db, treinamento_id=treinamento_id, include_removed=True)
+    try:
+        audit_event(db, "treinamento", treinamento_id, "delete", anterior=current)
+        delete_treinamento_attachments(db, treinamento_id=treinamento_id)
+        delete_treinamento_notifications(db, treinamento_id=treinamento_id)
+        delete_treinamento(db, treinamento_id=treinamento_id)
+        db.commit()
+        clear_panel_cache()
+    except Exception:
+        rollback_db(db)
+        raise
+    for attachment in attachments:
+        delete_media_ref(attachment.get("storage_ref"))
+    return {"deleted_id": treinamento_id}

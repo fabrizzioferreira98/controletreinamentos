@@ -1,0 +1,323 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title or "Treinamentos Brasil Vida" }}</title>
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='favicon-192.png', v='4') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32.png', v='4') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16.png', v='4') }}">
+    <link rel="icon" type="image/svg+xml" sizes="any" href="{{ url_for('static', filename='favicon.svg', v='4') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon-32.png', v='4') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png', v='4') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest', v='4') }}">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Treinamentos Brasil Vida">
+    {% block extra_head %}{% endblock %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://unpkg.com/htmx.org@1.9.11" integrity="sha384-0gxUXCCR8yv907bB/FowNDR8sE5wN5p71n3Q9j0r4ZEnU+Z1nN4GfXmP11M1E2U" crossorigin="anonymous"></script>
+    <style>
+        .htmx-indicator {
+            opacity: 0;
+            transition: opacity 200ms ease-in;
+            position: fixed;
+            top: 0; left: 0; right: 0; height: 3px;
+            background: var(--accent, #bd1f2d);
+            z-index: 10000;
+        }
+        .htmx-request .htmx-indicator {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body hx-boost="true" hx-indicator=".htmx-indicator">
+    <div class="htmx-indicator"></div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <div class="app-shell">
+        <aside class="sidebar" id="appSidebar">
+            <div class="sidebar-top">
+                <div class="brand-wrap">
+                    <img class="brand-image brand-image-sidebar" src="{{ url_for('static', filename='logo-brasilvida.svg') }}" alt="Brasilvida">
+                    <div class="brand-subtitle">Treinamentos e vencimentos da equipe</div>
+                </div>
+            </div>
+            <nav class="nav">
+                {% set dashboards_visible = can_access('dashboard:view') or can_access('tv_vencimentos:view') or can_access('tv_produtividade:view') %}
+                {% set operacoes_visible = can_access('missoes:view') or can_access('pernoites:view') or can_access('bases:view') %}
+                {% set relatorios_visible = can_access('relatorio_habilitacoes:view') or can_access('relatorio_individual:view') or can_access('relatorio_produtividade:view') %}
+                {% set cadastros_visible = can_access('tripulantes:view') or can_access('tripulantes_file:view') or can_access('treinamentos:view') or can_access('equipamentos:view') or can_access('tipos_treinamento:view') %}
+                {% set usuarios_visible = can_access('usuarios:view') or can_access('usuarios:manage') or can_access('monitoramento:view') or can_access('notificacoes:view') or can_access('backups:view') or can_access('auditoria:view') %}
+
+                {% set endpoint = request.endpoint or '' %}
+                {% set dashboards_active = endpoint in ['dashboard.dashboard', 'dashboard.painel_tv', 'dashboard.painel_tv_dados', 'relatorios.produtividade_painel_tv', 'relatorios.produtividade_painel_tv_dados'] %}
+                {% set operacoes_active = endpoint in ['operacoes.missoes_list', 'operacoes.missoes_new', 'operacoes.missoes_edit', 'operacoes.pernoites_list', 'operacoes.pernoites_new', 'operacoes.pernoites_edit'] or endpoint.startswith('bases.') %}
+                {% set relatorios_active = endpoint in ['cadastros.treinamentos_consolidado', 'cadastros.treinamentos_consolidado_export_csv', 'cadastros.treinamentos_consolidado_export_pdf', 'cadastros.treinamentos_consolidado_relatorio', 'cadastros.tripulante_report', 'relatorios.produtividade_consolidado', 'cadastros.produtividade_tripulante'] %}
+                {% set cadastros_active = endpoint in ['cadastros.tripulantes_list', 'cadastros.tripulantes_new', 'cadastros.tripulantes_edit', 'cadastros.tripulante_file_tab', 'cadastros.tripulante_file_upload', 'cadastros.tripulante_file_get', 'cadastros.tripulante_file_get_by_source', 'cadastros.tripulante_file_delete', 'cadastros.tripulante_file_replace', 'cadastros.treinamentos_list', 'cadastros.treinamentos_new', 'cadastros.treinamentos_edit', 'cadastros.equipamentos_list', 'cadastros.equipamentos_new', 'cadastros.equipamentos_edit', 'cadastros.tipos_list', 'cadastros.tipos_new', 'cadastros.tipos_edit'] %}
+                {% set usuarios_active = endpoint in ['admin.usuarios_list', 'admin.usuarios_new', 'admin.usuarios_edit', 'admin.monitoramento_sistema', 'admin.notificacoes_list', 'admin.notificacoes_new', 'admin.notificacoes_edit', 'admin.backups_list', 'admin.backups_run', 'admin.auditoria_list'] %}
+
+                {% if dashboards_visible %}
+                <div class="nav-group {% if dashboards_active %}open{% endif %}">
+                    <button type="button" class="nav-group-toggle {% if dashboards_active %}active{% endif %}" data-nav-toggle>
+                        Dashboards
+                        <span class="nav-group-caret">&#9662;</span>
+                    </button>
+                    <div class="nav-group-links">
+                        {% if can_access('dashboard:view') %}
+                        <a class="{% if endpoint == 'dashboard.dashboard' %}active{% endif %}" href="{{ url_for('dashboard.dashboard') }}">Visão geral</a>
+                        {% endif %}
+                        {% if can_access('tv_vencimentos:view') %}
+                        <a class="{% if endpoint in ['dashboard.painel_tv', 'dashboard.painel_tv_dados'] %}active{% endif %}" href="{{ url_for('dashboard.painel_tv') }}">Painel TV vencimentos</a>
+                        {% endif %}
+                        {% if can_access('tv_produtividade:view') %}
+                        <a class="{% if endpoint in ['relatorios.produtividade_painel_tv', 'relatorios.produtividade_painel_tv_dados'] %}active{% endif %}" href="{{ url_for('relatorios.produtividade_painel_tv') }}">Painel TV produtividade</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if operacoes_visible %}
+                <div class="nav-group {% if operacoes_active %}open{% endif %}">
+                    <button type="button" class="nav-group-toggle {% if operacoes_active %}active{% endif %}" data-nav-toggle>
+                        Operações
+                        <span class="nav-group-caret">&#9662;</span>
+                    </button>
+                    <div class="nav-group-links">
+                        {% if can_access('missoes:view') %}
+                        <a class="{% if endpoint in ['operacoes.missoes_list', 'operacoes.missoes_new', 'operacoes.missoes_edit'] %}active{% endif %}" href="{{ url_for('operacoes.missoes_list') }}">Missões</a>
+                        {% endif %}
+                        {% if can_access('pernoites:view') %}
+                        <a class="{% if endpoint in ['operacoes.pernoites_list', 'operacoes.pernoites_new', 'operacoes.pernoites_edit'] %}active{% endif %}" href="{{ url_for('operacoes.pernoites_list') }}">Pernoites</a>
+                        {% endif %}
+                        {% if can_access('bases:view') %}
+                        <a hx-boost="false" class="{% if endpoint.startswith('bases.') %}active{% endif %}" href="{{ url_for('bases.index') }}">Gestão de Bases</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if relatorios_visible %}
+                <div class="nav-group {% if relatorios_active %}open{% endif %}">
+                    <button type="button" class="nav-group-toggle {% if relatorios_active %}active{% endif %}" data-nav-toggle>
+                        Relatórios
+                        <span class="nav-group-caret">&#9662;</span>
+                    </button>
+                    <div class="nav-group-links">
+                        {% if can_access('relatorio_habilitacoes:view') %}
+                        <a class="{% if endpoint in ['cadastros.treinamentos_consolidado', 'cadastros.treinamentos_consolidado_export_csv', 'cadastros.treinamentos_consolidado_export_pdf', 'cadastros.treinamentos_consolidado_relatorio'] %}active{% endif %}" href="{{ url_for('cadastros.treinamentos_consolidado') }}">Consolidado de habilitações</a>
+                        {% endif %}
+                        {% if can_access('relatorio_individual:view') %}
+                        <a class="{% if endpoint == 'cadastros.tripulantes_list' %}active{% endif %}" href="{{ url_for('cadastros.tripulantes_list') }}">Relatório individual</a>
+                        {% endif %}
+                        {% if can_access('relatorio_produtividade:view') %}
+                        <a class="{% if endpoint in ['relatorios.produtividade_consolidado', 'cadastros.produtividade_tripulante'] %}active{% endif %}" href="{{ url_for('relatorios.produtividade_consolidado') }}">Relatório geral produtividade</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if cadastros_visible %}
+                <div class="nav-group {% if cadastros_active %}open{% endif %}">
+                    <button type="button" class="nav-group-toggle {% if cadastros_active %}active{% endif %}" data-nav-toggle>
+                        Cadastros
+                        <span class="nav-group-caret">&#9662;</span>
+                    </button>
+                    <div class="nav-group-links">
+                        {% if can_access('tripulantes:view') %}
+                        <a class="{% if endpoint in ['cadastros.tripulantes_list', 'cadastros.tripulantes_new', 'cadastros.tripulantes_edit'] %}active{% endif %}" href="{{ url_for('cadastros.tripulantes_list') }}">Tripulantes</a>
+                        {% endif %}
+                        {% if can_access('treinamentos:view') %}
+                        <a class="{% if endpoint in ['cadastros.treinamentos_list', 'cadastros.treinamentos_new', 'cadastros.treinamentos_edit'] %}active{% endif %}" href="{{ url_for('cadastros.treinamentos_list') }}">Treinamentos por tripulante</a>
+                        {% endif %}
+                        {% if can_access('equipamentos:view') %}
+                        <a class="{% if endpoint in ['cadastros.equipamentos_list', 'cadastros.equipamentos_new', 'cadastros.equipamentos_edit'] %}active{% endif %}" href="{{ url_for('cadastros.equipamentos_list') }}">Equipamentos</a>
+                        {% endif %}
+                        {% if can_access('tipos_treinamento:view') %}
+                        <a class="{% if endpoint in ['cadastros.tipos_list', 'cadastros.tipos_new', 'cadastros.tipos_edit'] %}active{% endif %}" href="{{ url_for('cadastros.tipos_list') }}">Cadastro raiz treinamentos</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if usuarios_visible %}
+                <div class="nav-group {% if usuarios_active %}open{% endif %}">
+                    <button type="button" class="nav-group-toggle {% if usuarios_active %}active{% endif %}" data-nav-toggle>
+                        Usuários
+                        <span class="nav-group-caret">&#9662;</span>
+                    </button>
+                    <div class="nav-group-links">
+                        {% if can_access('usuarios:view') or can_access('usuarios:manage') %}
+                        <a class="{% if endpoint == 'admin.usuarios_list' %}active{% endif %}" href="{{ url_for('admin.usuarios_list') }}">Usuários</a>
+                        {% endif %}
+                        {% if can_access('usuarios:manage') %}
+                        <a class="{% if endpoint == 'admin.usuarios_new' %}active{% endif %}" href="{{ url_for('admin.usuarios_new') }}">Novo usuário</a>
+                        {% endif %}
+                        {% if can_access('monitoramento:view') %}
+                        <a class="{% if endpoint == 'admin.monitoramento_sistema' %}active{% endif %}" href="{{ url_for('admin.monitoramento_sistema') }}">Monitoramento</a>
+                        <a href="{{ url_for('admin.manual_usuario_pdf') }}">Guia do usuário (PDF)</a>
+                        {% endif %}
+                        {% if can_access('notificacoes:view') %}
+                        <a class="{% if endpoint in ['admin.notificacoes_list', 'admin.notificacoes_new', 'admin.notificacoes_edit'] %}active{% endif %}" href="{{ url_for('admin.notificacoes_list') }}">Destinatários de e-mail</a>
+                        {% endif %}
+                        {% if can_access('backups:view') %}
+                        <a class="{% if endpoint in ['admin.backups_list', 'admin.backups_run'] %}active{% endif %}" href="{{ url_for('admin.backups_list') }}">Backups</a>
+                        {% endif %}
+                        {% if can_access('auditoria:view') %}
+                        <a class="{% if endpoint == 'admin.auditoria_list' %}active{% endif %}" href="{{ url_for('admin.auditoria_list') }}">Log de ações</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </nav>
+            <div class="sidebar-footer">
+                <div class="session-caption">Sessão iniciada como</div>
+                <div class="session-user">{{ current_user.nome if current_user.is_authenticated else "" }}</div>
+                <div class="session-role">{{ current_user.perfil if current_user.is_authenticated else "" }}</div>
+                <form method="post" action="{{ url_for('auth.logout') }}" class="logout-form" hx-boost="false">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="logout-link logout-button">Sair</button>
+                </form>
+            </div>
+        </aside>
+        <div class="main-column">
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Abrir menu">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    <div>
+                        <div class="topbar-title">Treinamentos Brasil Vida</div>
+                        <div class="topbar-subtitle">Um lugar único para acompanhar cadastros, treinamentos e vencimentos.</div>
+                    </div>
+                </div>
+                {% if current_user.is_authenticated and can_access('notificacoes:view') %}
+                <div>
+                    <a class="topbar-action" href="{{ url_for('admin.notificacoes_list') }}">E-mails e notificações</a>
+                </div>
+                {% endif %}
+            </header>
+            <main class="content">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('mobileMenuBtn');
+            const sidebar = document.getElementById('appSidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const mainColumn = document.querySelector('.main-column');
+            const mobileQuery = window.matchMedia('(max-width: 900px)');
+            let lastFocusedElement = null;
+
+            function setMenuState(isOpen) {
+                sidebar.classList.toggle('open', isOpen);
+                overlay.classList.toggle('show', isOpen);
+                document.body.classList.toggle('sidebar-open', isOpen);
+                sidebar.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+                if (btn) {
+                    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                    btn.setAttribute('aria-label', isOpen ? 'Fechar menu' : 'Abrir menu');
+                }
+                if (mainColumn) {
+                    if (isOpen) {
+                        mainColumn.setAttribute('aria-hidden', 'true');
+                    } else {
+                        mainColumn.removeAttribute('aria-hidden');
+                    }
+                }
+                if (isOpen) {
+                    lastFocusedElement = document.activeElement;
+                    const firstFocusable = sidebar.querySelector('.nav-group-toggle, .nav a, .logout-button');
+                    if (firstFocusable) {
+                        requestAnimationFrame(() => firstFocusable.focus());
+                    }
+                } else if (lastFocusedElement && typeof lastFocusedElement.focus === 'function' && document.contains(lastFocusedElement)) {
+                    requestAnimationFrame(() => lastFocusedElement.focus());
+                }
+            }
+
+            function toggleMenu() {
+                setMenuState(!sidebar.classList.contains('open'));
+            }
+
+            if (btn && sidebar && overlay) {
+                btn.setAttribute('aria-controls', 'appSidebar');
+                btn.setAttribute('aria-expanded', 'false');
+                btn.setAttribute('aria-label', 'Abrir menu');
+                sidebar.setAttribute('aria-hidden', 'true');
+                btn.addEventListener('click', toggleMenu);
+                overlay.addEventListener('click', () => setMenuState(false));
+
+                sidebar.addEventListener('click', (event) => {
+                    const link = event.target.closest('a');
+                    if (!link) return;
+                    if (mobileQuery.matches) {
+                        setMenuState(false);
+                    }
+                });
+
+                document.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape') {
+                        setMenuState(false);
+                    }
+                });
+
+                const onViewportChange = (event) => {
+                    if (!event.matches) {
+                        setMenuState(false);
+                    }
+                };
+                if (typeof mobileQuery.addEventListener === 'function') {
+                    mobileQuery.addEventListener('change', onViewportChange);
+                } else if (typeof mobileQuery.addListener === 'function') {
+                    mobileQuery.addListener(onViewportChange);
+                }
+            }
+
+            const navGroups = [...document.querySelectorAll('.nav-group')];
+            navGroups.forEach((navGroupEl) => {
+                const toggle = navGroupEl.querySelector('[data-nav-toggle]');
+                if (!toggle) return;
+                const currentGroup = toggle.closest('.nav-group');
+                if (currentGroup) {
+                    toggle.setAttribute('aria-expanded', currentGroup.classList.contains('open') ? 'true' : 'false');
+                }
+                toggle.addEventListener('click', () => {
+                    const currentGroup = toggle.closest('.nav-group');
+                    if (!currentGroup) return;
+                    if (mobileQuery.matches && !currentGroup.classList.contains('open')) {
+                        navGroups.forEach((openGroup) => {
+                            if (openGroup !== currentGroup) {
+                                openGroup.classList.remove('open');
+                                const openToggle = openGroup.querySelector('[data-nav-toggle]');
+                                if (openToggle) {
+                                    openToggle.setAttribute('aria-expanded', 'false');
+                                }
+                            }
+                        });
+                    }
+                    currentGroup.classList.toggle('open');
+                    toggle.setAttribute('aria-expanded', currentGroup.classList.contains('open') ? 'true' : 'false');
+                });
+            });
+        });
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
+

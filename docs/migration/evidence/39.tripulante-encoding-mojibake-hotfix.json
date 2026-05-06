@@ -1,0 +1,155 @@
+{
+  "scope": "frontend/src/features/tripulantes/form-page.js",
+  "pre_hotfix_backup": "C:\\srv\\controle-treinamentos\\frontend-backup\\prod-tripulante-encoding-20260427143742\\features\\tripulantes\\form-page.js",
+  "pre_hotfix_broken_count": 28,
+  "pre_hotfix_broken_lines": [
+    {
+      "line": 286,
+      "text_unicode_escape": ".join(\"\") || '<tr><td colspan=\"4\" class=\"empty ui-table-state\">Nenhum PDF anexado a este tripulante. Use o upload acima quando houver documento comprobat\\xc3\\u0192\\xc2\\xb3rio.</td></tr>'"
+    },
+    {
+      "line": 330,
+      "text_unicode_escape": "<p class=\"page-subtitle\">${tripulanteId ? \"Detalhe e edi\\xc3\\u0192\\xc2\\xa7\\xc3\\u0192\\xc2\\xa3o compartilham o mesmo contexto operacional.\" : \"Crie o cadastro e depois anexe documentos PDF.\"}</p>"
+    },
+    {
+      "line": 333,
+      "text_unicode_escape": "<span class=\"status-pill ${tripulante?.ativo === false ? \"status-gray\" : \"status-green\"}\">${tripulante?.ativo === false ? \"Indispon\\xc3\\u0192\\xc2\\xadvel na opera\\xc3\\u0192\\xc2\\xa7\\xc3\\u0192\\xc2\\xa3o\" : \"Dispon\\xc3\\u0192\\xc2\\xadvel para opera\\xc3\\u0192\\xc2\\xa7\\xc3\\u0192\\xc2\\xa3o\"}</span>"
+    },
+    {
+      "line": 347,
+      "text_unicode_escape": "<h2>Identifica\\xc3\\u0192\\xc2\\xa7\\xc3\\u0192\\xc2\\xa3o</h2>"
+    },
+    {
+      "line": 354,
+      "text_unicode_escape": "<label>C\\xc3\\u0192\\xc2\\xb3digo ANAC<input type=\"text\" name=\"licenca_anac\" id=\"tripulanteAnac\" value=\"${escapeAttr(tripulante?.licenca_anac || \"\")}\" inputmode=\"numeric\" maxlength=\"6\" placeholder=\"000000\" required aria-describedby=\"tripulanteAnacFeedback\"><span class=\"field-feedback ui-field-help\" id=\"tripulanteAnacFeedback\" aria-live=\"polite\"></span></label>"
+    },
+    {
+      "line": 361,
+      "text_unicode_escape": "<h2>Opera\\xc3\\u0192\\xc2\\xa7\\xc3\\u0192\\xc2\\xa3o</h2>"
+    },
+    {
+      "line": 362,
+      "text_unicode_escape": "<p>Status, base e fun\\xc3\\u0192\\xc2\\xa7\\xc3\\u0192\\xc2\\xa3o que impactam escala, relat\\xc3\\u0192\\xc2\\xb3rios e produtividade.</p>"
+    },
+    {
+      "line": 387,
+      "text_unicode_escape": "Fun\\xc3\\u0192\\xc2\\xa7\\xc3\\u0192\\xc2\\xa3o operacional"
+    },
+    {
+      "line": 426,
+      "text_unicode_escape": "<h2>Arquivos visuais e observa\\xc3\\u0192\\xc2\\xa7\\xc3\\u0192\\xc2\\xb5es</h2>"
+    },
+    {
+      "line": 427,
+      "text_unicode_escape": "<p>Informa\\xc3\\u0192\\xc2\\xa7\\xc3\\u0192\\xc2\\xb5es de apoio que completam o cadastro sem competir com a opera\\xc3\\u0192\\xc2\\xa7\\xc3\\u0192\\xc2\\xa3o principal.</p>"
+    },
+    {
+      "line": 440,
+      "text_unicode_escape": "<div class=\"checkbox-description\">Envie JPG, PNG ou WEBP. A imagem ser\\xc3\\u0192\\xc2\\xa1 exibida no cadastro, relat\\xc3\\u0192\\xc2\\xb3rio e gest\\xc3\\u0192\\xc2\\xa3o de bases.</div>"
+    },
+    {
+      "line": 450,
+      "text_unicode_escape": "<label class=\"full-width ui-form-field-long\">Observa\\xc3\\u0192\\xc2\\xa7\\xc3\\u0192\\xc2\\xb5es<textarea name=\"observacoes\" rows=\"4\">${escapeHtml(tripulante?.observacoes || \"\")}</textarea></label>"
+    },
+    {
+      "line": 453,
+      "text_unicode_escape": "<button type=\"submit\" id=\"tripulanteFormSubmit\">Salvar altera\\xc3\\u0192\\xc2\\xa7\\xc3\\u0192\\xc2\\xb5es</button>"
+    },
+    {
+      "line": 689,
+      "text_unicode_escape": "setUploadState(target, \"Arquivo inv\\xc3\\u0192\\xc2\\xa1lido. Envie apenas PDF.\", \"error\");"
+    },
+    {
+      "line": 907,
+      "text_unicode_escape": "setFieldFeedback(cpfInput, String(cpfInput?.value || \"\").replace(/\\\\D/g, \"\").length === 11 ? \"\" : \"CPF deve ter 11 d\\xc3\\u0192\\xc2\\xadgitos.\"),"
+    },
+    {
+      "line": 908,
+      "text_unicode_escape": "validateRequiredInput(anacInput, \"Informe o c\\xc3\\u0192\\xc2\\xb3digo ANAC.\"),"
+    },
+    {
+      "line": 909,
+      "text_unicode_escape": "setFieldFeedback(anacInput, String(anacInput?.value || \"\").replace(/\\\\D/g, \"\").length >= 4 ? \"\" : \"C\\xc3\\u0192\\xc2\\xb3digo ANAC deve ter ao menos 4 d\\xc3\\u0192\\xc2\\xadgitos.\"),"
+    },
+    {
+      "line": 914,
+      "text_unicode_escape": "validateRequiredInput(document.getElementById(\"tripulanteFuncao\"), \"Selecione a fun\\xc3\\u0192\\xc2\\xa7\\xc3\\u0192\\xc2\\xa3o.\"),"
+    },
+    {
+      "line": 920,
+      "text_unicode_escape": "const emailValid = setFieldFeedback(emailInput, \"Informe um e-mail v\\xc3\\u0192\\xc2\\xa1lido.\");"
+    },
+    {
+      "line": 928,
+      "text_unicode_escape": "identityValidations.every(Boolean) ? \"\" : \"Revise identifica\\xc3\\u0192\\xc2\\xa7\\xc3\\u0192\\xc2\\xa3o antes de salvar.\","
+    },
+    {
+      "line": 932,
+      "text_unicode_escape": "operationValidations.every(Boolean) ? \"\" : \"Complete os campos operacionais obrigat\\xc3\\u0192\\xc2\\xb3rios.\","
+    },
+    {
+      "line": 962,
+      "text_unicode_escape": "setFieldFeedback(cpfInput, String(cpfInput.value || \"\").replace(/\\\\D/g, \"\").length === 11 || !cpfInput.value ? \"\" : \"CPF deve ter 11 d\\xc3\\u0192\\xc2\\xadgitos.\");"
+    },
+    {
+      "line": 966,
+      "text_unicode_escape": "setFieldFeedback(anacInput, String(anacInput.value || \"\").length >= 4 || !anacInput.value ? \"\" : \"C\\xc3\\u0192\\xc2\\xb3digo ANAC deve ter ao menos 4 d\\xc3\\u0192\\xc2\\xadgitos.\");"
+    },
+    {
+      "line": 976,
+      "text_unicode_escape": "input.addEventListener(\"blur\", () => validateRequiredInput(input, \"Campo obrigat\\xc3\\u0192\\xc2\\xb3rio.\"));"
+    },
+    {
+      "line": 1024,
+      "text_unicode_escape": "consequence: \"Se houver v\\xc3\\u0192\\xc2\\xadnculos hist\\xc3\\u0192\\xc2\\xb3ricos, o registro pode ser inativado em vez de exclu\\xc3\\u0192\\xc2\\xaddo.\","
+    },
+    {
+      "line": 1031,
+      "text_unicode_escape": "? \"Tripulante inativado porque existem v\\xc3\\u0192\\xc2\\xadnculos hist\\xc3\\u0192\\xc2\\xb3ricos.\""
+    },
+    {
+      "line": 1032,
+      "text_unicode_escape": ": \"Tripulante exclu\\xc3\\u0192\\xc2\\xaddo com sucesso.\","
+    },
+    {
+      "line": 1116,
+      "text_unicode_escape": "consequence: \"A foto deixar\\xc3\\u0192\\xc2\\xa1 de aparecer no cadastro e nos relat\\xc3\\u0192\\xc2\\xb3rios vinculados.\","
+    }
+  ],
+  "older_backup_with_separator_issue": "C:\\srv\\controle-treinamentos\\frontend-backup\\prod-tripulante-photo-feedback-20260427143138\\features\\tripulantes\\form-page.js",
+  "older_backup_broken_count": 32,
+  "older_backup_separator_lines": [
+    {
+      "line": 878,
+      "text_unicode_escape": "setUploadState(photoState, `${file.name} \\xc3\\u201a\\xc2\\xb7 ${formatFileSize(file.size)} \\xc3\\u201a\\xc2\\xb7 pronto para envio`, \"ready\");"
+    },
+    {
+      "line": 892,
+      "text_unicode_escape": "setUploadState(photoState, `${file.name} \\xc3\\u201a\\xc2\\xb7 enviando...`, \"busy\");"
+    },
+    {
+      "line": 904,
+      "text_unicode_escape": "setUploadState(photoState, `${file.name} \\xc3\\u201a\\xc2\\xb7 falha no envio`, \"error\");"
+    }
+  ],
+  "current_source_broken_count": 0,
+  "current_prod_broken_count": 0,
+  "healthy_neighbor_files": {
+    "frontend\\src\\features\\tripulantes\\list-page.js": 0,
+    "frontend\\src\\features\\tripulantes\\avatar.js": 0
+  },
+  "expected_strings_present": {
+    "Detalhe e edi\\xe7\\xe3o": true,
+    "Dispon\\xedvel para opera\\xe7\\xe3o": true,
+    "Identifica\\xe7\\xe3o": true,
+    "C\\xf3digo ANAC": true,
+    "Opera\\xe7\\xe3o": true,
+    "Fun\\xe7\\xe3o operacional": true,
+    "Arquivos visuais e observa\\xe7\\xf5es": true,
+    "Informa\\xe7\\xf5es de apoio": true,
+    "Salvar altera\\xe7\\xf5es": true
+  },
+  "test_result": "tests/contract/test_frontend_third_surface_visual_foundation.py::test_tripulante_form_detail_preserves_functional_contracts = 1 passed",
+  "build_check": "runtime/tmp/tripulante-encoding-form-page-final-check-20260427144309",
+  "production_backup": "C:\\srv\\controle-treinamentos\\frontend-backup\\prod-tripulante-encoding-20260427143742"
+}

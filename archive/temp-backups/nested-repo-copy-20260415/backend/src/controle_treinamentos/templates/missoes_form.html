@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ "Editar missão operacional" if missao else "Cadastrar missão operacional" }}</h1>
+        <p class="page-subtitle">Registre o chamado operacional e vincule a equipe para apuração correta de produtividade.</p>
+    </div>
+</div>
+
+<form method="post" class="form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <section class="form-section">
+        <h2 class="form-section-title">Dados da missão</h2>
+        <p class="form-section-subtitle">Use identificadores consistentes para evitar duplicidade na contagem de missões.</p>
+    </section>
+    <label>Número do voo / chamado<input type="text" name="codigo_voo" value="{{ missao.codigo_voo if missao else '' }}" required></label>
+    <label>Contratante<input type="text" name="contratante" value="{{ missao.contratante if missao else '' }}" required></label>
+    <label>Data início<input type="date" name="data_inicio" value="{{ missao.data_inicio if missao else '' }}" required></label>
+    <label>Data fim<input type="date" name="data_fim" value="{{ missao.data_fim if missao else '' }}"></label>
+    <label>Origem<input type="text" name="origem" value="{{ missao.origem if missao else '' }}"></label>
+    <label>Destino<input type="text" name="destino" value="{{ missao.destino if missao else '' }}"></label>
+    <label>Tipo de operação<input type="text" name="tipo_operacao" value="{{ missao.tipo_operacao if missao else '' }}"></label>
+    <label class="checkbox-field">
+        <span class="checkbox-title">Conta como missão válida para produtividade</span>
+        <span class="toggle-switch">
+            <input type="checkbox" name="conta_missao_produtividade" {% if not missao or missao.conta_missao_produtividade %}checked{% endif %}>
+            <span class="toggle-slider" aria-hidden="true"></span>
+            <span class="toggle-text">{% if not missao or missao.conta_missao_produtividade %}Ativo{% else %}Inativo{% endif %}</span>
+        </span>
+    </label>
+
+    <section class="form-section full-width">
+        <h2 class="form-section-title">Pernoite automático da missão</h2>
+        <p class="form-section-subtitle">Se houver pernoite, você pode gerar automaticamente para todos os tripulantes vinculados.</p>
+    </section>
+    <label class="checkbox-field">
+        <span class="checkbox-title">Gerar pernoite automático ao salvar missão</span>
+        <span class="toggle-switch">
+            <input type="checkbox" name="gerar_pernoites_automaticos" {% if missao and missao.gerar_pernoites_automaticos %}checked{% endif %}>
+            <span class="toggle-slider" aria-hidden="true"></span>
+            <span class="toggle-text">{% if missao and missao.gerar_pernoites_automaticos %}Ativo{% else %}Inativo{% endif %}</span>
+        </span>
+    </label>
+    <label>
+        Tipo de pernoite automático
+        <select name="tipo_pernoite_auto">
+            {% for item in tipo_pernoite_options %}
+            <option value="{{ item }}" {% if (missao and missao.tipo_pernoite_auto == item) or (not missao and item == 'cobertura_base') %}selected{% endif %}>
+                {{ "Cobertura de base" if item == "cobertura_base" else "Pernoite operacional comum" }}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>Data do pernoite automático<input type="date" name="data_pernoite_auto" value="{{ missao.data_pernoite_auto if missao else '' }}"></label>
+    <label>Quantidade por tripulante<input type="number" min="1" step="1" name="quantidade_pernoite_auto" value="{{ missao.quantidade_pernoite_auto if missao else 1 }}"></label>
+
+    <div class="full-width checkbox-field">
+        <span class="checkbox-label-group">
+            <span class="checkbox-title">Tripulantes vinculados</span>
+            <span class="checkbox-description">Selecione todos os tripulantes que participaram desta missão/chamado.</span>
+        </span>
+        <div class="table-wrap">
+            <table class="data-table responsive-cards">
+                <thead>
+                    <tr>
+                        <th>Selecionar</th>
+                        <th>Nome</th>
+                        <th>Base</th>
+                        <th>Função</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in tripulantes %}
+                    <tr>
+                        <td data-label="Selecionar"><input type="checkbox" name="tripulante_ids" value="{{ row.id }}" {% if missao and row.id|string in missao.tripulante_ids %}checked{% endif %}></td>
+                        <td data-label="Nome">{{ row.nome }}</td>
+                        <td data-label="Base">{{ row.base }}</td>
+                        <td data-label="Função">{{ row.funcao_operacional|title }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <label class="full-width">Observações<textarea name="observacoes">{{ missao.observacoes if missao else '' }}</textarea></label>
+    <div class="form-actions full-width">
+        <button type="submit">Salvar</button>
+        <a class="button-link secondary" href="{{ url_for('operacoes.missoes_list') }}">Voltar</a>
+    </div>
+</form>
+
+<script>
+(() => {
+    const missionToggle = document.querySelector("input[name='conta_missao_produtividade']");
+    const autoPernoiteToggle = document.querySelector("input[name='gerar_pernoites_automaticos']");
+    function bindToggle(toggleInput) {
+        if (!toggleInput) return;
+        const textNode = toggleInput.closest(".toggle-switch")?.querySelector(".toggle-text");
+        if (!textNode) return;
+        function sync() {
+            textNode.textContent = toggleInput.checked ? "Ativo" : "Inativo";
+        }
+        toggleInput.addEventListener("change", sync);
+        sync();
+    }
+    bindToggle(missionToggle);
+    bindToggle(autoPernoiteToggle);
+})();
+</script>
+{% endblock %}

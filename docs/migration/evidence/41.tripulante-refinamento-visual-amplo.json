@@ -1,0 +1,69 @@
+{
+  "id": "41.tripulante-refinamento-visual-amplo",
+  "date": "2026-04-27",
+  "scope": "tripulantes_frontend_visual_refinement",
+  "changed_files": [
+    "frontend/src/features/tripulantes/form-page.js",
+    "frontend/src/app.css",
+    "tests/contract/test_frontend_third_surface_visual_foundation.py",
+    "tests/contract/test_frontend_responsive_master_detail_policy.py"
+  ],
+  "surface": {
+    "route": "#/tripulantes/:id",
+    "component": "frontend/src/features/tripulantes/form-page.js",
+    "css": "frontend/src/app.css",
+    "prod_output": "C:\\srv\\controle-treinamentos\\frontend\\prod",
+    "prod_backup": "C:\\srv\\controle-treinamentos\\frontend-backup\\prod-tripulante-visual-refinement-20260427215603"
+  },
+  "visual_contract": {
+    "section_attributes": [
+      "data-tripulante-section=\"identity\"",
+      "data-tripulante-section=\"operation\"",
+      "data-tripulante-section=\"eligibility\"",
+      "data-tripulante-section=\"media\"",
+      "data-tripulante-section=\"documents\""
+    ],
+    "document_states": [
+      "ready",
+      "unavailable",
+      "unknown",
+      "removed"
+    ],
+    "selection": [
+      ".document-library-row.is-selected",
+      "Selecionado"
+    ],
+    "css_anchor": "40: tripulante detail broad visual refinement without functional drift."
+  },
+  "checks": [
+    {
+      "command": ".venv\\Scripts\\python.exe -m pytest tests\\contract\\test_frontend_third_surface_visual_foundation.py tests\\contract\\test_frontend_responsive_master_detail_policy.py tests\\contract\\test_frontend_responsive_form_policy.py tests\\contract\\test_frontend_shared_component_consolidation.py tests\\contract\\test_frontend_visual_final_expansion_readiness.py tests\\contract\\test_frontend_visual_readiness_third_wave.py -q",
+      "result": "26 passed"
+    },
+    {
+      "command": ".venv\\Scripts\\python.exe -B frontend\\scripts\\build_frontend.py --env-file frontend\\.env.example --output-dir runtime\\tmp\\tripulante-visual-refinement-build-check-20260427215414",
+      "result": "Frontend build generated"
+    },
+    {
+      "command": "prod source verification",
+      "result": "source_form=missing 0; source_css=missing 0; prod_form=missing 0; prod_css=missing 0"
+    },
+    {
+      "command": "Browser plugin via node_repl",
+      "result": "blocked: Acesso negado"
+    },
+    {
+      "command": "Microsoft Edge headless screenshot",
+      "result": "login screen reached; authenticated route visual validation blocked by missing session"
+    }
+  ],
+  "functional_contract": {
+    "endpoints_changed": false,
+    "http_contracts_changed": false,
+    "permissions_changed": false,
+    "business_logic_changed": false,
+    "storage_changed": false,
+    "upload_preview_download_delete_logic_changed": false
+  },
+  "closure": "bloqueado_para_validacao_visual_autenticada"
+}

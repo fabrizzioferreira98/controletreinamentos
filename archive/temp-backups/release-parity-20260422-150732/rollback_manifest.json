@@ -1,0 +1,32 @@
+﻿{
+    "generated_at":  "2026-04-22T15:07:32",
+    "source":  "host-snapshot-before-promotion",
+    "backup_root":  "C:\\apps\\controle-treinamentos\\archive\\temp-backups\\release-parity-20260422-150732",
+    "files":  {
+                  "caddy":  "C:\\srv\\controle-treinamentos\\caddy\\Caddyfile",
+                  "hml_env":  "C:\\srv\\controle-treinamentos\\env\\hml.env",
+                  "prod_env":  "C:\\srv\\controle-treinamentos\\env\\prod.env",
+                  "service_hml":  "C:\\srv\\controle-treinamentos\\services\\CT-App-Hml\\CT-App-Hml.xml",
+                  "service_prod":  "C:\\srv\\controle-treinamentos\\services\\CT-App-Prod\\CT-App-Prod.xml",
+                  "service_caddy":  "C:\\srv\\controle-treinamentos\\services\\CT-Caddy\\CT-Caddy.xml",
+                  "frontend_hml":  "C:\\srv\\controle-treinamentos\\frontend\\hml",
+                  "frontend_prod":  "C:\\srv\\controle-treinamentos\\frontend\\prod"
+              },
+    "service_state":  [
+                          {
+                              "Name":  "CT-App-Hml",
+                              "Status":  4,
+                              "StartType":  2
+                          },
+                          {
+                              "Name":  "CT-App-Prod",
+                              "Status":  4,
+                              "StartType":  2
+                          },
+                          {
+                              "Name":  "CT-Caddy",
+                              "Status":  4,
+                              "StartType":  2
+                          }
+                      ]
+}

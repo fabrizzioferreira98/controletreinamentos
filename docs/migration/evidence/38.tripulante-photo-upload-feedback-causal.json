@@ -1,0 +1,63 @@
+﻿{
+    "generated_at":  "2026-04-27T14:34:13",
+    "scope":  "tripulante_photo_upload_feedback_causal",
+    "frontend_prod_backup":  "C:\\srv\\controle-treinamentos\\frontend-backup\\prod-tripulante-photo-feedback-20260427143138",
+    "frontend_prod_path":  "C:\\srv\\controle-treinamentos\\frontend\\prod",
+    "backend_service":  {
+                            "name":  "CT-App-Prod",
+                            "restart_method":  "C:\\srv\\controle-treinamentos\\services\\CT-App-Prod\\CT-App-Prod.exe restart",
+                            "status":  "Running Automatic",
+                            "repo_root":  "C:\\apps\\controle-treinamentos"
+                        },
+    "classified_causes":  [
+                              "empty_selection",
+                              "unsupported_format",
+                              "empty_file",
+                              "too_large",
+                              "local_read",
+                              "csrf",
+                              "auth",
+                              "permission",
+                              "network",
+                              "storage",
+                              "backend_validation",
+                              "unexpected_response",
+                              "unexpected"
+                          ],
+    "tests":  [
+                  "tests\\contract\\test_api_tripulante_media_contract.py::test_api_tripulante_photo_post_returns_state_contract",
+                  "tests\\contract\\test_api_tripulante_media_contract.py::test_api_tripulante_photo_post_reports_storage_unavailable",
+                  "tests\\contract\\test_api_tripulante_media_contract.py::test_api_tripulante_photo_upload_persists_blob_and_get_returns_binary",
+                  "tests\\contract\\test_api_tripulante_media_contract.py::test_save_tripulante_photo_refuses_metadata_when_blob_is_not_readable",
+                  "tests\\contract\\test_frontend_third_surface_visual_foundation.py::test_tripulante_form_detail_preserves_functional_contracts",
+                  "tests\\contract\\test_http_error_contract.py::test_tripulante_photo_without_session_returns_401_without_html_redirect"
+              ],
+    "test_result":  "6 passed",
+    "skipped":  [
+                    {
+                        "test":  "tests\\e2e\\test_critical_journeys.py::test_e2e_tripulante_photo_api_and_ssr_download_flow",
+                        "reason":  "E2E_DATABASE_URL nao configurada para E2E de homologacao"
+                    }
+                ],
+    "build_check":  "runtime\\tmp\\tripulante-photo-feedback-build-check-20260427143120",
+    "production_checks":  {
+                              "healthz":  {
+                                              "url":  "http://192.168.25.33/healthz",
+                                              "status":  200,
+                                              "body":  "status=ok,database=ok"
+                                          },
+                              "unauthenticated_photo_post":  {
+                                                                 "url":  "http://192.168.25.33/api/v1/tripulantes/10/photo",
+                                                                 "status":  401,
+                                                                 "code":  "auth_required",
+                                                                 "content_type":  "application/json"
+                                                             },
+                              "frontend_contains":  [
+                                                        "PHOTO_ALLOWED_MIME_TYPES",
+                                                        "classifyPhotoUploadFailure",
+                                                        "tripulante_photo_blob_unavailable",
+                                                        "pre-visualizacao local",
+                                                        "envio confirmado"
+                                                    ]
+                          }
+}

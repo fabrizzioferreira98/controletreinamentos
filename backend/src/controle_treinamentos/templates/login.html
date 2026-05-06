@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrar | Treinamentos Brasil Vida</title>
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='favicon-192.png', v='4') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32.png', v='4') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16.png', v='4') }}">
+    <link rel="icon" type="image/svg+xml" sizes="any" href="{{ url_for('static', filename='favicon.svg', v='4') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon-32.png', v='4') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png', v='4') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest', v='4') }}">
+    <meta name="theme-color" content="#07111f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Treinamentos Brasil Vida">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v='20260403-login') }}">
+</head>
+<body
+    class="login-body"
+    style="--login-hero-image: url('{{ url_for('static', filename='login-citation-jet.jpg', v='20260403') }}');"
+>
+    <div class="login-background" aria-hidden="true">
+        <span class="login-orb login-orb-one"></span>
+        <span class="login-orb login-orb-two"></span>
+        <span class="login-grid-glow"></span>
+    </div>
+
+    <main class="login-shell">
+        <section class="login-visual login-entrance" aria-hidden="true">
+            <div class="login-visual-photo-wrap">
+                <img
+                    class="login-visual-photo"
+                    src="{{ url_for('static', filename='login-citation-jet.jpg', v='20260403') }}"
+                    alt=""
+                    loading="eager"
+                    fetchpriority="high"
+                    decoding="async"
+                >
+            </div>
+            <div class="login-visual-content login-fade login-delay-1">
+                <div class="login-visual-brand">
+                    <img class="brand-image brand-image-login-visual" src="{{ url_for('static', filename='logo-brasilvida.svg') }}" alt="Brasil Vida">
+                    <span class="login-visual-badge">Servidor local • acesso protegido</span>
+                </div>
+                <div class="login-visual-copy">
+                    <span class="login-eyebrow">Treinamentos Brasil Vida</span>
+                    <h1>Referência em transporte aeromédico.</h1>
+                    <p>Entre para acompanhar vencimentos, cadastros e a rotina operacional com um fluxo mais rápido e confiável.</p>
+                </div>
+                <div class="login-visual-metrics">
+                    <article class="login-metric-card">
+                        <span class="login-metric-label">Sessão</span>
+                        <strong>Autenticação com CSRF</strong>
+                    </article>
+                    <article class="login-metric-card">
+                        <span class="login-metric-label">Ambiente</span>
+                        <strong>Infraestrutura local</strong>
+                    </article>
+                    <article class="login-metric-card">
+                        <span class="login-metric-label">Foco</span>
+                        <strong>Leitura rápida e operação contínua</strong>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="login-panel">
+            <div class="login-panel-header login-fade login-delay-2">
+                <span class="login-chip">Acesso autenticado</span>
+                <h2>Entrar no sistema</h2>
+                <p>Use suas credenciais para acessar os módulos operacionais, atualizar cadastros e acompanhar a equipe com segurança.</p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="login-feedback" role="status" aria-live="polite">
+                    {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            {% endwith %}
+
+            <form method="post" class="login-form login-fade login-delay-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {% if login_next %}
+                <input type="hidden" name="next" value="{{ login_next }}">
+                {% endif %}
+
+                <div class="login-field">
+                    <label for="login-username">Login</label>
+                    <div class="login-input-shell">
+                        <input id="login-username" type="text" name="login" autocomplete="username" autocapitalize="off" spellcheck="false" required autofocus>
+                    </div>
+                </div>
+
+                <div class="login-field">
+                    <div class="login-field-heading">
+                        <label for="login-password">Senha</label>
+                        <span class="login-inline-note">Credencial administrativa do ambiente</span>
+                    </div>
+                    <div class="login-input-shell login-input-shell-password">
+                        <input id="login-password" type="password" name="senha" autocomplete="current-password" required>
+                        <button
+                            type="button"
+                            class="login-password-toggle"
+                            data-login-password-toggle
+                            aria-controls="login-password"
+                            aria-pressed="false"
+                            aria-label="Mostrar senha"
+                        >
+                            Mostrar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="login-form-meta">
+                    <label class="login-remember-field" for="login-remember">
+                        <input id="login-remember" class="login-remember-checkbox" type="checkbox" name="remember" value="1" checked>
+                        <span>Manter conectado neste dispositivo</span>
+                    </label>
+                    <div class="login-form-trust">Sessão protegida e validada a cada requisição.</div>
+                </div>
+
+                <button type="submit" class="login-submit">Entrar agora</button>
+            </form>
+
+            <div class="login-support-note login-fade login-delay-4">
+                Para redefinição de senha ou liberação de acesso, solicite suporte ao administrador responsável por este ambiente.
+            </div>
+        </section>
+    </main>
+
+    <script>
+        (function () {
+            var toggle = document.querySelector("[data-login-password-toggle]");
+            var input = document.getElementById("login-password");
+            if (!toggle || !input) {
+                return;
+            }
+
+            toggle.addEventListener("click", function () {
+                var reveal = input.type === "password";
+                input.type = reveal ? "text" : "password";
+                toggle.textContent = reveal ? "Ocultar" : "Mostrar";
+                toggle.setAttribute("aria-pressed", reveal ? "true" : "false");
+                toggle.setAttribute("aria-label", reveal ? "Ocultar senha" : "Mostrar senha");
+            });
+        }());
+    </script>
+</body>
+</html>
+

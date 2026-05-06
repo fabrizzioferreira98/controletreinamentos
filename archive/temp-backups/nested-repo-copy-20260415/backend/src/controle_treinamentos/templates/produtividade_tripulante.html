@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header produtividade-mobile-header">
+    <div>
+        <h1>Relatório de produtividade individual</h1>
+        <p class="page-subtitle">{{ calculo.tripulante_nome }} · Competência {{ competencia_label }}</p>
+    </div>
+    <div class="page-header-actions print-hide produtividade-actions">
+        <button type="button" class="button-link" onclick="window.print()">Imprimir visualização</button>
+        <a class="button-link secondary" href="{{ url_for('relatorios.produtividade_consolidado', competencia=competencia) }}">Voltar ao consolidado</a>
+    </div>
+</div>
+
+<section class="panel report-page">
+    <section class="consolidated-brand-banner print-hide">
+        <div class="consolidated-brand-left">
+            <img class="consolidated-brand-logo" src="{{ url_for('static', filename='logo-brasilvida.svg') }}" alt="Brasilvida">
+            <div>
+                <div class="consolidated-brand-kicker">Treinamentos Brasil vida</div>
+                <div class="consolidated-brand-title">Relatório individual de produtividade</div>
+                <div class="consolidated-brand-subtitle">Memória de cálculo, consistência e conferência operacional.</div>
+            </div>
+        </div>
+        <div class="consolidated-brand-meta">
+            <div class="consolidated-brand-meta-label">Emissão</div>
+            <div class="consolidated-brand-meta-value">{{ emitted_at }}</div>
+        </div>
+    </section>
+
+    <header class="report-print-header report-only">
+        <div class="report-brand-row">
+            <img class="report-logo" src="{{ url_for('static', filename='logo-brasilvida.svg') }}" alt="Brasilvida">
+            <div class="report-brand-meta">
+                <div class="report-doc-title">Produtividade Individual</div>
+                <div class="report-doc-subtitle">Relatório de bonificação por tripulante</div>
+            </div>
+        </div>
+        <div class="report-issued-at">Emissão: {{ emitted_at }}</div>
+    </header>
+
+    <section class="competencia-history print-hide">
+        <div class="competencia-history-title">Histórico de bonificação deste tripulante</div>
+        <div class="competencia-history-list produtividade-competencias">
+            {% for item in competencias_disponiveis %}
+            <a class="competencia-chip {% if item == competencia %}active{% endif %}" href="{{ url_for('cadastros.produtividade_tripulante', tripulante_id=calculo.tripulante_id, competencia=item) }}">
+                {{ format_competencia_label(item) }}
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+
+    <div class="filters-toggle-row print-hide">
+        <form class="filters" method="get">
+            <label>Competência<input type="month" name="competencia" value="{{ competencia }}"></label>
+            <button type="submit">Recalcular</button>
+        </form>
+    </div>
+
+    <section class="report-info-block">
+        <div class="report-block-title">Dados do tripulante</div>
+        <div class="report-info-grid">
+            <div class="report-info-item"><strong>Tripulante</strong><span>{{ calculo.tripulante_nome }}</span></div>
+            <div class="report-info-item"><strong>Base</strong><span>{{ calculo.base }}</span></div>
+            <div class="report-info-item"><strong>Função</strong><span>{{ calculo.funcao|title }}</span></div>
+            <div class="report-info-item"><strong>Categoria</strong><span>{{ calculo.categoria }}</span></div>
+        </div>
+    </section>
+
+    <section class="report-info-block">
+        <div class="report-block-title">Conferência do relatório</div>
+        <div class="report-info-grid">
+            <div class="report-info-item report-info-item-wide">
+                <strong>Status</strong>
+                <span>
+                    {% if conferencia %}
+                    Conferido por {{ conferencia.conferido_por_nome }} em {{ conferencia.conferido_em|br_datetime }}
+                    {% else %}
+                    Ainda não conferido
+                    {% endif %}
+                </span>
+            </div>
+            <div class="report-info-item report-info-item-wide print-hide">
+                <strong>Ação</strong>
+                <div class="report-action-slot">
+                    <form method="post" action="{{ url_for('relatorios.produtividade_conferencia_set') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="tripulante_id" value="{{ calculo.tripulante_id }}">
+                        <input type="hidden" name="competencia" value="{{ competencia }}">
+                        <input type="hidden" name="next" value="{{ request.full_path }}">
+                        <input type="hidden" name="action" value="{% if conferencia %}unmark{% else %}mark{% endif %}">
+                        <button type="submit" class="{% if conferencia %}button-link secondary{% endif %}">
+                            {% if conferencia %}Desmarcar conferência{% else %}Marcar conferido{% endif %}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="report-summary-grid">
+        <div class="report-summary-card"><strong>Piso mínimo</strong><span>{{ moeda(calculo.piso_minimo_mensal) }}</span></div>
+        <div class="report-summary-card"><strong>Total produtividade</strong><span>{{ moeda(calculo.total_produtividade) }}</span></div>
+        <div class="report-summary-card"><strong>Valor final mês</strong><span>{{ moeda(calculo.valor_final_mes) }}</span></div>
+        <div class="report-summary-card"><strong>Critério</strong><span>{{ calculo.criterio_fechamento }}</span></div>
+    </section>
+
+    <section class="report-table-block">
+        <div class="report-section-title">Memória de cálculo</div>
+        <div class="table-wrap">
+            <table class="data-table report-table report-table-kv">
+                <tbody>
+                    <tr><td>Total de missões válidas</td><td>{{ calculo.total_missoes_validas }}</td></tr>
+                    <tr><td>Valor total missões</td><td>{{ moeda(calculo.valor_total_missoes) }}</td></tr>
+                    <tr><td>Total pernoites cobertura</td><td>{{ calculo.total_pernoites_cobertura }}</td></tr>
+                    <tr><td>Valor pernoites cobertura</td><td>{{ moeda(calculo.valor_total_pernoites_cobertura) }}</td></tr>
+                    <tr><td>Total pernoites operacionais elegíveis</td><td>{{ calculo.total_pernoites_operacionais_elegiveis }}</td></tr>
+                    <tr><td>Valor pernoites operacionais</td><td>{{ moeda(calculo.valor_total_pernoites_operacionais) }}</td></tr>
+                    <tr><td>Adicional idioma</td><td>{{ moeda(calculo.valor_idioma) }} (SDEA {{ bool_label(calculo.tripulante.sdea_ativo) }})</td></tr>
+                    <tr><td>Adicional instrutor</td><td>{{ moeda(calculo.valor_instrutor) }} ({{ bool_label(calculo.tripulante.instrutor_ativo) }})</td></tr>
+                    <tr><td>Adicional checador</td><td>{{ moeda(calculo.valor_checador) }} ({{ bool_label(calculo.tripulante.checador_ativo) }})</td></tr>
+                    <tr><td>Adicional excepcional</td><td>{{ moeda(calculo.valor_adicional_excepcional) }} ({{ bool_label(calculo.tripulante.elegivel_adicional_excepcional) }})</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="report-table-block">
+        <div class="report-section-title">Validações da engine</div>
+        <div class="table-wrap">
+            <table class="data-table report-table report-table-kv">
+                <tbody>
+                    <tr>
+                        <td>Entradas normalizadas</td>
+                        <td>{{ calculo.memoria_calculo.entradas.categoria }} · {{ calculo.memoria_calculo.entradas.funcao }} · {{ calculo.memoria_calculo.entradas.base }}</td>
+                    </tr>
+                    <tr>
+                        <td>Critério final aplicado</td>
+                        <td>{{ calculo.memoria_calculo.consolidacao.criterio_fechamento }}</td>
+                    </tr>
+                    <tr>
+                        <td>Avisos de consistência</td>
+                        <td>
+                            {% if calculo.memoria_calculo.validacoes %}
+                                {{ calculo.memoria_calculo.validacoes|join(' | ') }}
+                            {% else %}
+                                Nenhum alerta de consistência para esta apuração.
+                            {% endif %}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="report-table-block">
+        <div class="report-section-title">Missões contabilizadas</div>
+        <div class="table-wrap">
+            <table class="data-table report-table responsive-cards">
+                <thead>
+                    <tr>
+                        <th>Voo/Chamado</th>
+                        <th>Contratante</th>
+                        <th>Período</th>
+                        <th>Rota</th>
+                        <th>Tipo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in calculo.missao_detalhes %}
+                    <tr>
+                        <td data-label="Voo/Chamado">{{ item.codigo_voo }}</td>
+                        <td data-label="Contratante">{{ item.contratante }}</td>
+                        <td data-label="Período">{{ item.data_inicio|br_date }} até {{ (item.data_fim or item.data_inicio)|br_date }}</td>
+                        <td data-label="Rota">{{ item.origem or "-" }} → {{ item.destino or "-" }}</td>
+                        <td data-label="Tipo">{{ item.tipo_operacao or "-" }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="empty">Nenhuma missão válida no período.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="report-table-block">
+        <div class="report-section-title">Pernoites do período</div>
+        <div class="table-wrap">
+            <table class="data-table report-table responsive-cards">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Quantidade</th>
+                        <th>Missão</th>
+                        <th>Observações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in calculo.pernoite_detalhes %}
+                    <tr>
+                        <td data-label="Data">{{ item.data_pernoite|br_date }}</td>
+                        <td data-label="Tipo">{{ item.tipo_pernoite.replace('_', ' ')|title }}</td>
+                        <td data-label="Quantidade">{{ item.quantidade }}</td>
+                        <td data-label="Missão">{% if item.codigo_voo %}{{ item.codigo_voo }} · {{ item.contratante }}{% else %}-{% endif %}</td>
+                        <td data-label="Observações">{{ item.observacoes or "-" }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="empty">Nenhum pernoite registrado no período.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <footer class="report-print-footer report-only">
+        Treinamentos Brasil vida · Produtividade individual · Emissão {{ emitted_at }}
+    </footer>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("auto_print") === "1") {
+        setTimeout(() => window.print(), 120);
+    }
+})();
+</script>
+{% endblock %}

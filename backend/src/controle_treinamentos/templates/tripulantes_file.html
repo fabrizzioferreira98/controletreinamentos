@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>File do tripulante</h1>
+        <p class="page-subtitle">Gestão de documentos PDF do tripulante {{ tripulante.nome }} com upload múltiplo seguro.</p>
+    </div>
+    <div class="page-header-actions">
+        {% if can_access('tripulantes:edit') %}
+        <a class="button-link secondary" href="{{ url_for('cadastros.tripulantes_edit', tripulante_id=tripulante.id) }}">Voltar para dados</a>
+        {% endif %}
+        <a class="button-link secondary" href="{{ url_for('cadastros.tripulantes_list') }}">Lista de tripulantes</a>
+    </div>
+</div>
+
+<section class="panel tripulante-file-meta">
+    <div><strong>Tripulante:</strong> {{ tripulante.nome }}</div>
+    <div><strong>CPF:</strong> {{ tripulante.cpf }}</div>
+    <div><strong>Código ANAC:</strong> {{ tripulante.licenca_anac }}</div>
+    <div><strong>Base:</strong> {{ tripulante.base or "-" }}</div>
+    <div><strong>Status:</strong> {{ tripulante.status }}</div>
+</section>
+
+{% if can_access('tripulantes_file:create') %}
+<section class="panel">
+    <div class="page-header compact">
+        <div>
+            <h2>Importação múltipla de PDF</h2>
+            <p class="page-subtitle">Selecione vários PDFs e envie em lote para este tripulante.</p>
+        </div>
+    </div>
+    <form
+        method="post"
+        action="{{ url_for('cadastros.tripulante_file_upload', tripulante_id=tripulante.id) }}"
+        enctype="multipart/form-data"
+        class="filters filters-wide"
+        id="tripulanteFileUploadForm"
+    >
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>
+            <span>Tipo do documento</span>
+            <input type="text" name="tipo_documento" maxlength="80" placeholder="Tipo do documento (ex.: CMA, ANAC, Contrato)">
+        </label>
+        <label>
+            <span>Arquivos PDF</span>
+            <input type="file" id="arquivos_pdf" name="arquivos_pdf" accept="application/pdf,.pdf" multiple required aria-describedby="tripulanteFileSelectedInfo">
+        </label>
+        <button type="submit" id="tripulanteFileUploadSubmit">Enviar arquivos</button>
+    </form>
+    <div class="hint">Limite por arquivo: {{ attachment_max_mb }} MB. Somente PDF válido (assinatura interna de PDF).</div>
+    <div class="hint" id="tripulanteFileSelectedInfo" role="status" aria-live="polite" aria-atomic="true">Nenhum arquivo selecionado.</div>
+</section>
+{% endif %}
+
+<section class="panel">
+    <div class="page-header compact">
+        <div>
+            <h2>Documentos enviados</h2>
+            <p class="page-subtitle">Histórico organizado por tripulante, com status e rastreabilidade.</p>
+        </div>
+    </div>
+    <div class="table-wrap">
+        <table class="data-table responsive-cards">
+            <thead>
+                <tr>
+                    <th>Arquivo</th>
+                    <th>Tipo</th>
+                    <th>Origem</th>
+                    <th>Tamanho</th>
+                    <th>Enviado em</th>
+                    <th>Enviado por</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in arquivos %}
+                <tr>
+                    <td data-label="Arquivo">
+                        <div class="primary-cell">📄 {{ item.nome_original }}</div>
+                        <div class="secondary-cell">ID #{{ item.id }}</div>
+                    </td>
+                    <td data-label="Tipo">{{ item.tipo_documento or "geral" }}</td>
+                    <td data-label="Origem">
+                        {{ item.origem_label or "-" }}
+                        {% if item.origem == "treinamento" and item.treinamento_id %}
+                        <div class="secondary-cell">Treinamento #{{ item.treinamento_id }}</div>
+                        {% endif %}
+                    </td>
+                    <td data-label="Tamanho">{{ '%.2f'|format((item.tamanho_bytes or 0) / (1024 * 1024)) }} MB</td>
+                    <td data-label="Enviado em">{{ item.enviado_em.strftime('%d/%m/%Y %H:%M') if item.enviado_em else '-' }}</td>
+                    <td data-label="Enviado por">{{ item.enviado_por_nome or '-' }}</td>
+                    <td data-label="Status">
+                        {% set status_class = {
+                            "ativo": "status-green",
+                            "substituido": "status-yellow",
+                            "removido": "status-dark",
+                        } %}
+                        <span class="status-pill {{ status_class.get(item.status, 'status-gray') }}">{{ item.status_label }}</span>
+                        {% if item.motivo_status %}
+                        <div class="secondary-cell">{{ item.motivo_status }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="actions" data-label="Ações">
+                        {% if can_access('tripulantes_file:view') and item.status != 'removido' %}
+                        <a href="{{ url_for('cadastros.tripulante_file_get_by_source', tripulante_id=tripulante.id, origem=item.origem, arquivo_id=item.id) }}" target="_blank" rel="noopener noreferrer">Visualizar</a>
+                        <a href="{{ url_for('cadastros.tripulante_file_get_by_source', tripulante_id=tripulante.id, origem=item.origem, arquivo_id=item.id, download=1) }}">Baixar</a>
+                        {% endif %}
+
+                        {% if item.origem == "treinamento" and item.treinamento_id and can_access('treinamentos:edit') %}
+                        <a href="{{ url_for('cadastros.treinamentos_edit', treinamento_id=item.treinamento_id) }}">Abrir treinamento</a>
+                        {% endif %}
+
+                        {% if item.origem == "tripulante_file" and can_access('tripulantes_file:replace') and item.status == 'ativo' %}
+                        <form method="post" action="{{ url_for('cadastros.tripulante_file_replace', tripulante_id=tripulante.id, arquivo_id=item.id) }}" enctype="multipart/form-data" class="inline-replace-form">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="tipo_documento" value="{{ item.tipo_documento or 'geral' }}">
+                            <input type="file" name="arquivo_pdf" class="replace-input" accept="application/pdf,.pdf" required hidden>
+                            <button type="button" class="button-link secondary replace-trigger">Substituir</button>
+                        </form>
+                        {% endif %}
+
+                        {% if item.origem == "tripulante_file" and can_access('tripulantes_file:delete') and item.status != 'removido' %}
+                        <form method="post" action="{{ url_for('cadastros.tripulante_file_delete', tripulante_id=tripulante.id, arquivo_id=item.id) }}" onsubmit="return confirm('Remover este documento da aba File?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="link-danger">Remover</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="empty">Nenhum documento cadastrado para este tripulante.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<script>
+(() => {
+    const uploadForm = document.getElementById("tripulanteFileUploadForm");
+    const uploadInput = document.getElementById("arquivos_pdf");
+    const selectedInfo = document.getElementById("tripulanteFileSelectedInfo");
+    const submitButton = document.getElementById("tripulanteFileUploadSubmit");
+
+    if (uploadInput && selectedInfo) {
+        uploadInput.addEventListener("change", () => {
+            const files = [...(uploadInput.files || [])];
+            if (!files.length) {
+                selectedInfo.textContent = "Nenhum arquivo selecionado.";
+                return;
+            }
+            const names = files.slice(0, 4).map((file) => file.name);
+            const suffix = files.length > 4 ? ` e mais ${files.length - 4}` : "";
+            selectedInfo.textContent = `${files.length} arquivo(s): ${names.join(", ")}${suffix}`;
+        });
+    }
+
+    if (uploadForm && submitButton) {
+        uploadForm.addEventListener("submit", () => {
+            const count = (uploadInput && uploadInput.files) ? uploadInput.files.length : 0;
+            submitButton.disabled = true;
+            submitButton.textContent = count > 1 ? `Enviando ${count} arquivos...` : "Enviando arquivo...";
+        });
+    }
+
+    const replaceForms = [...document.querySelectorAll(".inline-replace-form")];
+    replaceForms.forEach((form) => {
+        const trigger = form.querySelector(".replace-trigger");
+        const input = form.querySelector(".replace-input");
+        if (!trigger || !input) return;
+
+        trigger.addEventListener("click", () => input.click());
+        input.addEventListener("change", () => {
+            if (!input.files || !input.files.length) return;
+            if (!confirm("Confirmar substituição deste documento?")) {
+                input.value = "";
+                return;
+            }
+            form.submit();
+        });
+    });
+})();
+</script>
+{% endblock %}

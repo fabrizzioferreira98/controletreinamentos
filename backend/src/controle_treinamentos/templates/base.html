@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title or "Treinamentos Brasil Vida" }}</title>
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='favicon-192.png', v='4') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32.png', v='4') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16.png', v='4') }}">
+    <link rel="icon" type="image/svg+xml" sizes="any" href="{{ url_for('static', filename='favicon.svg', v='4') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon-32.png', v='4') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png', v='4') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest', v='4') }}">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Treinamentos Brasil Vida">
+    {% block extra_head %}{% endblock %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v='sidebar-ssr-20260426-5') }}">
+    <script src="{{ url_for('static', filename='vendor/htmx/htmx-1.9.11.min.js') }}"></script>
+    <style>
+        .htmx-indicator {
+            opacity: 0;
+            transition: opacity 200ms ease-in;
+            position: fixed;
+            top: 0; left: 0; right: 0; height: 3px;
+            background: var(--accent, #bd1f2d);
+            z-index: 10000;
+        }
+        .htmx-request .htmx-indicator {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body hx-boost="true" hx-indicator=".htmx-indicator">
+    {% macro nav_icon(code) -%}
+    {% set nav_icon_code = code|string %}
+    {% if nav_icon_code in ['PG', 'DB'] %}
+    <svg class="nav-icon" data-nav-icon="{{ nav_icon_code }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="4" width="6" height="6" rx="1.4"></rect><rect x="14" y="4" width="6" height="6" rx="1.4"></rect><rect x="4" y="14" width="6" height="6" rx="1.4"></rect><rect x="14" y="14" width="6" height="6" rx="1.4"></rect></svg>
+    {% elif nav_icon_code in ['OP', 'MI'] %}
+    <svg class="nav-icon" data-nav-icon="{{ nav_icon_code }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 15c1-5 4-9 9-11 2-.8 4-.8 5-.3.5 1 .5 3-.3 5-2 5-6 8-11 9Z"></path><path d="M14 6l4 4"></path><path d="M6 18l-2 2"></path><path d="M9 19l-1 2"></path></svg>
+    {% elif nav_icon_code == 'PE' %}
+    <svg class="nav-icon" data-nav-icon="{{ nav_icon_code }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 18V6"></path><path d="M4 13h16"></path><path d="M20 18v-6a3 3 0 0 0-3-3H9v4"></path><path d="M7 9h2"></path></svg>
+    {% elif nav_icon_code == 'GB' %}
+    <svg class="nav-icon" data-nav-icon="{{ nav_icon_code }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+    {% elif nav_icon_code in ['RE', 'CH'] %}
+    <svg class="nav-icon" data-nav-icon="{{ nav_icon_code }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 20V10"></path><path d="M12 20V4"></path><path d="M18 20v-7"></path></svg>
+    {% elif nav_icon_code == 'RI' %}
+    <svg class="nav-icon" data-nav-icon="{{ nav_icon_code }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>
+    {% elif nav_icon_code in ['RG', 'PR'] %}
+    <svg class="nav-icon" data-nav-icon="{{ nav_icon_code }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 1 1-9-9v9Z"></path><path d="M21 12a9 9 0 0 0-9-9"></path></svg>
+    {% elif nav_icon_code == 'CA' %}
+    <svg class="nav-icon" data-nav-icon="{{ nav_icon_code }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h10"></path><path d="M6 3h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path></svg>
+    {% elif nav_icon_code == 'TR' %}
+    <svg class="nav-icon" data-nav-icon="{{ nav_icon_code }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+    {% elif nav_icon_code == 'TT' %}
+    <svg class="nav-icon" data-nav-icon="{{ nav_icon_code }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m3 7 9-4 9 4-9 4-9-4Z"></path><path d="M7 10v5c0 1.8 2.2 3 5 3s5-1.2 5-3v-5"></path></svg>
+    {% elif nav_icon_code == 'EQ' %}
+    <svg class="nav-icon" data-nav-icon="{{ nav_icon_code }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.7 6.3a4 4 0 0 0 5 5L11 20a2.8 2.8 0 1 1-4-4l8.7-8.7Z"></path></svg>
+    {% elif nav_icon_code == 'CR' %}
+    <svg class="nav-icon" data-nav-icon="{{ nav_icon_code }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><ellipse cx="12" cy="5" rx="7" ry="3"></ellipse><path d="M5 5v14c0 1.7 3.1 3 7 3s7-1.3 7-3V5"></path><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"></path></svg>
+    {% elif nav_icon_code == 'US' %}
+    <svg class="nav-icon" data-nav-icon="{{ nav_icon_code }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.9"></path><path d="M16 3.1a4 4 0 0 1 0 7.8"></path></svg>
+    {% elif nav_icon_code == 'MO' %}
+    <svg class="nav-icon" data-nav-icon="{{ nav_icon_code }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="13" rx="2"></rect><path d="M8 21h8"></path><path d="M12 17v4"></path><path d="m7 12 3-3 3 3 4-5"></path></svg>
+    {% elif nav_icon_code == 'TV' %}
+    <svg class="nav-icon" data-nav-icon="{{ nav_icon_code }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="12" rx="2"></rect><path d="M8 21h8"></path><path d="M12 17v4"></path></svg>
+    {% elif nav_icon_code == 'PDF' %}
+    <svg class="nav-icon" data-nav-icon="{{ nav_icon_code }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"></path><path d="M14 3v5h5"></path><path d="M9 13h6"></path><path d="M9 17h4"></path></svg>
+    {% elif nav_icon_code == 'EM' %}
+    <svg class="nav-icon" data-nav-icon="{{ nav_icon_code }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m4 7 8 6 8-6"></path></svg>
+    {% elif nav_icon_code == 'BK' %}
+    <svg class="nav-icon" data-nav-icon="{{ nav_icon_code }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M17.5 18H7a4 4 0 1 1 .8-7.9 5.5 5.5 0 0 1 10.4 1.7A3.2 3.2 0 0 1 17.5 18Z"></path></svg>
+    {% elif nav_icon_code == 'LOG' %}
+    <svg class="nav-icon" data-nav-icon="{{ nav_icon_code }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6h11"></path><path d="M9 12h11"></path><path d="M9 18h11"></path><path d="M4 6h.01"></path><path d="M4 12h.01"></path><path d="M4 18h.01"></path></svg>
+    {% else %}
+    <svg class="nav-icon" data-nav-icon="{{ nav_icon_code }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"></path><path d="M14 3v5h5"></path><path d="M9 13h6"></path><path d="M9 17h4"></path></svg>
+    {% endif %}
+    {%- endmacro %}
+    <div class="htmx-indicator" role="status" aria-live="polite"><span class="sr-only">Carregando</span></div>
+    <div id="appStatusRegion" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div id="appAlertRegion" class="sr-only" role="alert" aria-live="assertive" aria-atomic="true"></div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <div class="app-shell ui-app-frame" data-sidebar-contract="sidebar-v1" data-sidebar-state="expanded">
+        <aside class="sidebar ui-inverse-surface" id="appSidebar" aria-label="Navegação do sistema" data-overlay-panel="navigation-drawer" data-overlay-state="closed" data-sidebar-contract="sidebar-v1" data-sidebar-state="expanded">
+            <div class="sidebar-top">
+                <button type="button" class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Fechar menu" aria-controls="appSidebar" aria-expanded="false">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+                <div class="brand-wrap ui-stack-xs">
+                    <img class="brand-image brand-image-sidebar" src="{{ url_for('static', filename='logo-brasilvida.svg') }}" alt="Brasilvida">
+                    <div class="brand-subtitle">Treinamentos e vencimentos da equipe</div>
+                </div>
+                <button type="button" class="sidebar-mode-toggle" id="sidebarModeToggle" data-sidebar-mode-toggle data-sidebar-mode-state="expanded" data-tooltip="Recolher menu" aria-label="Recolher menu">
+                    <svg class="sidebar-mode-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                        <g class="sidebar-mode-icon-collapse">
+                            <rect x="4" y="5" width="16" height="14" rx="3"></rect>
+                            <path d="M9 5v14"></path>
+                            <path d="M15 9l-3 3 3 3"></path>
+                        </g>
+                        <g class="sidebar-mode-icon-expand">
+                            <rect x="4" y="5" width="16" height="14" rx="3"></rect>
+                            <path d="M9 5v14"></path>
+                            <path d="M12 9l3 3-3 3"></path>
+                        </g>
+                    </svg>
+                </button>
+            </div>
+            <nav class="nav ui-navigation-list" aria-label="Navegação principal">
+                {% set dashboards_visible = can_access('dashboard:view') %}
+                {% set operacoes_visible = can_access('bases:view') %}
+                {% set relatorios_visible = can_access('relatorio_habilitacoes:view') or can_access('relatorio_individual:view') %}
+                {% set financeiro_visible = can_access('finance:bonuses:read') or can_access('finance:parameters:read') or can_access('finance:periods:read') %}
+                {% set cadastros_visible = can_access('tripulantes:view') or can_access('tripulantes_file:view') or can_access('treinamentos:view') or can_access('equipamentos:view') or can_access('tipos_treinamento:view') %}
+                {% set usuarios_visible = can_access('usuarios:view') or can_access('usuarios:manage') or can_access('monitoramento:view') or can_access('notificacoes:view') or can_access('backups:view') or can_access('auditoria:view') %}
+
+                {% set endpoint = request.endpoint or '' %}
+                {% set dashboards_active = endpoint == 'dashboard.dashboard' %}
+                {% set operacoes_active = endpoint in ['operacoes.pernoites_list', 'operacoes.pernoites_new', 'operacoes.pernoites_edit'] or endpoint.startswith('bases.') %}
+                {% set relatorios_active = endpoint in ['cadastros.treinamentos_consolidado', 'cadastros.treinamentos_consolidado_export_csv', 'cadastros.treinamentos_consolidado_export_pdf', 'cadastros.treinamentos_consolidado_relatorio', 'cadastros.tripulante_report'] %}
+                {% set financeiro_active = request.path.startswith('/financeiro') %}
+                {% set cadastros_active = endpoint in ['cadastros.tripulantes_list', 'cadastros.tripulantes_new', 'cadastros.tripulantes_edit', 'cadastros.tripulante_file_tab', 'cadastros.tripulante_file_upload', 'cadastros.tripulante_file_get', 'cadastros.tripulante_file_get_by_source', 'cadastros.tripulante_file_delete', 'cadastros.tripulante_file_replace', 'cadastros.treinamentos_list', 'cadastros.treinamentos_new', 'cadastros.treinamentos_edit', 'cadastros.equipamentos_list', 'cadastros.equipamentos_new', 'cadastros.equipamentos_edit', 'cadastros.tipos_list', 'cadastros.tipos_new', 'cadastros.tipos_edit'] %}
+                {% set usuarios_active = endpoint in ['admin.usuarios_list', 'admin.usuarios_new', 'admin.usuarios_edit', 'admin.monitoramento_sistema', 'admin.notificacoes_list', 'admin.notificacoes_new', 'admin.notificacoes_edit', 'admin.backups_list', 'admin.backups_run', 'admin.auditoria_list'] %}
+
+                {% if can_access('dashboard:view') %}
+                <div class="nav-primary">
+                    <a hx-boost="false" class="nav-link nav-primary-link {% if endpoint == 'dashboard.dashboard' %}active{% endif %}" href="/#/dashboard" data-nav-level="primary" title="Painel Geral" aria-label="Painel Geral">
+                        <span class="nav-active-indicator" aria-hidden="true"></span>
+                        {{ nav_icon('PG') }}
+                        <span class="nav-link-label">Painel Geral</span>
+                    </a>
+                </div>
+                {% endif %}
+
+                {% if operacoes_visible %}
+                <div class="nav-group {% if operacoes_active %}open nav-group-active{% endif %}" data-nav-active-child="{{ 'true' if operacoes_active else 'false' }}">
+                    <button type="button" class="nav-group-toggle {% if operacoes_active %}active{% endif %}" data-nav-toggle aria-label="Operações" title="Operações">
+                        <span class="nav-active-indicator" aria-hidden="true"></span>
+                        {{ nav_icon('OP') }}
+                        <span class="nav-group-label">Operações</span>
+                        <span class="nav-group-caret">&#9662;</span>
+                    </button>
+                    <div class="nav-group-links">
+                        {% if can_access('bases:view') %}
+                        <a hx-boost="false" class="nav-link {% if endpoint.startswith('bases.') %}active{% endif %}" href="{{ url_for('bases.index') }}" title="Gestão de Bases" aria-label="Gestão de Bases">
+                            <span class="nav-active-indicator" aria-hidden="true"></span>
+                            {{ nav_icon('GB') }}
+                            <span class="nav-link-label">Gestão de Bases</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if relatorios_visible %}
+                <div class="nav-group {% if relatorios_active %}open nav-group-active{% endif %}" data-nav-active-child="{{ 'true' if relatorios_active else 'false' }}">
+                    <button type="button" class="nav-group-toggle {% if relatorios_active %}active{% endif %}" data-nav-toggle aria-label="Relatórios" title="Relatórios">
+                        <span class="nav-active-indicator" aria-hidden="true"></span>
+                        {{ nav_icon('RE') }}
+                        <span class="nav-group-label">Relatórios</span>
+                        <span class="nav-group-caret">&#9662;</span>
+                    </button>
+                    <div class="nav-group-links">
+                        {% if can_access('relatorio_habilitacoes:view') %}
+                        <a hx-boost="false" class="nav-link {% if endpoint in ['cadastros.treinamentos_consolidado', 'cadastros.treinamentos_consolidado_export_csv', 'cadastros.treinamentos_consolidado_export_pdf', 'cadastros.treinamentos_consolidado_relatorio'] %}active{% endif %}" href="/#/relatorios/habilitacoes" title="Consolidado de habilitações" aria-label="Consolidado de habilitações">
+                            <span class="nav-active-indicator" aria-hidden="true"></span>
+                            {{ nav_icon('CH') }}
+                            <span class="nav-link-label">Consolidado de habilitações</span>
+                        </a>
+                        {% endif %}
+                        {% if can_access('relatorio_individual:view') %}
+                        <a hx-boost="false" class="nav-link {% if endpoint in ['cadastros.tripulantes_list', 'cadastros.tripulante_report'] %}active{% endif %}" href="/#/relatorios/individual" title="Relatório individual" aria-label="Relatório individual">
+                            <span class="nav-active-indicator" aria-hidden="true"></span>
+                            {{ nav_icon('RI') }}
+                            <span class="nav-link-label">Relatório individual</span>
+                        </a>
+                        {% endif %}                    </div>
+                </div>
+                {% endif %}
+
+                {% if financeiro_visible %}
+                <div class="nav-group {% if financeiro_active %}open nav-group-active{% endif %}" data-nav-active-child="{{ 'true' if financeiro_active else 'false' }}">
+                    <button type="button" class="nav-group-toggle {% if financeiro_active %}active{% endif %}" data-nav-toggle aria-label="Financeiro" title="Financeiro">
+                        <span class="nav-active-indicator" aria-hidden="true"></span>
+                        {{ nav_icon('RE') }}
+                        <span class="nav-group-label">Financeiro</span>
+                        <span class="nav-group-caret">&#9662;</span>
+                    </button>
+                    <div class="nav-group-links">
+                        {% if can_access('finance:bonuses:read') %}
+                        <a hx-boost="false" class="nav-link" href="/#/financeiro/lancamentos-jornada" title="Lançamentos de Jornada" aria-label="Lançamentos de Jornada">
+                            <span class="nav-active-indicator" aria-hidden="true"></span>
+                            {{ nav_icon('CH') }}
+                            <span class="nav-link-label">Lançamentos de Jornada</span>
+                        </a>
+                        {% endif %}
+                        {% if can_access('finance:parameters:read') or can_access('finance:periods:read') %}
+                        <a hx-boost="false" class="nav-link" href="/#/financeiro/fechamento-parametros" title="Fechamento e Parâmetros" aria-label="Fechamento e Parâmetros">
+                            <span class="nav-active-indicator" aria-hidden="true"></span>
+                            {{ nav_icon('CR') }}
+                            <span class="nav-link-label">Fechamento e Parâmetros</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if cadastros_visible %}
+                <div class="nav-group {% if cadastros_active %}open nav-group-active{% endif %}" data-nav-active-child="{{ 'true' if cadastros_active else 'false' }}">
+                    <button type="button" class="nav-group-toggle {% if cadastros_active %}active{% endif %}" data-nav-toggle aria-label="Cadastros" title="Cadastros">
+                        <span class="nav-active-indicator" aria-hidden="true"></span>
+                        {{ nav_icon('CA') }}
+                        <span class="nav-group-label">Cadastros</span>
+                        <span class="nav-group-caret">&#9662;</span>
+                    </button>
+                    <div class="nav-group-links">
+                        {% if can_access('tripulantes:view') %}
+                        <a hx-boost="false" class="nav-link {% if endpoint in ['cadastros.tripulantes_list', 'cadastros.tripulantes_new', 'cadastros.tripulantes_edit'] %}active{% endif %}" href="/#/tripulantes" title="Tripulantes" aria-label="Tripulantes">
+                            <span class="nav-active-indicator" aria-hidden="true"></span>
+                            {{ nav_icon('TR') }}
+                            <span class="nav-link-label">Tripulantes</span>
+                        </a>
+                        {% endif %}
+                        {% if can_access('treinamentos:view') %}
+                        <a hx-boost="false" class="nav-link {% if endpoint in ['cadastros.treinamentos_list', 'cadastros.treinamentos_new', 'cadastros.treinamentos_edit'] %}active{% endif %}" href="/#/treinamentos" title="Treinamentos por tripulante" aria-label="Treinamentos por tripulante">
+                            <span class="nav-active-indicator" aria-hidden="true"></span>
+                            {{ nav_icon('TT') }}
+                            <span class="nav-link-label">Treinamentos por tripulante</span>
+                        </a>
+                        {% endif %}
+                        {% if can_access('equipamentos:view') %}
+                        <a class="nav-link {% if endpoint in ['cadastros.equipamentos_list', 'cadastros.equipamentos_new', 'cadastros.equipamentos_edit'] %}active{% endif %}" href="{{ url_for('cadastros.equipamentos_list') }}" title="Equipamentos" aria-label="Equipamentos">
+                            <span class="nav-active-indicator" aria-hidden="true"></span>
+                            {{ nav_icon('EQ') }}
+                            <span class="nav-link-label">Equipamentos</span>
+                        </a>
+                        {% endif %}
+                        {% if can_access('tipos_treinamento:view') %}
+                        <a hx-boost="false" class="nav-link {% if endpoint in ['cadastros.tipos_list', 'cadastros.tipos_new', 'cadastros.tipos_edit'] %}active{% endif %}" href="/#/treinamentos/raiz" title="Cadastro raiz treinamentos" aria-label="Cadastro raiz treinamentos">
+                            <span class="nav-active-indicator" aria-hidden="true"></span>
+                            {{ nav_icon('CR') }}
+                            <span class="nav-link-label">Cadastro raiz treinamentos</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if usuarios_visible %}
+                <div class="nav-group {% if usuarios_active %}open nav-group-active{% endif %}" data-nav-active-child="{{ 'true' if usuarios_active else 'false' }}">
+                    <button type="button" class="nav-group-toggle {% if usuarios_active %}active{% endif %}" data-nav-toggle aria-label="Usuários" title="Usuários">
+                        <span class="nav-active-indicator" aria-hidden="true"></span>
+                        {{ nav_icon('US') }}
+                        <span class="nav-group-label">Usuários</span>
+                        <span class="nav-group-caret">&#9662;</span>
+                    </button>
+                    <div class="nav-group-links">
+                        {% if can_access('usuarios:view') or can_access('usuarios:manage') %}
+                        <a class="nav-link {% if endpoint == 'admin.usuarios_list' %}active{% endif %}" href="{{ url_for('admin.usuarios_list') }}" title="Usuários" aria-label="Usuários">
+                            <span class="nav-active-indicator" aria-hidden="true"></span>
+                            {{ nav_icon('US') }}
+                            <span class="nav-link-label">Usuários</span>
+                        </a>
+                        {% endif %}
+                        {% if can_access('monitoramento:view') %}
+                        <a class="nav-link {% if endpoint == 'admin.monitoramento_sistema' %}active{% endif %}" href="{{ url_for('admin.monitoramento_sistema') }}" title="Monitoramento" aria-label="Monitoramento">
+                            <span class="nav-active-indicator" aria-hidden="true"></span>
+                            {{ nav_icon('MO') }}
+                            <span class="nav-link-label">Monitoramento</span>
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin.manual_usuario_pdf') }}" title="Guia do usuário (PDF)" aria-label="Guia do usuário (PDF)">
+                            <span class="nav-active-indicator" aria-hidden="true"></span>
+                            {{ nav_icon('PDF') }}
+                            <span class="nav-link-label">Guia do usuário (PDF)</span>
+                        </a>
+                        {% endif %}
+                        {% if can_access('notificacoes:view') %}
+                        <a class="nav-link {% if endpoint in ['admin.notificacoes_list', 'admin.notificacoes_new', 'admin.notificacoes_edit'] %}active{% endif %}" href="{{ url_for('admin.notificacoes_list') }}" title="Destinatários de e-mail" aria-label="Destinatários de e-mail">
+                            <span class="nav-active-indicator" aria-hidden="true"></span>
+                            {{ nav_icon('EM') }}
+                            <span class="nav-link-label">Destinatários de e-mail</span>
+                        </a>
+                        {% endif %}
+                        {% if can_access('backups:view') %}
+                        <a class="nav-link {% if endpoint in ['admin.backups_list', 'admin.backups_run'] %}active{% endif %}" href="{{ url_for('admin.backups_list') }}" title="Backups" aria-label="Backups">
+                            <span class="nav-active-indicator" aria-hidden="true"></span>
+                            {{ nav_icon('BK') }}
+                            <span class="nav-link-label">Backups</span>
+                        </a>
+                        {% endif %}
+                        {% if can_access('auditoria:view') %}
+                        <a class="nav-link {% if endpoint == 'admin.auditoria_list' %}active{% endif %}" href="{{ url_for('admin.auditoria_list') }}" title="Log de ações" aria-label="Log de ações">
+                            <span class="nav-active-indicator" aria-hidden="true"></span>
+                            {{ nav_icon('LOG') }}
+                            <span class="nav-link-label">Log de ações</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </nav>
+            <div class="sidebar-footer ui-stack-xs" data-session-footer>
+                {% set session_name = current_user.nome if current_user.is_authenticated else "" %}
+                {% set session_role = current_user.perfil if current_user.is_authenticated else "" %}
+                {% set session_initials = (session_name or session_role or "AD")[:2].upper() %}
+                <div class="session-card" title="{{ session_name }} - {{ session_role }}" aria-label="Sessão atual: {{ session_name }} - {{ session_role }}" data-session-surface>
+                    <span class="session-avatar" aria-hidden="true">{{ session_initials }}</span>
+                    <span class="session-copy">
+                        <span class="session-caption">Usuário conectado</span>
+                        <span class="session-user">{{ session_name }}</span>
+                        <span class="session-role">{{ session_role }}</span>
+                    </span>
+                    <span class="session-presence" aria-label="Sessão ativa">
+                        <span class="session-presence-dot" aria-hidden="true"></span>
+                        <span class="session-presence-label">Ativa</span>
+                    </span>
+                </div>
+                <div class="session-actions" aria-label="Ações da sessão">
+                    <div class="session-profile-summary" role="note" aria-label="Papel atual: {{ session_role or 'Não informado' }}" title="Papel atual">
+                        <span class="profile-action-icon" aria-hidden="true">PF</span>
+                        <span class="profile-action-copy">
+                            <span class="profile-action-label">Perfil local</span>
+                            <span class="profile-action-value">{{ session_role or "Não informado" }}</span>
+                        </span>
+                    </div>
+                    <form method="post" action="{{ url_for('auth.logout') }}" class="logout-form" hx-boost="false">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="logout-link logout-button" aria-label="Sair do sistema" title="Sair do sistema">
+                            <span class="logout-icon" aria-hidden="true">SA</span>
+                            <span class="logout-label">Sair do sistema</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </aside>
+        <div class="main-column">
+            <header class="topbar ui-sticky-surface">
+                <div class="topbar-left">
+                    <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Abrir menu">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    <div>
+                        <div class="topbar-title">Treinamentos Brasil Vida</div>
+                        <div class="topbar-subtitle">Um lugar único para acompanhar cadastros, treinamentos e vencimentos.</div>
+                    </div>
+                </div>
+                {% if current_user.is_authenticated and can_access('notificacoes:view') %}
+                <div>
+                    <a class="topbar-action" href="{{ url_for('admin.notificacoes_list') }}">E-mails e notificações</a>
+                </div>
+                {% endif %}
+            </header>
+            <main class="content ui-content-region" id="mainContent" tabindex="-1">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                        {% set flash_alert = category in ['error', 'danger', 'warning'] %}
+                        <div class="flash {{ category }}" role="{{ 'alert' if flash_alert else 'status' }}" aria-live="{{ 'assertive' if flash_alert else 'polite' }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('mobileMenuBtn');
+            const closeBtn = document.getElementById('sidebarCloseBtn');
+            const modeToggle = document.getElementById('sidebarModeToggle');
+            const sidebar = document.getElementById('appSidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const appShell = document.querySelector('.app-shell');
+            const mainColumn = document.querySelector('.main-column');
+            const mobileQuery = window.matchMedia('(max-width: 767px)');
+            const tabletRailQuery = window.matchMedia('(min-width: 768px) and (max-width: 1023px)');
+            const notebookCollapsedQuery = window.matchMedia('(min-width: 1024px) and (max-width: 1279px)');
+            const responsiveStateQueries = [mobileQuery, tabletRailQuery, notebookCollapsedQuery];
+            const sidebarStates = new Set(['expanded', 'iconic']);
+            const sidebarStateAliases = new Map([
+                ['compact', 'iconic'],
+                ['collapsed', 'iconic'],
+                ['rail', 'iconic'],
+            ]);
+            const sidebarUserKey = {{ (current_user.get_id() if current_user.is_authenticated else "anon")|tojson }};
+            const sidebarStorageKey = `controle-treinamentos:ssr-sidebar-state:v1:${sidebarUserKey}`;
+            const navGroupSyncers = [];
+            let lastFocusedElement = null;
+            const legacyNavIconPaths = {
+                BARS: '<path d="M6 20V10"></path><path d="M12 20V4"></path><path d="M18 20v-7"></path>',
+                BED: '<path d="M4 18V6"></path><path d="M4 13h16"></path><path d="M20 18v-6a3 3 0 0 0-3-3H9v4"></path><path d="M7 9h2"></path>',
+                CHART: '<path d="M4 19h16"></path><path d="M7 16V9"></path><path d="M12 16V5"></path><path d="M17 16v-4"></path>',
+                CLOUD: '<path d="M17.5 18H7a4 4 0 1 1 .8-7.9 5.5 5.5 0 0 1 10.4 1.7A3.2 3.2 0 0 1 17.5 18Z"></path>',
+                CREW: '<path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>',
+                DASHBOARD: '<rect x="4" y="4" width="6" height="6" rx="1.4"></rect><rect x="14" y="4" width="6" height="6" rx="1.4"></rect><rect x="4" y="14" width="6" height="6" rx="1.4"></rect><rect x="14" y="14" width="6" height="6" rx="1.4"></rect>',
+                DATABASE: '<ellipse cx="12" cy="5" rx="7" ry="3"></ellipse><path d="M5 5v14c0 1.7 3.1 3 7 3s7-1.3 7-3V5"></path><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"></path>',
+                DOCUMENT: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"></path><path d="M14 3v5h5"></path><path d="M9 13h6"></path><path d="M9 17h4"></path>',
+                LIST: '<path d="M9 6h11"></path><path d="M9 12h11"></path><path d="M9 18h11"></path><path d="M4 6h.01"></path><path d="M4 12h.01"></path><path d="M4 18h.01"></path>',
+                MAIL: '<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m4 7 8 6 8-6"></path>',
+                MONITOR: '<rect x="3" y="4" width="18" height="13" rx="2"></rect><path d="M8 21h8"></path><path d="M12 17v4"></path><path d="m7 12 3-3 3 3 4-5"></path>',
+                OPERATIONS: '<path d="M5 16c3.5-.8 7.2-3.8 9-7.8l1.7-3.7 3.8 3.8-3.7 1.7c-4 1.8-7 5.5-7.8 9l-1.2-2.8Z"></path><path d="M14 8l2 2"></path><path d="M5 19l3-3"></path>',
+                PIE: '<path d="M21 12a9 9 0 1 1-9-9v9Z"></path><path d="M21 12a9 9 0 0 0-9-9"></path>',
+                PIN: '<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle>',
+                RECORDS: '<path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h10"></path><path d="M6 3h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path>',
+                ROCKET: '<path d="M5 15c1-5 4-9 9-11 2-.8 4-.8 5-.3.5 1 .5 3-.3 5-2 5-6 8-11 9Z"></path><path d="M14 6l4 4"></path><path d="M6 18l-2 2"></path><path d="M9 19l-1 2"></path>',
+                TRAINING: '<path d="m3 7 9-4 9 4-9 4-9-4Z"></path><path d="M7 10v5c0 1.8 2.2 3 5 3s5-1.2 5-3v-5"></path>',
+                TV: '<rect x="3" y="5" width="18" height="12" rx="2"></rect><path d="M8 21h8"></path><path d="M12 17v4"></path>',
+                USER: '<circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path>',
+                USERS: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.9"></path><path d="M16 3.1a4 4 0 0 1 0 7.8"></path>',
+                WRENCH: '<path d="M14.7 6.3a4 4 0 0 0 5 5L11 20a2.8 2.8 0 1 1-4-4l8.7-8.7Z"></path>',
+            };
+            const legacyNavIconAliases = {
+                BK: 'CLOUD',
+                CA: 'RECORDS',
+                CH: 'BARS',
+                CR: 'DATABASE',
+                DB: 'DASHBOARD',
+                EM: 'MAIL',
+                EQ: 'WRENCH',
+                GB: 'PIN',
+                LOG: 'LIST',
+                MI: 'ROCKET',
+                MO: 'MONITOR',
+                OP: 'OPERATIONS',
+                PDF: 'DOCUMENT',
+                PE: 'BED',
+                PG: 'DASHBOARD',
+                PR: 'PIE',
+                RE: 'BARS',
+                RG: 'PIE',
+                RI: 'USER',
+                TR: 'CREW',
+                TT: 'TRAINING',
+                TV: 'TV',
+                US: 'USERS',
+            };
+
+            function legacyNavIconMarkup(code) {
+                const rawCode = String(code || '').trim().toUpperCase();
+                const iconKey = legacyNavIconAliases[rawCode] || rawCode || 'DOCUMENT';
+                const body = legacyNavIconPaths[iconKey] || legacyNavIconPaths.DOCUMENT;
+                return `<svg class="nav-icon" data-nav-icon="${rawCode || iconKey}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${body}</svg>`;
+            }
+
+            function upgradeLegacyNavIcons(root = document) {
+                root.querySelectorAll('span.nav-icon').forEach((icon) => {
+                    const code = icon.dataset.navIcon || icon.textContent || '';
+                    icon.outerHTML = legacyNavIconMarkup(code);
+                });
+            }
+
+            function normalizeSidebarState(value) {
+                if (sidebarStateAliases.has(value)) return sidebarStateAliases.get(value);
+                return sidebarStates.has(value) ? value : 'expanded';
+            }
+
+            function defaultSidebarStateForViewport() {
+                if (mobileQuery.matches) return 'expanded';
+                if (tabletRailQuery.matches) return 'iconic';
+                if (notebookCollapsedQuery.matches) return 'iconic';
+                return 'expanded';
+            }
+
+            function resolveSidebarStateForViewport(value) {
+                const normalizedState = normalizeSidebarState(value);
+                if (mobileQuery.matches) return 'expanded';
+                if (tabletRailQuery.matches && normalizedState === 'expanded') return 'iconic';
+                return normalizedState;
+            }
+
+            function nextSidebarState(value) {
+                const normalizedState = normalizeSidebarState(value);
+                if (normalizedState === 'expanded') return 'iconic';
+                return 'expanded';
+            }
+
+            function sidebarModeToggleLabel(value) {
+                return normalizeSidebarState(value) === 'iconic' ? 'Expandir menu' : 'Recolher menu';
+            }
+
+            function readStoredSidebarState() {
+                try {
+                    const storedState = window.localStorage.getItem(sidebarStorageKey);
+                    if (!storedState) return null;
+                    return normalizeSidebarState(storedState);
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            function readSidebarState() {
+                const storedState = readStoredSidebarState();
+                return storedState ? resolveSidebarStateForViewport(storedState) : defaultSidebarStateForViewport();
+            }
+
+            function writeSidebarState(value) {
+                try {
+                    window.localStorage.setItem(sidebarStorageKey, normalizeSidebarState(value));
+                } catch (error) {
+                    // A sidebar continua funcional mesmo quando o navegador bloqueia storage.
+                }
+            }
+
+            function isRailMode() {
+                return sidebar && !mobileQuery.matches && (tabletRailQuery.matches || normalizeSidebarState(sidebar.dataset.sidebarState) !== 'expanded');
+            }
+
+            function syncSidebarModeToggle(activeState) {
+                if (!modeToggle) return;
+                const label = sidebarModeToggleLabel(activeState);
+                modeToggle.dataset.sidebarModeState = activeState;
+                modeToggle.dataset.tooltip = label;
+                modeToggle.setAttribute('aria-label', label);
+                modeToggle.removeAttribute('title');
+            }
+
+            function closeNavFlyouts(except = null) {
+                document.querySelectorAll('.nav-group.flyout-open').forEach((openGroup) => {
+                    if (openGroup === except) return;
+                    openGroup.classList.remove('flyout-open');
+                    const openLinks = openGroup.querySelector('.nav-group-links');
+                    const openToggle = openGroup.querySelector('[data-nav-toggle]');
+                    if (openLinks) {
+                        openLinks.style.removeProperty('--nav-flyout-left');
+                        openLinks.style.removeProperty('--nav-flyout-top');
+                        openLinks.style.removeProperty('--nav-flyout-max-height');
+                        openLinks.hidden = true;
+                    }
+                    if (openToggle) openToggle.setAttribute('aria-expanded', 'false');
+                });
+            }
+
+            function positionNavFlyout(navGroupEl) {
+                if (!isRailMode() || !navGroupEl) return;
+                const links = navGroupEl.querySelector('.nav-group-links');
+                if (!links || links.hidden) return;
+                const rect = navGroupEl.getBoundingClientRect();
+                const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+                const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+                const gutter = 12;
+                const preferredLeft = Math.round(rect.right + 8);
+                const maxAvailableWidth = Math.max(240, viewportWidth - preferredLeft - gutter);
+                const flyoutWidth = Math.min(320, maxAvailableWidth);
+                const maxHeight = Math.min(520, Math.max(220, viewportHeight - (gutter * 2)));
+                const measuredHeight = Math.min(links.scrollHeight || maxHeight, maxHeight);
+                const top = Math.min(
+                    Math.max(gutter, Math.round(rect.top)),
+                    Math.max(gutter, viewportHeight - measuredHeight - gutter),
+                );
+                links.style.setProperty('--nav-flyout-left', `${preferredLeft}px`);
+                links.style.setProperty('--nav-flyout-top', `${top}px`);
+                links.style.setProperty('--nav-flyout-max-height', `${maxHeight}px`);
+                links.style.setProperty('--nav-flyout-width', `${flyoutWidth}px`);
+            }
+
+            function syncOpenFlyouts() {
+                document.querySelectorAll('.nav-group.flyout-open').forEach((openGroup) => positionNavFlyout(openGroup));
+            }
+
+            function syncAllNavGroups() {
+                navGroupSyncers.forEach((syncer) => syncer());
+            }
+
+            function setSidebarState(nextState, options = {}) {
+                const activeState = resolveSidebarStateForViewport(nextState);
+                if (appShell) appShell.dataset.sidebarState = activeState;
+                if (sidebar) sidebar.dataset.sidebarState = activeState;
+                if (options.persist !== false) writeSidebarState(activeState);
+                closeNavFlyouts();
+                syncSidebarModeToggle(activeState);
+                syncAllNavGroups();
+            }
+
+            function syncResponsiveSidebarState() {
+                setSidebarState(readStoredSidebarState() || defaultSidebarStateForViewport(), { persist: false });
+            }
+
+            function setMenuState(isOpen) {
+                const isMobile = mobileQuery.matches;
+                sidebar.classList.toggle('open', isOpen);
+                overlay.classList.toggle('show', isOpen);
+                sidebar.dataset.overlayState = isOpen && isMobile ? 'open' : 'closed';
+                document.body.classList.toggle('sidebar-open', isOpen && isMobile);
+                sidebar.setAttribute('aria-hidden', !isMobile || isOpen ? 'false' : 'true');
+                if (btn) {
+                    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                    btn.setAttribute('aria-label', isOpen ? 'Fechar menu' : 'Abrir menu');
+                }
+                if (closeBtn) {
+                    closeBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                }
+                if (mainColumn) {
+                    if (isOpen && isMobile) {
+                        mainColumn.setAttribute('aria-hidden', 'true');
+                    } else {
+                        mainColumn.removeAttribute('aria-hidden');
+                    }
+                }
+                if (isOpen && isMobile) {
+                    lastFocusedElement = document.activeElement;
+                    const firstFocusable = sidebar.querySelector('.nav-group-toggle, .nav a, .logout-button');
+                    if (firstFocusable) {
+                        requestAnimationFrame(() => firstFocusable.focus());
+                    }
+                } else if (isMobile && lastFocusedElement && typeof lastFocusedElement.focus === 'function' && document.contains(lastFocusedElement)) {
+                    requestAnimationFrame(() => lastFocusedElement.focus());
+                }
+            }
+
+            function toggleMenu() {
+                setMenuState(!sidebar.classList.contains('open'));
+            }
+
+            if (btn && sidebar && overlay) {
+                btn.setAttribute('aria-controls', 'appSidebar');
+                btn.setAttribute('aria-expanded', 'false');
+                btn.setAttribute('aria-label', 'Abrir menu');
+                sidebar.setAttribute('aria-hidden', mobileQuery.matches ? 'true' : 'false');
+                btn.addEventListener('click', toggleMenu);
+                closeBtn?.addEventListener('click', () => setMenuState(false));
+                overlay.addEventListener('click', () => setMenuState(false));
+
+                sidebar.addEventListener('click', (event) => {
+                    const link = event.target.closest('a');
+                    if (!link) return;
+                    if (mobileQuery.matches) {
+                        setMenuState(false);
+                    }
+                });
+
+                document.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape') {
+                        setMenuState(false);
+                        return;
+                    }
+                    if (event.key !== 'Tab' || !sidebar.classList.contains('open') || !mobileQuery.matches) {
+                        return;
+                    }
+                    const focusable = Array.from(
+                        sidebar.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])')
+                    ).filter((element) => element.offsetParent !== null);
+                    if (!focusable.length) {
+                        return;
+                    }
+                    const first = focusable[0];
+                    const last = focusable[focusable.length - 1];
+                    if (event.shiftKey && document.activeElement === first) {
+                        event.preventDefault();
+                        last.focus();
+                    } else if (!event.shiftKey && document.activeElement === last) {
+                        event.preventDefault();
+                        first.focus();
+                    }
+                });
+
+                const onViewportChange = () => {
+                    closeNavFlyouts();
+                    syncResponsiveSidebarState();
+                    if (!mobileQuery.matches) {
+                        setMenuState(false);
+                        sidebar.setAttribute('aria-hidden', 'false');
+                    } else if (!sidebar.classList.contains('open')) {
+                        sidebar.setAttribute('aria-hidden', 'true');
+                    }
+                    syncAllNavGroups();
+                };
+                responsiveStateQueries.forEach((query) => {
+                    if (typeof query.addEventListener === 'function') {
+                        query.addEventListener('change', onViewportChange);
+                    } else if (typeof query.addListener === 'function') {
+                        query.addListener(onViewportChange);
+                    }
+                });
+            }
+
+            upgradeLegacyNavIcons();
+
+            document.querySelectorAll('.nav a.active').forEach((link) => {
+                link.setAttribute('aria-current', 'page');
+            });
+
+            modeToggle?.addEventListener('click', () => setSidebarState(nextSidebarState(sidebar?.dataset.sidebarState), { persist: true }));
+
+            const navGroups = [...document.querySelectorAll('.nav-group')];
+            navGroups.forEach((navGroupEl, index) => {
+                const toggle = navGroupEl.querySelector('[data-nav-toggle]');
+                const links = navGroupEl.querySelector('.nav-group-links');
+                if (!toggle) return;
+                if (links) {
+                    links.id = links.id || `nav-group-links-${index + 1}`;
+                    toggle.setAttribute('aria-controls', links.id);
+                }
+                const syncNavGroupState = () => {
+                    const railMode = isRailMode();
+                    const expanded = navGroupEl.classList.contains('open');
+                    const flyoutOpen = navGroupEl.classList.contains('flyout-open');
+                    navGroupEl.dataset.navMode = railMode ? 'flyout' : 'accordion';
+                    toggle.setAttribute('aria-expanded', railMode ? (flyoutOpen ? 'true' : 'false') : (expanded ? 'true' : 'false'));
+                    if (links) {
+                        links.hidden = railMode ? !flyoutOpen : !expanded;
+                    }
+                    if (railMode && flyoutOpen) {
+                        requestAnimationFrame(() => positionNavFlyout(navGroupEl));
+                    }
+                };
+                navGroupSyncers.push(syncNavGroupState);
+                syncNavGroupState();
+                toggle.addEventListener('click', (event) => {
+                    const currentGroup = toggle.closest('.nav-group');
+                    if (!currentGroup) return;
+                    if (isRailMode()) {
+                        event.preventDefault();
+                        const willOpen = !currentGroup.classList.contains('flyout-open');
+                        closeNavFlyouts(currentGroup);
+                        currentGroup.classList.toggle('flyout-open', willOpen);
+                        syncNavGroupState();
+                        if (willOpen) requestAnimationFrame(() => positionNavFlyout(currentGroup));
+                        return;
+                    }
+                    currentGroup.classList.remove('flyout-open');
+                    if (mobileQuery.matches && !currentGroup.classList.contains('open')) {
+                        navGroups.forEach((openGroup) => {
+                            if (openGroup !== currentGroup) {
+                                openGroup.classList.remove('open');
+                                const openToggle = openGroup.querySelector('[data-nav-toggle]');
+                                if (openToggle) {
+                                    openToggle.setAttribute('aria-expanded', 'false');
+                                }
+                                const openLinks = openGroup.querySelector('.nav-group-links');
+                                if (openLinks) {
+                                    openLinks.hidden = true;
+                                }
+                            }
+                        });
+                    }
+                    currentGroup.classList.toggle('open');
+                    syncNavGroupState();
+                });
+                links?.addEventListener('click', (event) => {
+                    if (!isRailMode()) return;
+                    if (!event.target.closest('a')) return;
+                    navGroupEl.classList.remove('flyout-open');
+                    syncNavGroupState();
+                });
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!isRailMode() || !sidebar) return;
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+                if (!sidebar.contains(target) || !target.closest('.nav-group')) {
+                    closeNavFlyouts();
+                    syncAllNavGroups();
+                }
+            });
+
+            window.addEventListener('resize', syncOpenFlyouts);
+            setSidebarState(readSidebarState(), { persist: false });
+
+            const pageFocusSelector = 'h1, [data-page-title], .page-header h1, .section-title';
+            const interactiveSelector = [
+                '[data-initial-focus]',
+                'input:not([type="hidden"]):not([disabled])',
+                'select:not([disabled])',
+                'textarea:not([disabled])',
+                'button:not([disabled])',
+                'a[href]',
+                '[tabindex]:not([tabindex="-1"])',
+            ].join(',');
+
+            function announceA11y(message, priority = 'polite') {
+                const target = priority === 'assertive'
+                    ? document.getElementById('appAlertRegion')
+                    : document.getElementById('appStatusRegion');
+                if (!target) return;
+                target.textContent = '';
+                window.setTimeout(() => {
+                    target.textContent = message;
+                }, 10);
+            }
+
+            function focusFirstInteractive(root = document) {
+                const target = Array.from(root.querySelectorAll(interactiveSelector))
+                    .find((element) => {
+                        if (element.hasAttribute('disabled')) return false;
+                        if (element.getAttribute('aria-hidden') === 'true') return false;
+                        return element.offsetParent !== null || element.dataset.initialFocus === 'true';
+                    });
+                if (target && typeof target.focus === 'function') {
+                    target.focus();
+                    return true;
+                }
+                return false;
+            }
+
+            function focusMainHeading() {
+                const main = document.getElementById('mainContent') || document.querySelector('.content');
+                if (!main) return;
+                const heading = main.querySelector(pageFocusSelector);
+                const target = heading || main;
+                if (!target.hasAttribute('tabindex')) {
+                    target.setAttribute('tabindex', '-1');
+                }
+                window.requestAnimationFrame(() => target.focus({ preventScroll: true }));
+            }
+
+            function auditUnlabeledControls(root = document) {
+                root.querySelectorAll('input:not([type="hidden"]), select, textarea').forEach((control) => {
+                    if (control.hidden || control.closest('[hidden], [aria-hidden="true"]')) return;
+                    if (control.getAttribute('aria-label') || control.getAttribute('aria-labelledby')) return;
+                    if (control.labels && control.labels.length) return;
+                    control.dataset.a11yLabelMissing = 'true';
+                    if (window.console && typeof window.console.warn === 'function') {
+                        window.console.warn('Controle sem label persistente', control);
+                    }
+                });
+            }
+
+            window.appA11y = {
+                announce: announceA11y,
+                focusFirstInteractive,
+                focusMainHeading,
+                auditUnlabeledControls,
+            };
+
+            function enhanceResponsiveTables(root = document) {
+                root.querySelectorAll('table.data-table.responsive-cards').forEach((table, tableIndex) => {
+                    const tableKey = table.id || table.dataset.a11yTableId || `ssr-responsive-table-${tableIndex + 1}`;
+                    table.dataset.a11yTableId = tableKey;
+                    const headers = Array.from(table.querySelectorAll('thead th')).map((header, headerIndex) => {
+                        if (!header.id) {
+                            header.id = `${tableKey}-header-${headerIndex + 1}`;
+                        }
+                        return { id: header.id, label: header.textContent.trim() };
+                    });
+                    table.querySelectorAll('tbody tr').forEach((row) => {
+                        const cells = Array.from(row.children).filter((cell) => cell.tagName === 'TD' || cell.tagName === 'TH');
+                        const hasColspan = cells.some((cell) => Number(cell.getAttribute('colspan') || 1) > 1);
+                        if (hasColspan) return;
+                        cells.forEach((cell, index) => {
+                            const header = headers[index];
+                            if (!cell.hasAttribute('data-label') && header?.label) {
+                                cell.setAttribute('data-label', header.label);
+                            }
+                            if (header?.id && !cell.hasAttribute('headers')) {
+                                cell.setAttribute('headers', header.id);
+                            }
+                        });
+                    });
+                });
+            }
+
+            auditUnlabeledControls();
+            enhanceResponsiveTables();
+
+            document.body.addEventListener('htmx:afterSwap', (event) => {
+                const root = event.detail?.target || document;
+                upgradeLegacyNavIcons(root);
+                auditUnlabeledControls(root);
+                enhanceResponsiveTables(root);
+                announceA11y('Tela atualizada.');
+                focusMainHeading();
+            });
+
+            document.body.addEventListener('htmx:responseError', () => {
+                announceA11y('Nao foi possivel atualizar a tela.', 'assertive');
+            });
+        });
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
+

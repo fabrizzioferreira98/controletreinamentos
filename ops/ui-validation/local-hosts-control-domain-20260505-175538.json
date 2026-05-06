@@ -1,0 +1,18 @@
+﻿{
+    "schema":  "local_hosts_control_domain_v1",
+    "executed_at":  "2026-05-05T17:55:38.7380316-03:00",
+    "hosts_file":  "C:\\WINDOWS\\System32\\drivers\\etc\\hosts",
+    "backup":  "C:\\apps\\controle-treinamentos\\ops\\ui-validation\\hosts-backup-20260505-175538.txt",
+    "host_name":  "controle.brasilvida.app.br",
+    "target_ip":  "192.168.25.33",
+    "existing_entry_updated":  false,
+    "resolved_after":  [
+                           {
+                               "Name":  "controle.brasilvida.app.br",
+                               "Type":  1,
+                               "IPAddress":  "192.168.25.33",
+                               "TTL":  271430,
+                               "Section":  1
+                           }
+                       ]
+}

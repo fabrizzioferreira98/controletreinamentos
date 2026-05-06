@@ -1,0 +1,431 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="monitor-workbench">
+    <div class="monitor-stage">
+        <section class="monitor-hero">
+            <div class="monitor-hero-head">
+                <div>
+                    <div class="monitor-kicker">Centro operacional do servidor local</div>
+                    <h1>Monitoramento técnico e operacional</h1>
+                    <p class="monitor-hero-subtitle">Leitura executiva rápida para backend, frontend, banco, recursos da máquina e continuidade operacional.</p>
+                </div>
+                <div class="monitor-hero-actions">
+                    <a class="button-link" href="{{ url_for('admin.monitoramento_sistema', refresh='1') }}">Atualizar agora</a>
+                    <a class="button-link secondary" href="{{ url_for('admin.monitoramento_sistema') }}">Modo automático</a>
+                </div>
+            </div>
+
+            <div class="monitor-hero-grid">
+                <div class="monitor-hero-main">
+                    <div class="monitor-status-row">
+                        <span class="status-pill {{ overview.status_class }}">{{ overview.status_label }}</span>
+                        <span class="monitor-meta-chip">Atualizado às {{ overview.updated_at_label }}</span>
+                        <span class="monitor-meta-chip">Auto refresh {{ overview.auto_refresh_seconds }}s</span>
+                    </div>
+
+                    <div class="monitor-headline-card {{ 'monitor-headline-card--critical' if overview.headline_alert and overview.headline_alert.severity_key == 'critical' else 'monitor-headline-card--calm' }}">
+                        <div class="monitor-headline-label">
+                            {% if overview.headline_alert %}
+                            Ponto prioritário
+                            {% else %}
+                            Operação sob controle
+                            {% endif %}
+                        </div>
+                        <div class="monitor-headline-title">
+                            {% if overview.headline_alert %}
+                            {{ overview.headline_alert.title }}
+                            {% else %}
+                            Nenhum alerta ativo no momento
+                            {% endif %}
+                        </div>
+                        <div class="monitor-headline-message">
+                            {% if overview.headline_alert %}
+                            {{ overview.headline_alert.message }}
+                            {% else %}
+                            {{ overview.summary_message }}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="monitor-hero-metrics">
+                        <article class="monitor-mini-metric">
+                            <span>Alertas ativos</span>
+                            <strong>{{ overview.alerts_count }}</strong>
+                        </article>
+                        <article class="monitor-mini-metric">
+                            <span>Críticos</span>
+                            <strong>{{ overview.critical_failures_count }}</strong>
+                        </article>
+                        <article class="monitor-mini-metric">
+                            <span>Serviços obrigatórios</span>
+                            <strong>{{ overview.services_running_label }}</strong>
+                        </article>
+                        <article class="monitor-mini-metric">
+                            <span>Último backup</span>
+                            <strong>{{ overview.last_backup_label }}</strong>
+                        </article>
+                    </div>
+                </div>
+
+                <div class="monitor-hero-side">
+                    <div class="monitor-side-block">
+                        <div class="monitor-side-title">Contexto do host</div>
+                        <div class="monitor-side-meta">{{ server.hostname }}</div>
+                        <div class="monitor-side-meta">{{ server.platform_label }}</div>
+                        <div class="monitor-side-meta">{{ server.python_label }}</div>
+                        <div class="monitor-side-meta">{{ server.disk_anchor_label }}</div>
+                    </div>
+
+                    <div class="monitor-side-block">
+                        <div class="monitor-side-title">Ações rápidas</div>
+                        <div class="monitor-quick-actions">
+                            {% if can_access('backups:view') %}
+                            <a class="button-link secondary" href="{{ url_for('admin.backups_list') }}">Backups</a>
+                            {% endif %}
+                            {% if can_access('notificacoes:view') %}
+                            <a class="button-link secondary" href="{{ url_for('admin.notificacoes_list') }}">E-mail</a>
+                            {% endif %}
+                            {% if can_access('auditoria:view') %}
+                            <a class="button-link secondary" href="{{ url_for('admin.auditoria_list') }}">Auditoria</a>
+                            {% endif %}
+                            {% if can_access('backups:run') %}
+                            <form method="post" action="{{ url_for('admin.backups_run') }}" class="monitor-action-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit">Executar backup</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="monitor-primary-grid">
+            <article class="monitor-panel-card">
+                <div class="monitor-panel-head">
+                    <div>
+                        <div class="section-title">Servidor local</div>
+                        <p class="page-subtitle">CPU, memória, volume e uptime em leitura direta.</p>
+                    </div>
+                    <span class="status-pill {{ server.status_class }}">{{ server.status_label }}</span>
+                </div>
+                <div class="monitor-resource-list">
+                    {% for metric in server.metrics %}
+                    <div class="monitor-resource-item">
+                        <div class="monitor-resource-top">
+                            <span>{{ metric.label }}</span>
+                            <strong>{{ metric.value_label }}</strong>
+                        </div>
+                        {% if metric.percent is not none %}
+                        <div class="monitor-meter">
+                            <div class="monitor-meter-fill {{ metric.status_class }}" style="width: {{ metric.percent }}%;"></div>
+                        </div>
+                        {% endif %}
+                        <div class="monitor-resource-meta">{{ metric.meta }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </article>
+
+            <article class="monitor-panel-card">
+                <div class="monitor-panel-head">
+                    <div>
+                        <div class="section-title">Serviços e endpoints</div>
+                        <p class="page-subtitle">SCM do Windows e portas locais críticas.</p>
+                    </div>
+                    <span class="status-pill {{ services.status_class }}">{{ services.status_label }}</span>
+                </div>
+                <div class="monitor-service-group">
+                    <div class="monitor-service-group-title">Serviços Windows</div>
+                    {% for item in services.windows_services %}
+                    <div class="monitor-service-row">
+                        <div>
+                            <div class="monitor-service-name">{{ item.name }}</div>
+                            <div class="monitor-service-meta">{{ item.service_name }} · {{ item.message }}</div>
+                        </div>
+                        <span class="status-pill {{ item.status_class }}">{{ item.state_label }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="monitor-service-group">
+                    <div class="monitor-service-group-title">Endpoints locais</div>
+                    {% for item in services.endpoints %}
+                    <div class="monitor-service-row">
+                        <div>
+                            <div class="monitor-service-name">{{ item.label }}</div>
+                            <div class="monitor-service-meta">{{ item.address }} · {{ item.message }}</div>
+                        </div>
+                        <span class="status-pill {{ item.status_class }}">{{ item.status_label }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </article>
+
+            <article class="monitor-panel-card">
+                <div class="monitor-panel-head">
+                    <div>
+                        <div class="section-title">Operação crítica</div>
+                        <p class="page-subtitle">Banco, jobs, backups, e-mail, integridade e storage.</p>
+                    </div>
+                </div>
+                <div class="monitor-focus-list">
+                    {% for item in operational_focus %}
+                    <div class="monitor-focus-item">
+                        <div class="monitor-focus-copy">
+                            <div class="monitor-focus-title">{{ item.title }}</div>
+                            <div class="monitor-focus-message">{{ item.message }}</div>
+                        </div>
+                        <span class="status-pill {{ item.status_class }}">{{ item.status_label }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </article>
+
+            <article class="monitor-panel-card">
+                <div class="monitor-panel-head">
+                    <div>
+                        <div class="section-title">Alertas ativos</div>
+                        <p class="page-subtitle">Somente o que precisa competir por atenção agora.</p>
+                    </div>
+                    {% if remaining_alerts > 0 %}
+                    <span class="monitor-soft-counter">+{{ remaining_alerts }} nos detalhes</span>
+                    {% endif %}
+                </div>
+                <div class="monitor-alert-stack">
+                    {% for alert in primary_alerts %}
+                    <article class="monitor-alert-line {{ 'monitor-alert-line--critical' if alert.severity_key == 'critical' else 'monitor-alert-line--warning' }}">
+                        <div class="monitor-alert-line-title">{{ alert.title }}</div>
+                        <div class="monitor-alert-line-message">{{ alert.message }}</div>
+                        <div class="monitor-alert-line-source">{{ alert.source }}</div>
+                    </article>
+                    {% else %}
+                    <div class="empty">Nenhum alerta ativo. A visão principal está limpa e estável.</div>
+                    {% endfor %}
+                </div>
+            </article>
+        </section>
+    </div>
+
+    <section class="monitor-drilldowns">
+        <details class="monitor-detail">
+            <summary>
+                <div>
+                    <strong>Integridade de dados</strong>
+                    <span>{{ integrity.overview.total_issues }} inconsistência(s) mapeada(s)</span>
+                </div>
+                <span class="status-pill {{ integrity.overview.status_class }}">{{ integrity.overview.status_label }}</span>
+            </summary>
+            <div class="monitor-detail-body">
+                <div class="table-wrap">
+                    <table class="data-table responsive-cards">
+                        <thead>
+                            <tr>
+                                <th>Verificação</th>
+                                <th>Status</th>
+                                <th>Problemas</th>
+                                <th>Última verificação</th>
+                                <th>Mensagem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in integrity.checks %}
+                            <tr>
+                                <td data-label="Verificação"><div class="primary-cell">{{ item.title }}</div></td>
+                                <td data-label="Status"><span class="status-pill {{ item.status_class }}">{{ item.status_label }}</span></td>
+                                <td data-label="Problemas">{{ item.issues_count if item.issues_count is not none else "-" }}</td>
+                                <td data-label="Última verificação">{{ item.last_check_label }}</td>
+                                <td data-label="Mensagem"><div class="secondary-cell">{{ item.message }}</div></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </details>
+
+        <details class="monitor-detail">
+            <summary>
+                <div>
+                    <strong>Storage e capacidade local</strong>
+                    <span>{{ format_bytes(storage.overview.disk_free_bytes) }} livres no volume monitorado</span>
+                </div>
+                <span class="status-pill {{ storage.overview.status_class }}">{{ storage.overview.status_label }}</span>
+            </summary>
+            <div class="monitor-detail-body">
+                <div class="monitor-progress-wrap monitor-progress-wrap--detail">
+                    <div class="monitor-progress-label">
+                        <span>Uso do volume monitorado</span>
+                        <strong>{{ "%.2f"|format(storage.overview.disk_usage_percent or 0) }}%</strong>
+                    </div>
+                    <div class="monitor-progress-track">
+                        <div class="monitor-progress-fill {{ storage.overview.status_class }}" style="width: {{ storage.overview.disk_usage_percent or 0 }}%;"></div>
+                    </div>
+                    <div class="monitor-progress-meta">Âncora: {{ storage.overview.disk_anchor }}</div>
+                </div>
+                <div class="table-wrap">
+                    <table class="data-table responsive-cards">
+                        <thead>
+                            <tr>
+                                <th>Fonte</th>
+                                <th>Uso</th>
+                                <th>Status</th>
+                                <th>Observação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in storage.breakdown %}
+                            <tr>
+                                <td data-label="Fonte"><div class="primary-cell">{{ row.name }}</div></td>
+                                <td data-label="Uso">{{ format_bytes(row.bytes) }}</td>
+                                <td data-label="Status"><span class="status-pill {{ row.status_class }}">{{ row.status_label }}</span></td>
+                                <td data-label="Observação"><div class="secondary-cell">{{ row.message }}</div></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </details>
+
+        <details class="monitor-detail">
+            <summary>
+                <div>
+                    <strong>Matriz completa de módulos</strong>
+                    <span>{{ history.critical_modules }} módulo(s) com falha operacional</span>
+                </div>
+                <span class="status-pill {{ 'status-red' if history.critical_modules > 0 else 'status-green' }}">{{ history.critical_modules }} crítico(s)</span>
+            </summary>
+            <div class="monitor-detail-body">
+                <div class="table-wrap">
+                    <table class="data-table responsive-cards">
+                        <thead>
+                            <tr>
+                                <th>Módulo</th>
+                                <th>Categoria</th>
+                                <th>Status</th>
+                                <th>Problemas</th>
+                                <th>Última verificação</th>
+                                <th>Resumo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for module in modules %}
+                            <tr>
+                                <td data-label="Módulo"><div class="primary-cell">{{ module.name }}</div></td>
+                                <td data-label="Categoria">{{ module.category }}</td>
+                                <td data-label="Status"><span class="status-pill {{ module.status_class }}">{{ module.status_label }}</span></td>
+                                <td data-label="Problemas">{{ module.problem_count }}</td>
+                                <td data-label="Última verificação">{{ module.last_check_label }}</td>
+                                <td data-label="Resumo"><div class="secondary-cell">{{ module.message }}</div></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </details>
+
+        <details class="monitor-detail">
+            <summary>
+                <div>
+                    <strong>Canal de notificações</strong>
+                    <span>{{ notification.recipients_count }} destinatário(s) ativo(s)</span>
+                </div>
+                <span class="status-pill {{ notification.status_class }}">{{ notification.status_label }}</span>
+            </summary>
+            <div class="monitor-detail-body">
+                <div class="summary-grid monitor-detail-summary-grid">
+                    <article class="summary-card monitor-summary-card">
+                        <strong>Provider</strong>
+                        <span>{{ notification.provider|upper }}</span>
+                    </article>
+                    <article class="summary-card monitor-summary-card">
+                        <strong>Entrega configurada</strong>
+                        <span>{{ "sim" if notification.email_ready else "não" }}</span>
+                    </article>
+                    <article class="summary-card monitor-summary-card">
+                        <strong>Última rotina</strong>
+                        <span>{{ notification.last_run or "-" }}</span>
+                    </article>
+                    <article class="summary-card monitor-summary-card">
+                        <strong>Último envio</strong>
+                        <span>{{ notification.last_sent_at or "-" }}</span>
+                    </article>
+                </div>
+                {% if notification.missing_config_fields %}
+                <div class="state-note monitor-block-gap">
+                    Configuração ausente: <strong>{{ notification.missing_config_fields|join(", ") }}</strong>
+                </div>
+                {% endif %}
+                {% if notification.last_job_error %}
+                <div class="state-note monitor-block-gap">
+                    Último erro do job: <strong>{{ notification.last_job_error }}</strong>
+                </div>
+                {% endif %}
+                {% if notification.last_error %}
+                <div class="state-note monitor-block-gap">
+                    Último erro de entrega: <strong>{{ notification.last_error }}</strong>
+                </div>
+                {% endif %}
+            </div>
+        </details>
+
+        <details class="monitor-detail">
+            <summary>
+                <div>
+                    <strong>Alertas e histórico de backup</strong>
+                    <span>{{ alerts|length }} alerta(s) no total e {{ history.backup_rows|length }} execução(ões) recentes</span>
+                </div>
+                <span class="monitor-soft-counter">Drill-down operacional</span>
+            </summary>
+            <div class="monitor-detail-body monitor-detail-columns">
+                <div>
+                    <div class="monitor-detail-section-title">Todos os alertas</div>
+                    <div class="monitor-alerts-grid">
+                        {% for alert in alerts %}
+                        <article class="monitor-alert-card {{ 'monitor-alert-card--critical' if alert.severity_key == 'critical' else 'monitor-alert-card--warning' }}">
+                            <div class="monitor-alert-title">{{ alert.title }}</div>
+                            <div class="monitor-alert-message">{{ alert.message }}</div>
+                            <div class="monitor-alert-source">Origem: {{ alert.source }}</div>
+                        </article>
+                        {% else %}
+                        <div class="empty">Nenhum alerta ativo no momento.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div>
+                    <div class="monitor-detail-section-title">Histórico recente de backup</div>
+                    <div class="table-wrap">
+                        <table class="data-table responsive-cards">
+                            <thead>
+                                <tr>
+                                    <th>Execução</th>
+                                    <th>Tipo</th>
+                                    <th>Status</th>
+                                    <th>Tamanho</th>
+                                    <th>Duração</th>
+                                    <th>Mensagem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in history.backup_rows %}
+                                <tr>
+                                    <td data-label="Execução">{{ row.executado_em_label }}</td>
+                                    <td data-label="Tipo">{{ row.tipo }}</td>
+                                    <td data-label="Status"><span class="status-pill {{ row.status_class }}">{{ row.status_label }}</span></td>
+                                    <td data-label="Tamanho">{{ format_bytes(row.tamanho_bytes) }}</td>
+                                    <td data-label="Duração">{{ row.duracao_ms }} ms</td>
+                                    <td data-label="Mensagem"><div class="secondary-cell">{{ row.mensagem }}</div></td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="6" class="empty">Sem histórico disponível de execuções de backup.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </details>
+    </section>
+</section>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ "Editar adicional excepcional" if adicional else "Cadastrar adicional excepcional" }}</h1>
+        <p class="page-subtitle">Use este lançamento para exceções operacionais de competência específica.</p>
+    </div>
+</div>
+
+<form method="post" class="form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <section class="form-section">
+        <h2 class="form-section-title">Dados do adicional</h2>
+        <p class="form-section-subtitle">O valor registrado aqui será incorporado à memória de cálculo da competência.</p>
+    </section>
+    <label>
+        Tripulante
+        <select name="tripulante_id" required>
+            <option value="">Selecione</option>
+            {% for row in tripulantes %}
+            <option value="{{ row.id }}" {% if adicional and adicional.tripulante_id|string == row.id|string %}selected{% endif %}>{{ row.nome }} · {{ row.base }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>Competência (AAAA-MM)<input type="month" name="competencia" value="{{ adicional.competencia if adicional else '' }}" required></label>
+    <label>Valor (R$)<input type="text" name="valor" value="{{ adicional.valor if adicional else '' }}" inputmode="decimal" required></label>
+    <label class="checkbox-field">
+        <span class="checkbox-title">Registro ativo</span>
+        <span class="toggle-switch">
+            <input type="checkbox" name="ativo" {% if not adicional or adicional.ativo %}checked{% endif %}>
+            <span class="toggle-slider" aria-hidden="true"></span>
+            <span class="toggle-text">{% if not adicional or adicional.ativo %}Ativo{% else %}Inativo{% endif %}</span>
+        </span>
+    </label>
+    <label class="full-width">Observação<textarea name="observacao">{{ adicional.observacao if adicional else '' }}</textarea></label>
+    <div class="form-actions full-width">
+        <button type="submit">Salvar</button>
+        <a class="button-link secondary" href="{{ url_for('relatorios.produtividade_adicionais_list') }}">Voltar</a>
+    </div>
+</form>
+<script>
+(() => {
+    const toggle = document.querySelector("input[name='ativo']");
+    if (!toggle) return;
+    const textNode = toggle.closest(".toggle-switch")?.querySelector(".toggle-text");
+    if (!textNode) return;
+    function sync() {
+        textNode.textContent = toggle.checked ? "Ativo" : "Inativo";
+    }
+    toggle.addEventListener("change", sync);
+    sync();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,1020 @@
+{% extends "base.html" %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet/leaflet-1.9.4.css') }}">
+{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Gestão de Bases</h1>
+        <p class="page-subtitle">Acompanhe a distribuição dos pilotos nas bases operacionais e atualize status e movimentações em tempo real.</p>
+    </div>
+</div>
+
+<section class="panel bases-panel">
+    <div class="bases-toolbar">
+        <div class="status-filter-group" id="statusFilterGroup" role="group" aria-label="Filtrar pilotos por status">
+            <button type="button" class="status-filter active" data-status="" aria-pressed="true">Todos</button>
+            {% for item in status_options %}
+            <button type="button" class="status-filter" data-status="{{ item.key }}" aria-pressed="false">{{ item.label }}</button>
+            {% endfor %}
+        </div>
+        <div class="bases-toolbar-meta">
+            <span>Total de pilotos monitorados: <strong id="totalPilotsCounter">{{ pilotos_data|length }}</strong></span>
+            <span id="basesLoadingState" class="secondary-cell" role="status" aria-live="polite" hidden>Atualizando dados...</span>
+        </div>
+    </div>
+
+    <div class="bases-map-wrap">
+        <input type="hidden" id="basesCsrfToken" value="{{ csrf_token() }}">
+        <p id="basesMapAlternativeHint" class="sr-only">Mapa visual das bases. Use a lista alternativa de bases para abrir os mesmos pilotos sem depender do mapa.</p>
+        <div id="basesMap" class="bases-map" role="region" tabindex="0" aria-label="Mapa visual das bases do Brasil" aria-describedby="basesMapAlternativeHint" aria-busy="false"></div>
+
+        <aside class="bases-sidebar" id="basesSidebar" aria-hidden="true" aria-labelledby="sidebarBaseName">
+            <div class="bases-sidebar-header">
+                <div>
+                    <div class="section-title" id="sidebarBaseName">Base</div>
+                    <div class="page-subtitle" id="sidebarBaseMeta">0 pilotos</div>
+                </div>
+                <button type="button" class="sidebar-close-btn" id="sidebarCloseBtn">Fechar</button>
+            </div>
+            <div class="bases-sidebar-list" id="sidebarPilotList" aria-live="polite"></div>
+        </aside>
+    </div>
+
+    <section class="bases-alternative-panel" aria-labelledby="basesAlternativeTitle">
+        <div class="bases-alternative-head">
+            <div>
+                <h2 id="basesAlternativeTitle">Lista alternativa de bases</h2>
+                <p class="page-subtitle">Abra os pilotos e as mesmas acoes sem usar o mapa.</p>
+            </div>
+            <div id="basesAlternativeStatus" class="secondary-cell" role="status" aria-live="polite" aria-atomic="true"></div>
+        </div>
+        <div id="basesAlternativeList" class="bases-alternative-list"></div>
+    </section>
+</section>
+
+<div class="modal-shell" id="basesModalShell" role="presentation" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal aria-hidden="true" tabindex="-1"></div>
+
+    <div class="modal-card" id="modalStatus" role="dialog" aria-modal="true" aria-labelledby="modalStatusTitle" tabindex="-1" hidden>
+        <div class="modal-header">
+            <h2 id="modalStatusTitle">Alterar status</h2>
+            <button type="button" class="modal-close-btn" data-close-modal>Fechar</button>
+        </div>
+        <form id="statusForm" class="form-grid">
+            <input type="hidden" name="pilot_id" id="statusPilotId">
+            <label class="full-width">Piloto<input type="text" id="statusPilotName" disabled></label>
+            <label class="full-width">Status atual<input type="text" id="statusPilotCurrent" disabled></label>
+            <label>
+                Novo status
+                <select name="status_novo" required data-initial-focus>
+                    <option value="">Selecione</option>
+                    {% for item in status_options %}
+                    <option value="{{ item.key }}">{{ item.label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="full-width">Observação<textarea name="observacao" placeholder="Opcional"></textarea></label>
+            <div class="form-actions full-width">
+                <button type="submit">Atualizar status</button>
+                <button type="button" class="button-link secondary" data-close-modal>Cancelar</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="modal-card" id="modalMovePilot" role="dialog" aria-modal="true" aria-labelledby="modalMovePilotTitle" tabindex="-1" hidden>
+        <div class="modal-header">
+            <h2 id="modalMovePilotTitle">Mover piloto</h2>
+            <button type="button" class="modal-close-btn" data-close-modal>Fechar</button>
+        </div>
+        <form id="movePilotForm" class="form-grid">
+            <input type="hidden" name="pilot_id" id="movePilotId">
+            <label class="full-width">Piloto<input type="text" id="movePilotName" disabled></label>
+            <label class="full-width">Base atual<input type="text" id="movePilotCurrentBase" disabled></label>
+            <label>
+                Nova base
+                <select name="base_nova_id" id="movePilotBaseSelect" required data-initial-focus>
+                    <option value="">Selecione</option>
+                    {% for base in bases_data %}
+                    <option value="{{ base.id }}">{{ base.nome }} / {{ base.uf }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="full-width">Observação<textarea name="observacao" placeholder="Opcional"></textarea></label>
+            <div class="form-actions full-width">
+                <button type="submit">Mover piloto</button>
+                <button type="button" class="button-link secondary" data-close-modal>Cancelar</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="modal-card modal-history-card" id="modalHistory" role="dialog" aria-modal="true" aria-labelledby="modalHistoryTitle" tabindex="-1" hidden>
+        <div class="modal-header">
+            <h2 id="modalHistoryTitle">Histórico do piloto</h2>
+            <button type="button" class="modal-close-btn" data-close-modal>Fechar</button>
+        </div>
+        <div class="page-subtitle" id="historyPilotName"></div>
+        <div class="history-timeline" id="historyTimeline"></div>
+    </div>
+</div>
+
+<script id="basesInitialPayload" type="application/json">{{ initial_payload|tojson }}</script>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='vendor/leaflet/leaflet-1.9.4.js') }}"></script>
+<script>
+(() => {
+    const compactQuery = window.matchMedia("(max-width: 900px)");
+    const payloadNode = document.getElementById("basesInitialPayload");
+    let initialPayload = { bases: [], pilotos: [], status_options: [], status_filter: "" };
+    try {
+        initialPayload = JSON.parse(payloadNode?.textContent || "{}");
+    } catch (_error) {
+        initialPayload = { bases: [], pilotos: [], status_options: [], status_filter: "" };
+    }
+    const csrfToken = document.getElementById("basesCsrfToken").value;
+    const canManage = {{ "true" if can_manage_bases else "false" }};
+    const state = {
+        payload: initialPayload,
+        selectedMarkerKey: initialPayload.bases[0] ? `base-${initialPayload.bases[0].id}` : null,
+        activeStatus: initialPayload.status_filter || "",
+        loading: false,
+        requestSeq: 0,
+        fetchController: null,
+        map: null,
+        markers: [],
+        markerEntityByKey: new Map(),
+        compactMarkers: compactQuery.matches,
+        lastMarkerMode: null,
+        baseById: new Map(),
+        pilotById: new Map(),
+    };
+
+    const endpoints = {
+        data: "{{ url_for('bases.api_dados') }}",
+        pilotStatus: "{{ url_for('bases.alterar_status', pilot_id=0) }}",
+        pilotMove: "{{ url_for('bases.mover_piloto', pilot_id=0) }}",
+        pilotHistory: "{{ url_for('bases.historico_piloto', pilot_id=0) }}",
+    };
+
+    const sidebar = document.getElementById("basesSidebar");
+    const sidebarBaseName = document.getElementById("sidebarBaseName");
+    const sidebarBaseMeta = document.getElementById("sidebarBaseMeta");
+    const sidebarPilotList = document.getElementById("sidebarPilotList");
+    const totalPilotsCounter = document.getElementById("totalPilotsCounter");
+    const basesLoadingState = document.getElementById("basesLoadingState");
+    const statusFilterGroup = document.getElementById("statusFilterGroup");
+    const modalShell = document.getElementById("basesModalShell");
+    const modalHistory = document.getElementById("modalHistory");
+    const modalStatus = document.getElementById("modalStatus");
+    const modalMovePilot = document.getElementById("modalMovePilot");
+    const statusForm = document.getElementById("statusForm");
+    const movePilotForm = document.getElementById("movePilotForm");
+    const movePilotBaseSelect = document.getElementById("movePilotBaseSelect");
+    const mapRoot = document.getElementById("basesMap");
+    const basesAlternativeList = document.getElementById("basesAlternativeList");
+    const basesAlternativeStatus = document.getElementById("basesAlternativeStatus");
+    const contentRoot = document.querySelector(".content");
+    const modalBackgroundRoots = [
+        document.querySelector(".page-header"),
+        document.querySelector(".bases-panel"),
+    ].filter(Boolean);
+    const statusButtons = [...statusFilterGroup.querySelectorAll(".status-filter")];
+    let resizeRaf = null;
+    let lastSidebarTrigger = null;
+    let lastModalTrigger = null;
+    let activeModal = null;
+    const focusableSelector = [
+        "a[href]",
+        "button:not([disabled])",
+        "input:not([disabled]):not([type='hidden'])",
+        "select:not([disabled])",
+        "textarea:not([disabled])",
+        "[tabindex]:not([tabindex='-1'])",
+    ].join(",");
+
+    const statusOptions = initialPayload.status_options || [];
+    const moveSelectOptions = [...movePilotBaseSelect.options];
+
+    function reindexPayload() {
+        state.baseById = new Map((state.payload.bases || []).map((item) => [item.id, item]));
+        state.pilotById = new Map((state.payload.pilotos || []).map((item) => [item.id, item]));
+    }
+    reindexPayload();
+
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
+    }
+
+    function sanitizeDataImageUrl(value) {
+        const raw = String(value ?? "").trim();
+        if (!raw) return "";
+        const safePattern = /^data:image\/(jpeg|jpg|png|webp);base64,/i;
+        if (!safePattern.test(raw)) return "";
+        return raw;
+    }
+
+    function sanitizeInternalPhotoUrl(value) {
+        const raw = String(value ?? "").trim();
+        if (!raw) return "";
+        if (!raw.startsWith("/")) return "";
+        if (!/^\/(bases\/pilotos|tripulantes)\/\d+\/foto(?:\?.*)?$/i.test(raw)) return "";
+        return raw;
+    }
+
+    function sanitizeCssToken(value, fallback = "") {
+        const raw = String(value ?? "").trim();
+        if (!raw) return fallback;
+        return /^[a-z0-9_-]+$/i.test(raw) ? raw : fallback;
+    }
+
+    function safeInt(value, fallback = 0) {
+        const parsed = Number.parseInt(String(value ?? ""), 10);
+        return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function flashMessage(message, category = "success") {
+        const flash = document.createElement("div");
+        flash.className = `flash ${category}`;
+        const isAlert = category === "error" || category === "warning";
+        flash.setAttribute("role", isAlert ? "alert" : "status");
+        flash.setAttribute("aria-live", isAlert ? "assertive" : "polite");
+        flash.textContent = message;
+        contentRoot.prepend(flash);
+        window.appA11y?.announce(message, isAlert ? "assertive" : "polite");
+        setTimeout(() => flash.remove(), 4500);
+    }
+
+    function syncStatusButtonState() {
+        statusButtons.forEach((button) => {
+            const isActive = (button.dataset.status || "") === state.activeStatus;
+            button.classList.toggle("active", isActive);
+            button.setAttribute("aria-pressed", isActive ? "true" : "false");
+        });
+    }
+
+    function renderMapBootstrapError(message) {
+        mapRoot.setAttribute("role", "alert");
+        mapRoot.classList.add("bases-map-error");
+        mapRoot.innerHTML = `
+            <div class="empty bases-map-fallback">
+                <strong>Mapa indisponivel.</strong>
+                <span>${escapeHtml(message)}</span>
+            </div>
+        `;
+    }
+
+    function setLoading(isLoading) {
+        state.loading = Boolean(isLoading);
+        if (basesLoadingState) {
+            basesLoadingState.hidden = !state.loading;
+            basesLoadingState.textContent = state.loading ? "Atualizando dados..." : "";
+        }
+        statusButtons.forEach((button) => { button.disabled = state.loading; });
+        mapRoot.setAttribute("aria-busy", state.loading ? "true" : "false");
+        sidebarPilotList.setAttribute("aria-busy", state.loading ? "true" : "false");
+    }
+
+    async function parseJsonSafe(response) {
+        try {
+            return await response.json();
+        } catch (_error) {
+            return null;
+        }
+    }
+
+    function openSidebar(markerKey) {
+        lastSidebarTrigger = document.activeElement;
+        state.selectedMarkerKey = markerKey;
+        sidebar.classList.add("open");
+        sidebar.setAttribute("aria-hidden", "false");
+        renderSidebar();
+        window.requestAnimationFrame(() => {
+            document.getElementById("sidebarCloseBtn")?.focus();
+        });
+        if (compactQuery.matches) {
+            window.requestAnimationFrame(() => {
+                sidebar.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            });
+        }
+    }
+
+    function closeSidebar() {
+        sidebar.classList.remove("open");
+        sidebar.setAttribute("aria-hidden", "true");
+        if (lastSidebarTrigger && typeof lastSidebarTrigger.focus === "function" && document.contains(lastSidebarTrigger)) {
+            window.requestAnimationFrame(() => lastSidebarTrigger.focus());
+        }
+        lastSidebarTrigger = null;
+    }
+
+    function buildBadge(label, count, className) {
+        const safeClass = sanitizeCssToken(className, "status-gray");
+        const safeCount = safeInt(count, 0);
+        return `<span class="status-pill ${safeClass}">${escapeHtml(label)}: ${safeCount}</span>`;
+    }
+
+    function pilotAvatar(pilot, extraClass = "") {
+        const indicator = pilot.expiry_indicator || {};
+        const safeIndicatorClass = sanitizeCssToken(indicator.css_class, "");
+        const indicatorClass = safeIndicatorClass ? ` ${safeIndicatorClass}` : "";
+        const pulseClass = indicator.pulse ? " avatar-expiry-pulse" : "";
+        const daysRemaining = Number.isInteger(indicator.days_remaining) ? indicator.days_remaining : null;
+        const tooltip = daysRemaining === null
+            ? "Sem data de vencimento cadastrada"
+            : (daysRemaining < 0
+                ? `Habilitação vencida há ${Math.abs(daysRemaining)} dia(s)`
+                : (daysRemaining === 0
+                    ? "Habilitação vence hoje"
+                    : `Habilitação vence em ${daysRemaining} dia(s)`));
+
+        const safePhotoUrl = sanitizeInternalPhotoUrl(pilot.foto_url);
+        const initials = escapeHtml(pilot.iniciais || "?");
+        const onErrScript = "const p=this.parentElement;if(!p)return;this.onerror=null;p.dataset.photoState='unavailable';p.textContent='';const s=document.createElement('span');s.textContent=this.dataset.initials||'?';p.appendChild(s);";
+        const photoMarkup = safePhotoUrl
+            ? `<img src="${escapeHtml(safePhotoUrl)}" alt="${escapeHtml(pilot.nome)}" loading="lazy" decoding="async" referrerpolicy="same-origin" data-initials="${initials}" onerror="${onErrScript}">`
+            : `<span>${initials}</span>`;
+        return `<div class="avatar avatar-expiry ${extraClass}${indicatorClass}${pulseClass}" data-photo-state="${safePhotoUrl ? "loaded" : "empty"}" title="${escapeHtml(tooltip)}">${photoMarkup}</div>`;
+    }
+
+    function isCompactViewport() {
+        return compactQuery.matches;
+    }
+
+    function markerMode() {
+        const zoom = state.map ? state.map.getZoom() : 4;
+        if (zoom <= 4) {
+            return "zoomout";
+        }
+        const expandedZoom = state.compactMarkers ? 6 : 5;
+        return zoom >= expandedZoom ? "expanded" : "peek";
+    }
+
+    function pilotSortWeight(pilot) {
+        const indicator = pilot.expiry_indicator || {};
+        const daysRemaining = Number.isInteger(indicator.days_remaining) ? indicator.days_remaining : 99999;
+        return [daysRemaining, String(pilot.nome || "")];
+    }
+
+    function pilotComparator(a, b) {
+        const [aDays, aName] = pilotSortWeight(a);
+        const [bDays, bName] = pilotSortWeight(b);
+        if (aDays !== bDays) return aDays - bDays;
+        return aName.localeCompare(bName, "pt-BR");
+    }
+
+    function aggregateCounts(list) {
+        const counts = {};
+        statusOptions.forEach((item) => { counts[item.key] = 0; });
+        list.forEach((base) => {
+            statusOptions.forEach((item) => {
+                counts[item.key] += Number(base.counts?.[item.key] || 0);
+            });
+        });
+        return counts;
+    }
+
+    function buildMarkerEntities(mode) {
+        const bases = Array.isArray(state.payload.bases) ? [...state.payload.bases] : [];
+        if (mode !== "zoomout") {
+            return bases.map((base) => ({
+                ...base,
+                marker_key: `base-${base.id}`,
+                marker_kind: "base",
+                marker_label: `${base.nome} / ${base.uf}`,
+                marker_bases: [base],
+            }));
+        }
+
+        const MAX_MARKERS = 4;
+        if (bases.length <= MAX_MARKERS) {
+            return bases.map((base) => ({
+                ...base,
+                marker_key: `base-${base.id}`,
+                marker_kind: "base",
+                marker_label: `${base.nome} / ${base.uf}`,
+                marker_bases: [base],
+            }));
+        }
+
+        const sorted = [...bases].sort((a, b) => Number(b.total_pilotos || 0) - Number(a.total_pilotos || 0));
+        const topBases = sorted.slice(0, MAX_MARKERS - 1);
+        const remaining = sorted.slice(MAX_MARKERS - 1);
+        const totalWeight = remaining.reduce((acc, item) => acc + Math.max(1, Number(item.total_pilotos || 0)), 0);
+        const weightedLatitude = remaining.reduce((acc, item) => acc + (Number(item.latitude) * Math.max(1, Number(item.total_pilotos || 0))), 0);
+        const weightedLongitude = remaining.reduce((acc, item) => acc + (Number(item.longitude) * Math.max(1, Number(item.total_pilotos || 0))), 0);
+        const aggregatedPilots = remaining.flatMap((item) => item.pilotos || []).sort(pilotComparator);
+
+        const entities = topBases.map((base) => ({
+            ...base,
+            marker_key: `base-${base.id}`,
+            marker_kind: "base",
+            marker_label: `${base.nome} / ${base.uf}`,
+            marker_bases: [base],
+        }));
+        entities.push({
+            id: "cluster-rest",
+            nome: "Outras bases",
+            uf: "BR",
+            latitude: Number.isFinite(weightedLatitude) && totalWeight > 0 ? weightedLatitude / totalWeight : -14.235,
+            longitude: Number.isFinite(weightedLongitude) && totalWeight > 0 ? weightedLongitude / totalWeight : -51.925,
+            total_pilotos: remaining.reduce((acc, item) => acc + Number(item.total_pilotos || 0), 0),
+            counts: aggregateCounts(remaining),
+            pilotos: aggregatedPilots,
+            marker_key: "cluster-rest",
+            marker_kind: "cluster",
+            marker_label: `${remaining.length} bases agrupadas`,
+            marker_bases: remaining,
+        });
+        return entities;
+    }
+
+    function pilotsForMarker(marker, mode) {
+        const source = Array.isArray(marker.pilotos) ? [...marker.pilotos] : [];
+        source.sort(pilotComparator);
+        const limit = mode === "expanded" ? (state.compactMarkers ? 3 : 4) : 3;
+        const visible = source.slice(0, limit);
+        const hiddenCount = Math.max(0, source.length - visible.length);
+        return { visible, hiddenCount };
+    }
+
+    function markerEntityForKey(markerKey) {
+        const key = String(markerKey || "");
+        return state.markerEntityByKey.get(key) || buildMarkerEntities("expanded").find((item) => item.marker_key === key);
+    }
+
+    function renderSidebar() {
+        const marker = markerEntityForKey(state.selectedMarkerKey || "");
+        if (!marker) {
+            sidebarBaseName.textContent = "Base";
+            sidebarBaseMeta.textContent = "Nenhum dado carregado.";
+            sidebarPilotList.innerHTML = "";
+            return;
+        }
+
+        const isCluster = marker.marker_kind === "cluster";
+        sidebarBaseName.textContent = marker.marker_label || `${marker.nome} / ${marker.uf}`;
+        sidebarBaseMeta.textContent = isCluster
+            ? `${marker.total_pilotos} piloto(s) em ${marker.marker_bases.length} bases`
+            : `${marker.total_pilotos} piloto(s) com o filtro atual`;
+
+        sidebarPilotList.innerHTML = marker.pilotos.length ? marker.pilotos.map((pilot) => `
+            <article class="pilot-card">
+                <div class="pilot-card-top">
+                    <div class="pilot-card-identity">
+                        ${pilotAvatar(pilot, "avatar-sm")}
+                        <div>
+                            <div class="primary-cell pilot-card-name" title="${escapeHtml(pilot.nome)}">${escapeHtml(pilot.nome)}</div>
+                            <div class="secondary-cell">Matrícula ${escapeHtml(pilot.matricula)}</div>
+                            ${isCluster ? `<div class="secondary-cell">${escapeHtml(pilot.base_nome)} / ${escapeHtml(pilot.base_uf)}</div>` : ""}
+                        </div>
+                    </div>
+                    <span class="status-pill ${sanitizeCssToken(pilot.status_class, "status-gray")}">${escapeHtml(pilot.status_label)}</span>
+                </div>
+                <div class="pilot-card-actions">
+                    ${canManage ? `<button type="button" class="button-link secondary action-status" data-id="${safeInt(pilot.id, 0)}">Alterar status</button>` : ""}
+                    ${canManage ? `<button type="button" class="button-link secondary action-move" data-id="${safeInt(pilot.id, 0)}">Mover para outra base</button>` : ""}
+                    <button type="button" class="button-link secondary action-history" data-id="${safeInt(pilot.id, 0)}">Ver histórico</button>
+                </div>
+            </article>
+        `).join("") : `<div class="empty">Nenhum piloto nesta base para o filtro atual.</div>`;
+    }
+
+    function renderAlternativeList() {
+        if (!basesAlternativeList) return;
+        const entities = buildMarkerEntities("expanded");
+        const totalPilots = (state.payload.pilotos || []).length;
+        if (basesAlternativeStatus) {
+            basesAlternativeStatus.textContent = `${totalPilots} piloto(s) no filtro atual.`;
+        }
+        basesAlternativeList.innerHTML = entities.length ? entities.map((base) => {
+            const badges = statusOptions
+                .filter((item) => (base.counts[item.key] || 0) > 0)
+                .map((item) => buildBadge(item.label, base.counts[item.key] || 0, item.class))
+                .join("");
+            const pilots = (base.pilotos || []).slice(0, 4)
+                .map((pilot) => `<li>${escapeHtml(pilot.nome)} <span>${escapeHtml(pilot.status_label || pilot.status || "")}</span></li>`)
+                .join("");
+            const hiddenCount = Math.max(0, Number(base.total_pilotos || 0) - Math.min(4, (base.pilotos || []).length));
+            return `
+                <article class="bases-alternative-card">
+                    <div class="bases-alternative-card-head">
+                        <div>
+                            <h3>${escapeHtml(base.nome)} / ${escapeHtml(base.uf)}</h3>
+                            <p>${escapeHtml(base.total_pilotos)} piloto(s) com o filtro atual</p>
+                        </div>
+                        <button type="button" class="button-link secondary base-alt-open" data-marker-key="${escapeHtml(base.marker_key)}" aria-label="Abrir pilotos da base ${escapeHtml(base.nome)}">
+                            Abrir pilotos
+                        </button>
+                    </div>
+                    <div class="base-marker-badges">${badges || '<span class="status-pill status-gray">Sem pilotos</span>'}</div>
+                    <ul class="bases-alternative-pilots">
+                        ${pilots || '<li>Sem pilotos nesta base para o filtro atual.</li>'}
+                        ${hiddenCount > 0 ? `<li>Mais ${hiddenCount} piloto(s).</li>` : ""}
+                    </ul>
+                </article>
+            `;
+        }).join("") : `<div class="empty">Nenhuma base encontrada para o filtro atual.</div>`;
+    }
+
+    function markerHtml(marker, mode) {
+        const compact = state.compactMarkers;
+        const badges = statusOptions
+            .filter((item) => (marker.counts[item.key] || 0) > 0)
+            .map((item) => {
+                const count = marker.counts[item.key] || 0;
+                const label = compact ? item.label.slice(0, 3) : item.label;
+                return buildBadge(label, count, item.class);
+            })
+            .join("");
+        const { visible: visiblePilots, hiddenCount } = pilotsForMarker(marker, mode);
+        const avatars = visiblePilots
+            .map((pilot) => pilotAvatar(pilot, mode !== "expanded" ? "avatar-xs" : (compact ? "avatar-xs" : "avatar-sm")))
+            .join("");
+        const overflowBadge = hiddenCount > 0 ? `<span class="base-marker-avatar-more">+${hiddenCount}</span>` : "";
+        const markerCardClass = mode === "zoomout" ? "base-marker-card--zoomout" : "";
+
+        if (mode === "peek") {
+            return `
+                <button type="button" class="base-marker-card base-marker-card-peek ${compact ? "compact" : ""} ${markerCardClass} base-marker-trigger" data-marker-key="${escapeHtml(marker.marker_key)}">
+                    <div class="base-marker-peek-top">
+                        <strong>${escapeHtml(marker.nome)}</strong>
+                        <span>${escapeHtml(marker.total_pilotos)} piloto(s)</span>
+                    </div>
+                    <div class="base-marker-peek-avatars">${avatars || '<span class="secondary-cell">Sem tripulantes</span>'}${overflowBadge}</div>
+                    <div class="base-marker-peek-footer">
+                        <span class="base-marker-peek-status">${Number(marker.total_pilotos || 0)} monitorados</span>
+                        <span class="base-marker-peek-link">Abrir</span>
+                    </div>
+                </button>
+            `;
+        }
+
+        if (mode === "zoomout") {
+            return `
+                <button type="button" class="base-marker-card base-marker-card-peek ${compact ? "compact" : ""} base-marker-card--zoomout base-marker-trigger" data-marker-key="${escapeHtml(marker.marker_key)}">
+                    <div class="base-marker-peek-top">
+                        <strong>${escapeHtml(marker.nome)}</strong>
+                        <span>${escapeHtml(marker.total_pilotos)} piloto(s)</span>
+                    </div>
+                    <div class="base-marker-peek-avatars">${avatars || '<span class="secondary-cell">Sem tripulantes</span>'}${overflowBadge}</div>
+                    <div class="base-marker-peek-footer">
+                        <span class="base-marker-peek-status">${escapeHtml(marker.marker_label || "Base")}</span>
+                        <span class="base-marker-peek-link">Abrir</span>
+                    </div>
+                </button>
+            `;
+        }
+
+        return `
+            <div class="base-marker-card ${compact ? "compact" : ""} ${markerCardClass}">
+                <div class="base-marker-head">
+                    <strong>${escapeHtml(marker.nome)}</strong>
+                    <span>${escapeHtml(marker.uf)}</span>
+                </div>
+                <div class="base-marker-total">${escapeHtml(marker.total_pilotos)} piloto(s)</div>
+                <div class="base-marker-avatars" aria-label="Prévia de pilotos">${avatars || '<span class="secondary-cell base-marker-empty">Sem tripulantes vinculados</span>'}${overflowBadge}</div>
+                <div class="base-marker-badges">${badges}</div>
+                <button type="button" class="base-marker-button" data-marker-key="${escapeHtml(marker.marker_key)}">Ver pilotos</button>
+            </div>
+        `;
+    }
+
+    function markerIconMetrics(marker, mode, compact) {
+        const renderedAvatarsCount = pilotsForMarker(marker, mode).visible.length;
+        if (mode !== "peek") {
+            const pilotCount = renderedAvatarsCount;
+            const perRow = compact ? 3 : 4;
+            const rows = Math.max(1, Math.ceil(pilotCount / perRow));
+            const width = compact ? 182 : 248;
+            const headerHeight = compact ? 68 : 76;
+            const badgesHeight = compact ? 26 : 28;
+            const buttonHeight = compact ? 34 : 38;
+            const verticalPadding = compact ? 22 : 26;
+            const avatarRowHeight = compact ? 30 : 38;
+            const avatarGap = compact ? 4 : 6;
+            const avatarsHeight = (rows * avatarRowHeight) + (Math.max(0, rows - 1) * avatarGap);
+            const height = headerHeight + badgesHeight + buttonHeight + verticalPadding + avatarsHeight;
+            return {
+                iconSize: [width, height],
+                iconAnchor: [Math.round(width / 2), Math.round(height / 2)],
+            };
+        }
+        const width = compact ? 156 : 184;
+        const perRow = 3;
+        const pilotCount = renderedAvatarsCount;
+        const rows = Math.max(1, Math.ceil(pilotCount / perRow));
+        const baseHeight = compact ? 84 : 88;
+        const extraHeightPerRow = compact ? 22 : 24;
+        const height = baseHeight + Math.max(0, rows - 1) * extraHeightPerRow;
+        return {
+            iconSize: [width, height],
+            iconAnchor: [Math.round(width / 2), Math.round(height / 2)],
+        };
+    }
+
+    function renderMapMarkers(force = false) {
+        if (!state.map || !window.L) {
+            totalPilotsCounter.textContent = String((state.payload.pilotos || []).length);
+            renderAlternativeList();
+            return;
+        }
+        const mode = markerMode();
+        if (!force && mode === state.lastMarkerMode) {
+            totalPilotsCounter.textContent = String((state.payload.pilotos || []).length);
+            renderAlternativeList();
+            return;
+        }
+        state.lastMarkerMode = mode;
+        state.markers.forEach((marker) => state.map.removeLayer(marker));
+        state.markers = [];
+        state.markerEntityByKey = new Map();
+        const compact = state.compactMarkers;
+        const entities = buildMarkerEntities(mode);
+
+        entities.forEach((entity) => {
+            const metrics = markerIconMetrics(entity, mode, compact);
+            const icon = L.divIcon({
+                className: "base-marker-wrapper",
+                html: markerHtml(entity, mode),
+                iconSize: metrics.iconSize,
+                iconAnchor: metrics.iconAnchor,
+            });
+            const marker = L.marker([entity.latitude, entity.longitude], { icon }).addTo(state.map);
+            state.markers.push(marker);
+            state.markerEntityByKey.set(entity.marker_key, entity);
+        });
+        if (!state.selectedMarkerKey || !state.markerEntityByKey.has(state.selectedMarkerKey)) {
+            const firstMarker = entities[0];
+            state.selectedMarkerKey = firstMarker ? firstMarker.marker_key : null;
+        }
+        if (sidebar.classList.contains("open")) {
+            renderSidebar();
+        }
+        totalPilotsCounter.textContent = String((state.payload.pilotos || []).length);
+        renderAlternativeList();
+    }
+
+    function initMap() {
+        if (!window.L) {
+            renderMapBootstrapError("A biblioteca local do mapa nao foi carregada. Recarregue a tela ou acione o suporte.");
+            renderAlternativeList();
+            return;
+        }
+        state.map = L.map("basesMap", {
+            zoomControl: true,
+            scrollWheelZoom: true,
+        }).setView([-14.235, -51.925], 4);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 18,
+            attribution: '&copy; OpenStreetMap contributors',
+        }).addTo(state.map);
+
+        renderMapMarkers(true);
+        state.map.on("zoomend", () => {
+            renderMapMarkers(false);
+        });
+    }
+
+    function focusFirstIn(container) {
+        const autofocus = container.querySelector("[data-initial-focus], [autofocus]");
+        const focusable = Array.from(container.querySelectorAll(focusableSelector))
+            .filter((element) => element.offsetParent !== null || element === document.activeElement);
+        const target = autofocus || focusable[0] || container;
+        if (target && typeof target.focus === "function") {
+            target.focus();
+        }
+    }
+
+    function trapModalFocus(event) {
+        if (!activeModal || event.key !== "Tab") return;
+        const focusable = Array.from(activeModal.querySelectorAll(focusableSelector))
+            .filter((element) => element.offsetParent !== null);
+        if (!focusable.length) {
+            event.preventDefault();
+            activeModal.focus();
+            return;
+        }
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    }
+
+    function setModalBackgroundInert(isInert) {
+        modalBackgroundRoots.forEach((root) => {
+            if (isInert) {
+                root.setAttribute("inert", "");
+                root.setAttribute("aria-hidden", "true");
+            } else {
+                root.removeAttribute("inert");
+                root.removeAttribute("aria-hidden");
+            }
+        });
+    }
+
+    function showModal(modal) {
+        lastModalTrigger = document.activeElement;
+        activeModal = modal;
+        setModalBackgroundInert(true);
+        modalShell.classList.add("show");
+        modalShell.setAttribute("aria-hidden", "false");
+        [modalStatus, modalMovePilot, modalHistory].forEach((item) => {
+            const isActive = item === modal;
+            item.hidden = !isActive;
+            item.setAttribute("aria-hidden", isActive ? "false" : "true");
+        });
+        window.requestAnimationFrame(() => focusFirstIn(modal));
+    }
+
+    function closeModal() {
+        modalShell.classList.remove("show");
+        modalShell.setAttribute("aria-hidden", "true");
+        [modalStatus, modalMovePilot, modalHistory].forEach((item) => {
+            item.hidden = true;
+            item.setAttribute("aria-hidden", "true");
+        });
+        activeModal = null;
+        setModalBackgroundInert(false);
+        if (lastModalTrigger && typeof lastModalTrigger.focus === "function" && document.contains(lastModalTrigger)) {
+            window.requestAnimationFrame(() => lastModalTrigger.focus());
+        }
+        lastModalTrigger = null;
+    }
+
+    async function loadPayload(status = state.activeStatus) {
+        if (state.fetchController) {
+            state.fetchController.abort();
+        }
+        const focusWasInSidebar = sidebar.contains(document.activeElement);
+        const controller = new AbortController();
+        state.fetchController = controller;
+        state.requestSeq += 1;
+        const requestId = state.requestSeq;
+        setLoading(true);
+
+        const url = status ? `${endpoints.data}?status=${encodeURIComponent(status)}` : endpoints.data;
+        try {
+            const response = await fetch(url, {
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+                cache: "no-cache",
+                signal: controller.signal,
+            });
+            if (response.status === 304) {
+                return;
+            }
+            const payload = await parseJsonSafe(response);
+            if (!response.ok) {
+                throw new Error((payload && payload.message) || "Não foi possível carregar os dados das bases.");
+            }
+            if (!payload || typeof payload !== "object") {
+                throw new Error("Resposta inválida ao carregar as bases.");
+            }
+            if (requestId !== state.requestSeq || controller.signal.aborted) {
+                return;
+            }
+
+            state.payload = payload;
+            reindexPayload();
+            state.lastMarkerMode = null;
+            renderMapMarkers(true);
+            if (!state.payload.bases[0]) {
+                closeSidebar();
+                state.selectedMarkerKey = null;
+            } else if (sidebar.classList.contains("open")) {
+                renderSidebar();
+                if (focusWasInSidebar) {
+                    window.requestAnimationFrame(() => focusFirstIn(sidebar));
+                }
+            }
+            window.appA11y?.announce(`${(state.payload.pilotos || []).length} piloto(s) carregados no filtro atual.`);
+        } catch (error) {
+            if (error && error.name === "AbortError") {
+                return;
+            }
+            throw error;
+        } finally {
+            if (requestId === state.requestSeq) {
+                setLoading(false);
+                if (state.fetchController === controller) {
+                    state.fetchController = null;
+                }
+            }
+        }
+    }
+
+    async function postForm(url, form) {
+        const data = new FormData(form);
+        data.append("csrf_token", csrfToken);
+        const response = await fetch(url, {
+            method: "POST",
+            body: data,
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+        });
+        const payload = await parseJsonSafe(response);
+        if (!payload || typeof payload !== "object") {
+            throw new Error("Resposta inválida do servidor.");
+        }
+        if (!response.ok || !payload.success) {
+            throw new Error(payload.message || "Não foi possível concluir a operação.");
+        }
+        return payload;
+    }
+
+    function getPilotById(pilotId) {
+        return state.pilotById.get(pilotId);
+    }
+
+    function fillStatusModal(pilotId) {
+        const pilot = getPilotById(pilotId);
+        if (!pilot) return;
+        statusForm.reset();
+        document.getElementById("statusPilotId").value = String(pilot.id);
+        document.getElementById("statusPilotName").value = pilot.nome;
+        document.getElementById("statusPilotCurrent").value = pilot.status_label;
+        statusForm.elements.status_novo.value = "";
+        showModal(modalStatus);
+    }
+
+    function fillMoveModal(pilotId) {
+        const pilot = getPilotById(pilotId);
+        if (!pilot) return;
+        movePilotForm.reset();
+        document.getElementById("movePilotId").value = String(pilot.id);
+        document.getElementById("movePilotName").value = pilot.nome;
+        document.getElementById("movePilotCurrentBase").value = `${pilot.base_nome} / ${pilot.base_uf}`;
+        moveSelectOptions.forEach((option) => {
+            option.hidden = option.value === String(pilot.base_id);
+        });
+        movePilotBaseSelect.value = "";
+        showModal(modalMovePilot);
+    }
+
+    async function showHistoryModal(pilotId) {
+        const response = await fetch(endpoints.pilotHistory.replace("/0/", `/${pilotId}/`), {
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+        });
+        const payload = await parseJsonSafe(response);
+        if (!payload || typeof payload !== "object") {
+            throw new Error("Resposta inválida ao carregar o histórico.");
+        }
+        if (!response.ok || !payload.success) {
+            throw new Error(payload.message || "Não foi possível carregar o histórico.");
+        }
+        document.getElementById("historyPilotName").textContent = `${payload.piloto.nome} · ${payload.piloto.matricula}`;
+        const timeline = document.getElementById("historyTimeline");
+        timeline.innerHTML = payload.historico.length ? payload.historico.map((item) => `
+            <div class="history-item">
+                <div class="history-dot"></div>
+                <div class="history-body">
+                    <div class="history-top">
+                        <strong>${escapeHtml(item.event_type)}</strong>
+                        <span>${escapeHtml(item.alterado_em)}</span>
+                    </div>
+                    <div class="history-text">Status: ${escapeHtml(item.status_anterior || "—")} → ${escapeHtml(item.status_novo || "—")}</div>
+                    <div class="history-text">Base: ${escapeHtml(item.base_anterior_nome || "—")} → ${escapeHtml(item.base_nova_nome || "—")}</div>
+                    <div class="history-text">Alterado por: ${escapeHtml(item.alterado_por)}</div>
+                    ${item.observacao ? `<div class="history-note">${escapeHtml(item.observacao)}</div>` : ""}
+                </div>
+            </div>
+        `).join("") : `<div class="empty">Nenhum evento registrado.</div>`;
+        showModal(modalHistory);
+    }
+
+    syncStatusButtonState();
+
+    statusFilterGroup.addEventListener("click", async (event) => {
+        const button = event.target.closest(".status-filter");
+        if (!button) return;
+        const status = button.dataset.status || "";
+        if (status === state.activeStatus && !state.loading) return;
+        state.activeStatus = status;
+        syncStatusButtonState();
+        try {
+            await loadPayload(status);
+        } catch (error) {
+            flashMessage(error.message, "error");
+        }
+    });
+
+    mapRoot.addEventListener("click", (event) => {
+        const button = event.target.closest(".base-marker-button, .base-marker-trigger");
+        if (!button) return;
+        openSidebar(String(button.dataset.markerKey || ""));
+    });
+
+    basesAlternativeList?.addEventListener("click", (event) => {
+        const button = event.target.closest(".base-alt-open");
+        if (!button) return;
+        openSidebar(String(button.dataset.markerKey || ""));
+    });
+
+    sidebarPilotList.addEventListener("click", async (event) => {
+        const statusButton = event.target.closest(".action-status");
+        const moveButton = event.target.closest(".action-move");
+        const historyButton = event.target.closest(".action-history");
+        try {
+            if (statusButton) fillStatusModal(Number(statusButton.dataset.id));
+            if (moveButton) fillMoveModal(Number(moveButton.dataset.id));
+            if (historyButton) await showHistoryModal(Number(historyButton.dataset.id));
+        } catch (error) {
+            flashMessage(error.message, "error");
+        }
+    });
+
+    document.getElementById("sidebarCloseBtn").addEventListener("click", closeSidebar);
+
+    modalShell.addEventListener("click", (event) => {
+        if (event.target.hasAttribute("data-close-modal")) {
+            closeModal();
+        }
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Tab" && modalShell.classList.contains("show")) {
+            trapModalFocus(event);
+            return;
+        }
+        if (event.key === "Escape") {
+            if (modalShell.classList.contains("show")) {
+                closeModal();
+                return;
+            }
+            if (sidebar.classList.contains("open")) {
+                closeSidebar();
+            }
+        }
+    });
+
+    statusForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const pilotId = event.currentTarget.elements.pilot_id.value;
+        try {
+            await postForm(endpoints.pilotStatus.replace("/0/", `/${pilotId}/`), event.currentTarget);
+            closeModal();
+            await loadPayload();
+            flashMessage("Status atualizado com sucesso.");
+        } catch (error) {
+            flashMessage(error.message, "error");
+        }
+    });
+
+    movePilotForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const pilotId = event.currentTarget.elements.pilot_id.value;
+        try {
+            await postForm(endpoints.pilotMove.replace("/0/", `/${pilotId}/`), event.currentTarget);
+            closeModal();
+            await loadPayload();
+            flashMessage("Piloto movido com sucesso.");
+        } catch (error) {
+            flashMessage(error.message, "error");
+        }
+    });
+
+    initMap();
+
+    window.addEventListener("resize", () => {
+        if (resizeRaf) return;
+        resizeRaf = window.requestAnimationFrame(() => {
+            resizeRaf = null;
+            const nextCompact = isCompactViewport();
+            if (nextCompact !== state.compactMarkers) {
+                state.compactMarkers = nextCompact;
+                state.lastMarkerMode = null;
+                renderMapMarkers(true);
+            }
+            if (state.map) {
+                state.map.invalidateSize();
+            }
+        });
+    });
+
+    if (typeof compactQuery.addEventListener === "function") {
+        compactQuery.addEventListener("change", (event) => {
+            const nextCompact = event.matches;
+            if (nextCompact !== state.compactMarkers) {
+                state.compactMarkers = nextCompact;
+                state.lastMarkerMode = null;
+                renderMapMarkers(true);
+            }
+            if (state.map) {
+                state.map.invalidateSize();
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}

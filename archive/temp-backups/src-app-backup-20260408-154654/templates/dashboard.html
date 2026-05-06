@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Dashboard</h1>
+        <p class="page-subtitle">Visão operacional diária com foco no que exige ação imediata.</p>
+    </div>
+    <div class="page-header-actions">
+        <a class="button-link secondary" href="{{ url_for('operacoes.missoes_new') }}">+ Missão</a>
+        <a class="button-link secondary" href="{{ url_for('operacoes.pernoites_new') }}">+ Pernoite</a>
+        <a class="button-link secondary" href="{{ url_for('relatorios.produtividade_consolidado') }}">Produtividade</a>
+        <a class="button-link secondary" href="{{ url_for('dashboard.painel_tv') }}">Painel TV</a>
+    </div>
+</div>
+
+<div class="state-note">
+    Prioridade de leitura: <strong>Vencidos</strong> → <strong>7 dias</strong> → <strong>30 dias</strong>. Use os atalhos para tratativa imediata.
+</div>
+
+<section class="summary-grid">
+    <a class="summary-card summary-link-card" href="{{ url_for('cadastros.tripulantes_list') }}"><strong>Tripulantes</strong><span>{{ totals.tripulantes }}</span></a>
+    <a class="summary-card summary-link-card" href="{{ url_for('cadastros.equipamentos_list') }}"><strong>Equipamentos ativos</strong><span>{{ totals.equipamentos }}</span></a>
+    <a class="summary-card summary-link-card" href="{{ url_for('cadastros.tipos_list') }}"><strong>Tipos ativos</strong><span>{{ totals.tipos }}</span></a>
+    <a class="summary-card summary-link-card" href="{{ url_for('cadastros.treinamentos_list') }}"><strong>Treinamentos</strong><span>{{ totals.treinamentos }}</span></a>
+</section>
+
+<section class="dashboard-grid">
+    <div class="panel dashboard-panel">
+        <div class="section-title">O que precisa de atenção</div>
+        <div class="dashboard-alerts">
+            <a class="alert-card alert-red" href="{{ url_for('cadastros.treinamentos_list', status='vencido') }}">
+                <strong>Vencidos</strong>
+                <span>{{ alerts.vencidos }}</span>
+                <span class="alert-link-text">Abrir lista</span>
+            </a>
+            <a class="alert-card alert-yellow" href="{{ url_for('cadastros.treinamentos_list', periodo='7') }}">
+                <strong>Vencem em até 7 dias</strong>
+                <span>{{ alerts.em_7_dias }}</span>
+                <span class="alert-link-text">Abrir lista</span>
+            </a>
+            <a class="alert-card alert-soft" href="{{ url_for('cadastros.treinamentos_list', periodo='30') }}">
+                <strong>Vencem em até 30 dias</strong>
+                <span>{{ alerts.em_30_dias }}</span>
+                <span class="alert-link-text">Abrir lista</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="panel dashboard-panel">
+        <div class="section-title">Visão geral dos status</div>
+        <div class="dashboard-status-list">
+            <a href="{{ url_for('cadastros.treinamentos_list', status='vencido') }}"><span>Vencidos</span><strong>{{ summary.vencido }}</strong></a>
+            <a href="{{ url_for('cadastros.treinamentos_list', status='a vencer') }}"><span>A vencer</span><strong>{{ summary["a vencer"] }}</strong></a>
+            <a href="{{ url_for('cadastros.treinamentos_list', status='regular') }}"><span>Regulares</span><strong>{{ summary.regular }}</strong></a>
+            <a href="{{ url_for('cadastros.treinamentos_list', status='sem informação') }}"><span>Sem informação</span><strong>{{ summary["sem informação"] }}</strong></a>
+        </div>
+    </div>
+</section>
+
+<section class="panel dashboard-calendar-panel">
+    <div class="page-header dashboard-subheader dashboard-calendar-header">
+        <div>
+            <h2>Calendário de vencimentos</h2>
+            <p class="page-subtitle">Clique no dia ou no cartão do vencimento para abrir o treinamento e acessar o tripulante vinculado.</p>
+        </div>
+        <div class="dashboard-calendar-meta">
+            <span class="dashboard-calendar-chip">Mês atual: <strong>{{ calendar.month_label }}</strong></span>
+            <span class="dashboard-calendar-chip">Vencimentos no mês: <strong>{{ calendar.items_total }}</strong></span>
+        </div>
+    </div>
+
+    <div class="dashboard-calendar-layout">
+        <div class="dashboard-calendar-shell">
+            <div class="dashboard-calendar-weekdays">
+                {% for label in calendar.weekday_labels %}
+                <div>{{ label }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="dashboard-calendar-grid">
+                {% for week in calendar.weeks %}
+                    {% for day in week %}
+                    <button
+                        type="button"
+                        class="dashboard-calendar-day{% if not day.is_current_month %} is-muted{% endif %}{% if day.is_today %} is-today{% endif %}{% if day.has_due %} has-due{% endif %}"
+                        data-calendar-day="{{ day.iso_date }}"
+                        aria-label="Dia {{ day.day_number }} com {{ day.count }} vencimento(s)"
+                    >
+                        <span class="dashboard-calendar-day-number{% if day.pulse %} pulse{% endif %}">{{ day.day_number }}</span>
+                        {% if day.count %}
+                        <span class="dashboard-calendar-day-counter">{{ day.count }}</span>
+                        {% endif %}
+                        <span class="dashboard-calendar-day-label">{% if day.count %}{{ day.count }} venc.{% else %}Sem eventos{% endif %}</span>
+                        <span class="dashboard-calendar-day-dots">
+                            {% for item in day['items'][:3] %}
+                            <span class="dashboard-calendar-day-dot {{ item.status_class }}"></span>
+                            {% endfor %}
+                        </span>
+                    </button>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <aside class="dashboard-calendar-aside" id="dashboardCalendarDetail">
+            <div class="section-title">Detalhes do dia</div>
+            <p class="page-subtitle" id="dashboardCalendarDetailSubtitle">Selecione um dia para expandir os vencimentos.</p>
+            <div class="dashboard-calendar-detail-list" id="dashboardCalendarDetailList">
+                <div class="empty">Selecione um dia com vencimento para ver os detalhes.</div>
+            </div>
+            <div class="dashboard-calendar-divider"></div>
+            <div class="section-title">Próximos vencimentos</div>
+            <div class="dashboard-calendar-upcoming">
+                {% for item in calendar.upcoming_rows %}
+                <a class="dashboard-calendar-upcoming-card" href="{{ item.training_url }}">
+                    <span class="status-pill {{ item.status_class }}">{{ item.data_vencimento }}</span>
+                    <strong>{{ item.tripulante_nome }}</strong>
+                    <span>{{ item.tipo_treinamento_nome }}</span>
+                    <small>{{ item.equipamento_nome }}</small>
+                </a>
+                {% else %}
+                <div class="empty">Nenhum vencimento futuro no calendário atual.</div>
+                {% endfor %}
+            </div>
+        </aside>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="page-header dashboard-subheader">
+        <div>
+            <h2>Treinamentos mais críticos</h2>
+            <p class="page-subtitle">Vencidos primeiro, depois os mais próximos do vencimento.</p>
+        </div>
+        <a class="button-link secondary" href="{{ url_for('cadastros.treinamentos_list') }}">Abrir lista completa</a>
+    </div>
+
+    <div class="table-wrap">
+        <table class="data-table responsive-cards">
+            <thead>
+                <tr>
+                    <th>Tripulante</th>
+                    <th>Equipamento</th>
+                    <th>Tipo</th>
+                    <th>Vencimento</th>
+                    <th>Status</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in critical_rows %}
+                <tr>
+                    <td data-label="Tripulante"><div class="primary-cell">{{ row.tripulante_nome }}</div></td>
+                    <td data-label="Equipamento">{{ row.equipamento_nome or "-" }}</td>
+                    <td data-label="Tipo">{{ row.tipo_treinamento_nome }}</td>
+                    <td data-label="Vencimento"><span class="date-strong">{{ row.data_vencimento|br_date }}</span></td>
+                    <td data-label="Status"><span class="status-pill {{ row.status_class }}">{{ row.status_calculado }}</span></td>
+                    <td class="actions" data-label="Ação"><a href="{{ url_for('cadastros.treinamentos_edit', treinamento_id=row.id) }}">Abrir</a></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="empty">Ainda não há treinamentos suficientes para mostrar aqui.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script id="dashboardCalendarPayload" type="application/json">{{ calendar|tojson }}</script>
+<script>
+(() => {
+    const payloadNode = document.getElementById("dashboardCalendarPayload");
+    if (!payloadNode) return;
+
+    let calendar = {};
+    try {
+        calendar = JSON.parse(payloadNode.textContent || "{}");
+    } catch (_error) {
+        calendar = {};
+    }
+    const detailList = document.getElementById("dashboardCalendarDetailList");
+    const detailSubtitle = document.getElementById("dashboardCalendarDetailSubtitle");
+    const calendarGrid = document.querySelector(".dashboard-calendar-grid");
+    const dayButtons = [...document.querySelectorAll("[data-calendar-day]")];
+    const dayValues = [];
+
+    const dayMap = {};
+    (calendar.weeks || []).forEach((week) => {
+        week.forEach((day) => {
+            dayMap[day.iso_date] = day;
+            dayValues.push(day);
+        });
+    });
+    const detailsCache = new Map();
+
+    function formatDisplayDate(isoDate) {
+        const [year, month, day] = isoDate.split("-");
+        return `${day}/${month}/${year}`;
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
+    }
+
+    function sanitizeRelativeUrl(value) {
+        const raw = String(value ?? "").trim();
+        if (!raw) return "#";
+        if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+        return "#";
+    }
+
+    function sanitizeCssToken(value, fallback = "") {
+        const raw = String(value ?? "").trim();
+        if (!raw) return fallback;
+        return /^[a-z0-9_-]+$/i.test(raw) ? raw : fallback;
+    }
+
+    function renderDayDetails(isoDate) {
+        const selected = dayMap[isoDate];
+        if (!selected) return;
+
+        dayButtons.forEach((button) => {
+            button.classList.toggle("is-selected", button.dataset.calendarDay === isoDate);
+        });
+
+        if (!selected.items || !selected.items.length) {
+            detailSubtitle.textContent = `${formatDisplayDate(isoDate)} · nenhum vencimento neste dia`;
+            detailList.innerHTML = '<div class="empty">Nenhum vencimento cadastrado para esta data.</div>';
+            return;
+        }
+
+        detailSubtitle.textContent = `${formatDisplayDate(isoDate)} · ${selected.items.length} vencimento(s)`;
+        if (!detailsCache.has(isoDate)) {
+            detailsCache.set(isoDate, selected.items.map((item) => `
+                <article class="dashboard-calendar-detail-card ${sanitizeCssToken(item.status_class, "status-gray")}">
+                    <div class="dashboard-calendar-detail-top">
+                        <span class="status-pill ${sanitizeCssToken(item.status_class, "status-gray")}">${escapeHtml(item.data_vencimento)}</span>
+                        <a class="dashboard-calendar-event-pilot" href="${sanitizeRelativeUrl(item.tripulante_url)}">Ver piloto</a>
+                    </div>
+                    <a class="dashboard-calendar-event-main" href="${sanitizeRelativeUrl(item.training_url)}">
+                        <strong>${escapeHtml(item.tripulante_nome)}</strong>
+                        <span>${escapeHtml(item.tipo_treinamento_nome)}</span>
+                        <small>${escapeHtml(item.equipamento_nome)}</small>
+                    </a>
+                </article>
+            `).join(""));
+        }
+        detailList.innerHTML = detailsCache.get(isoDate);
+    }
+
+    if (calendarGrid) {
+        calendarGrid.addEventListener("click", (event) => {
+            const button = event.target.closest("[data-calendar-day]");
+            if (!button) return;
+            renderDayDetails(button.dataset.calendarDay);
+        });
+    } else {
+        dayButtons.forEach((button) => {
+            button.addEventListener("click", () => renderDayDetails(button.dataset.calendarDay));
+        });
+    }
+
+    const firstDueDay = dayValues.find((day) => day.items && day.items.length);
+    const firstDay = firstDueDay || dayValues.find((day) => day.is_today) || dayValues[0];
+    if (firstDay) {
+        renderDayDetails(firstDay.iso_date);
+    }
+})();
+</script>
+{% endblock %}

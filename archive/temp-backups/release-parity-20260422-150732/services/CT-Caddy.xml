@@ -1,0 +1,19 @@
+﻿<service>
+  <id>CT-Caddy</id>
+  <name>Controle Treinamentos - Caddy</name>
+  <description>Proxy reverso e terminacao TLS.</description>
+  <executable>C:\srv\controle-treinamentos\tools\caddy\caddy.exe</executable>
+  <arguments>run --config "C:\srv\controle-treinamentos\caddy\Caddyfile" --adapter caddyfile</arguments>
+  <workingdirectory>C:\srv\controle-treinamentos\caddy</workingdirectory>
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>true</delayedAutoStart>
+  <depend>Tcpip</depend>
+  <logpath>C:\srv\controle-treinamentos\logs\services\caddy</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>8</keepFiles>
+  </log>
+  <stoptimeout>15000</stoptimeout>
+  <onfailure action="restart" delay="10 sec" />
+  <onfailure action="restart" delay="30 sec" />
+</service>

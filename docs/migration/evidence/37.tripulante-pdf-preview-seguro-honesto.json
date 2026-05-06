@@ -1,0 +1,58 @@
+﻿{
+    "generated_at":  "2026-04-27T14:22:41",
+    "frontend_prod_backup":  "C:\\srv\\controle-treinamentos\\frontend-backup\\prod-tripulante-pdf-preview-blobfetch-20260427141119",
+    "frontend_prod_path":  "C:\\srv\\controle-treinamentos\\frontend\\prod",
+    "tests":  [
+                  "tests\\contract\\test_api_tripulante_media_contract.py::test_api_tripulante_file_get_returns_binary",
+                  "tests\\contract\\test_api_tripulante_media_contract.py::test_api_tripulante_file_get_missing_returns_json_error_contract",
+                  "tests\\contract\\test_frontend_build_runtime_env_boundaries.py::test_tripulante_pdf_preview_keeps_global_frame_deny_with_scoped_sameorigin_exception",
+                  "tests\\contract\\test_frontend_responsive_master_detail_policy.py::test_tripulante_documents_adopt_master_detail_without_file_contract_drift"
+              ],
+    "test_result":  "4 passed",
+    "build_check":  "runtime\\tmp\\tripulante-pdf-preview-secure-build-check-20260427141044",
+    "caddy_validate":  "Valid configuration",
+    "caddy_service":  "CT-Caddy Running Automatic",
+    "app_service":  "CT-App-Prod Running Automatic",
+    "root_header":  {
+                        "url":  "http://192.168.25.33/",
+                        "status":  200,
+                        "x_frame_options":  "DENY"
+                    },
+    "preview_headers_unauthenticated":  [
+                                            {
+                                                "url":  "http://192.168.25.33/api/v1/tripulantes/31/files/43",
+                                                "status":  401,
+                                                "x_frame_options":  "SAMEORIGIN",
+                                                "content_security_policy":  "default-src \u0027self\u0027; frame-ancestors \u0027self\u0027; object-src \u0027none\u0027; base-uri \u0027self\u0027",
+                                                "content_type":  "application/json"
+                                            },
+                                            {
+                                                "url":  "http://192.168.25.33/api/v1/tripulantes/10/files/30",
+                                                "status":  401,
+                                                "x_frame_options":  "SAMEORIGIN",
+                                                "content_security_policy":  "default-src \u0027self\u0027; frame-ancestors \u0027self\u0027; object-src \u0027none\u0027; base-uri \u0027self\u0027",
+                                                "content_type":  "application/json"
+                                            }
+                                        ],
+    "storage_samples":  [
+                            {
+                                "id":  30,
+                                "tripulante_id":  10,
+                                "status":  "ativo",
+                                "blob_available":  false,
+                                "blob_storage":  "filesystem",
+                                "blob_status":  "missing_blob",
+                                "read_bytes":  0
+                            },
+                            {
+                                "id":  43,
+                                "tripulante_id":  31,
+                                "status":  "ativo",
+                                "blob_available":  true,
+                                "blob_storage":  "filesystem",
+                                "blob_status":  "ok",
+                                "read_bytes":  227161
+                            }
+                        ],
+    "browser_plugin_validation":  "blocked: Node browser runtime returned Acesso negado"
+}

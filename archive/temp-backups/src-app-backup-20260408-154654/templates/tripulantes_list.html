@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Tripulantes</h1>
+        <p class="page-subtitle">Consulte a equipe, filtre rapidamente e abra o histórico individual quando precisar.</p>
+    </div>
+    {% if can_access('tripulantes:create') %}
+    <a class="button-link" href="{{ url_for('cadastros.tripulantes_new') }}">Adicionar tripulante</a>
+    {% endif %}
+</div>
+
+<section class="panel">
+    <form class="filters" method="get">
+        <input type="text" name="nome" placeholder="Buscar por nome" value="{{ filtros.nome }}">
+        <select name="status">
+            <option value="">Status</option>
+            {% for item in statuses %}
+            <option value="{{ item }}" {% if filtros.status == item %}selected{% endif %}>{{ item }}</option>
+            {% endfor %}
+        </select>
+        <select name="base">
+            <option value="">Base</option>
+            {% for item in bases %}
+            <option value="{{ item }}" {% if filtros.base == item %}selected{% endif %}>{{ item }}</option>
+            {% endfor %}
+        </select>
+        <select name="funcao">
+            <option value="">Função operacional</option>
+            {% for item in funcoes %}
+            <option value="{{ item }}" {% if filtros.funcao == item %}selected{% endif %}>{{ item|title }}</option>
+            {% endfor %}
+        </select>
+        <select name="categoria">
+            <option value="">Categoria</option>
+            {% for item in categorias %}
+            <option value="{{ item }}" {% if filtros.categoria == item %}selected{% endif %}>{{ item }}</option>
+            {% endfor %}
+        </select>
+        <select name="ativo">
+            <option value="">Ativo/Inativo</option>
+            <option value="1" {% if filtros.ativo == "1" %}selected{% endif %}>Ativo</option>
+            <option value="0" {% if filtros.ativo == "0" %}selected{% endif %}>Inativo</option>
+        </select>
+        <button type="submit">Aplicar filtros</button>
+        <a class="button-link secondary" href="{{ url_for('cadastros.tripulantes_list') }}">Limpar filtros</a>
+    </form>
+
+    <div class="table-wrap">
+        <table class="data-table responsive-cards">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>CPF / Código ANAC</th>
+                    <th>Base</th>
+                    <th>Status / Perfil</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in tripulantes %}
+                <tr>
+                    <td data-label="Nome">
+                        <div class="tripulante-inline">
+                            <div class="avatar avatar-sm">
+                                {% if row.possui_foto %}
+                                <img src="{{ url_for('cadastros.tripulante_foto', tripulante_id=row.id) }}" alt="{{ row.nome }}" loading="lazy" decoding="async" data-initials="{{ avatar_initials(row.nome) }}" onerror="const p=this.parentElement;if(!p)return;let r=parseInt(this.dataset.retries||'0',10);if(r<2){this.dataset.retries=r+1;setTimeout(()=>{const url=new URL(this.src, window.location.origin);url.searchParams.set('t',Date.now());this.src=url.toString();},1000+Math.random()*2000);return;}this.onerror=null;p.textContent='';const s=document.createElement('span');s.textContent=this.dataset.initials||'?';p.appendChild(s);">
+                                {% else %}
+                                <span>{{ avatar_initials(row.nome) }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="primary-cell">{{ row.nome }}</div>
+                        </div>
+                    </td>
+                    <td data-label="CPF / Código ANAC">
+                        <div>{{ row.cpf }}</div>
+                        <div class="secondary-cell">Código ANAC: {{ row.licenca_anac or "-" }}</div>
+                        {% if row.telefone %}
+                        <div class="secondary-cell">WhatsApp: {{ row.telefone }}</div>
+                        {% endif %}
+                    </td>
+                    <td data-label="Base">{{ row.base or "-" }}</td>
+                    <td data-label="Status / Perfil">
+                        {% set status_map = {
+                            "ativo": "status-green",
+                            "folga": "status-yellow",
+                            "férias": "status-blue",
+                            "ferias": "status-blue",
+                            "atestado": "status-red",
+                            "afastado": "status-dark",
+                            "treinamento": "status-purple"
+                        } %}
+                        <span class="status-pill {{ status_map.get(row.status|lower, 'status-gray') }}">{{ row.status }}</span>
+                        <div class="secondary-cell">{{ row.funcao_operacional|title }} · Categoria {{ row.categoria_operacional }}</div>
+                        <div class="secondary-cell">
+                            {{ "Ativo" if row.ativo else "Inativo" }} ·
+                            SDEA {{ "Sim" if row.sdea_ativo else "Não" }} ·
+                            Instrutor {{ "Sim" if row.instrutor_ativo else "Não" }} ·
+                            Checador {{ "Sim" if row.checador_ativo else "Não" }}
+                        </div>
+                    </td>
+                    <td class="actions" data-label="Ações">
+                        <a href="{{ url_for('cadastros.tripulante_report', tripulante_id=row.id) }}">Relatório</a>
+                        <a href="{{ url_for('cadastros.produtividade_tripulante', tripulante_id=row.id) }}">Produtividade</a>
+                        {% if row.whatsapp_url %}
+                        <a href="{{ row.whatsapp_url }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                        {% endif %}
+                        {% if can_access('tripulantes:edit') %}
+                        <a href="{{ url_for('cadastros.tripulantes_edit', tripulante_id=row.id) }}">Editar</a>
+                        {% endif %}
+                        {% if can_access('tripulantes_file:view') %}
+                        <a href="{{ url_for('cadastros.tripulante_file_tab', tripulante_id=row.id) }}">File</a>
+                        {% endif %}
+                        {% if can_access('tripulantes:delete') %}
+                        <form method="post" action="{{ url_for('cadastros.tripulantes_delete', tripulante_id=row.id) }}" onsubmit="return confirm('Excluir este tripulante?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="link-danger">Excluir</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="empty">Nenhum tripulante encontrado com esses filtros.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination-bar">
+        <div class="pagination-meta">Página {{ pagination.page }} de {{ pagination.pages }} · {{ pagination.total }} registros</div>
+        <div class="pagination-actions">
+            {% if pagination.has_prev %}
+            <a class="button-link secondary" href="{{ pagination.prev_url }}">Anterior</a>
+            {% endif %}
+            {% if pagination.has_next %}
+            <a class="button-link secondary" href="{{ pagination.next_url }}">Próxima</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

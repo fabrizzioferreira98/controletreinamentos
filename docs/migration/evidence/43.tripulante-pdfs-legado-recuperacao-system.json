@@ -1,0 +1,191 @@
+﻿{
+    "generated_at":  "2026-04-28T01:44:55.0314555Z",
+    "block":  "43.tripulante-pdfs-legado-recuperacao-system",
+    "objective":  "recover_tripulante_legacy_pdfs_30_41_if_physically_available",
+    "execution_context":  {
+                              "method":  "temporary_winsw_service_as_localsystem",
+                              "user":  "BRASILVIDA\\SISTEMA",
+                              "service_name":  "CT-LegacyPdfRecovery",
+                              "service_removed_after_run":  true,
+                              "production_service_modified":  false
+                          },
+    "constraints":  {
+                        "frontend_changed":  false,
+                        "http_contract_changed":  false,
+                        "app_permissions_changed":  false,
+                        "destructive_cleanup":  false,
+                        "acl_changed":  false
+                    },
+    "exact_ref_recovery":  {
+                               "output":  "C:\\apps\\controle-treinamentos\\runtime\\tmp\\legacy-pdfs-30-41-recovery-system-apply.json",
+                               "apply":  true,
+                               "legacy_root":  "C:\\Windows\\Temp\\controle-treinamentos\\production\\runtime\\instance\\uploads",
+                               "media_storage_root":  "C:\\srv-data\\controle-treinamentos\\prod\\uploads",
+                               "summary":  {
+                                               "indisponivel_confirmado":  12
+                                           }
+                           },
+    "wide_temp_search":  {
+                             "output":  "C:\\apps\\controle-treinamentos\\runtime\\tmp\\legacy-pdfs-30-41-search-windows-temp-system-apply.json",
+                             "apply":  true,
+                             "search_root":  "C:\\Windows\\Temp",
+                             "search_root_exists":  true,
+                             "scanned_files":  138,
+                             "candidate_files":  39,
+                             "summary":  {
+                                             "not_found_after_system_search":  12
+                                         }
+                         },
+    "items":  [
+                  {
+                      "id":  30,
+                      "tripulante_id":  10,
+                      "nome_original":  "003-FICHA_DE_REGISTRO_ADAO_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "tamanho_bytes":  808074,
+                      "arquivo_hash":  "5c2ee9195fd0f2c1a8d2d734f075bfeb7e3fad88acde8d1ef83c43062d43902d",
+                      "storage_ref":  "fs:tripulantes/10-adao-ferraz-de-oliveira/documentos/8d6ba280fc5240f99e1d322fcfe2eb96_003-FICHA_DE_REGISTRO_ADAO_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "target_path":  "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\10-adao-ferraz-de-oliveira\\documentos\\8d6ba280fc5240f99e1d322fcfe2eb96_003-FICHA_DE_REGISTRO_ADAO_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "matches_found":  0,
+                      "copied":  false,
+                      "classification":  "irrecuperavel_confirmado_no_storage_local_auditado"
+                  },
+                  {
+                      "id":  31,
+                      "tripulante_id":  10,
+                      "nome_original":  "004-Licenca_ANAC_versao_antiga.pdf",
+                      "tamanho_bytes":  159654,
+                      "arquivo_hash":  "03a7f7ce3dc39680d20457125f1e5649d45b6bb950a5c647a2b411f92444b8b5",
+                      "storage_ref":  "fs:tripulantes/10-adao-ferraz-de-oliveira/documentos/49414c1394af44b6b7c4777300e0ea1c_004-Licenca_ANAC_versao_antiga.pdf",
+                      "target_path":  "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\10-adao-ferraz-de-oliveira\\documentos\\49414c1394af44b6b7c4777300e0ea1c_004-Licenca_ANAC_versao_antiga.pdf",
+                      "matches_found":  0,
+                      "copied":  false,
+                      "classification":  "irrecuperavel_confirmado_no_storage_local_auditado"
+                  },
+                  {
+                      "id":  32,
+                      "tripulante_id":  10,
+                      "nome_original":  "005-CHT_DIGITAL_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "tamanho_bytes":  218018,
+                      "arquivo_hash":  "64498fb1cbbfc0e39e7fedfe392ea6d6c9d7c6306f07c0a4e3c97bd457e71a66",
+                      "storage_ref":  "fs:tripulantes/10-adao-ferraz-de-oliveira/documentos/9d9aec71cfec4e319cc2d80ad7025d12_005-CHT_DIGITAL_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "target_path":  "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\10-adao-ferraz-de-oliveira\\documentos\\9d9aec71cfec4e319cc2d80ad7025d12_005-CHT_DIGITAL_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "matches_found":  0,
+                      "copied":  false,
+                      "classification":  "irrecuperavel_confirmado_no_storage_local_auditado"
+                  },
+                  {
+                      "id":  33,
+                      "tripulante_id":  10,
+                      "nome_original":  "006-Cartao_digital_CHT_tripulante_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "tamanho_bytes":  1538091,
+                      "arquivo_hash":  "2e4fab7b92dc09e8b7041ae8fd406b606d3c7383be9cbeda9dcf152ff98a5146",
+                      "storage_ref":  "fs:tripulantes/10-adao-ferraz-de-oliveira/documentos/20dac458cd034e13a8616ef97742e710_006-Cartao_digital_CHT_tripulante_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "target_path":  "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\10-adao-ferraz-de-oliveira\\documentos\\20dac458cd034e13a8616ef97742e710_006-Cartao_digital_CHT_tripulante_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "matches_found":  0,
+                      "copied":  false,
+                      "classification":  "irrecuperavel_confirmado_no_storage_local_auditado"
+                  },
+                  {
+                      "id":  34,
+                      "tripulante_id":  10,
+                      "nome_original":  "007-Certidao_de_Casamento_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "tamanho_bytes":  1030330,
+                      "arquivo_hash":  "14805270a685cd8d8b06d74376bf1329c62a56fdf9fbb274693cb84ac3bee59e",
+                      "storage_ref":  "fs:tripulantes/10-adao-ferraz-de-oliveira/documentos/b666ed24d14a450f89de4a0531a015ad_007-Certidao_de_Casamento_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "target_path":  "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\10-adao-ferraz-de-oliveira\\documentos\\b666ed24d14a450f89de4a0531a015ad_007-Certidao_de_Casamento_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "matches_found":  0,
+                      "copied":  false,
+                      "classification":  "irrecuperavel_confirmado_no_storage_local_auditado"
+                  },
+                  {
+                      "id":  35,
+                      "tripulante_id":  10,
+                      "nome_original":  "008-Adao_Records_e_Certificados_CitationJet_e_CJ2_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "tamanho_bytes":  1932463,
+                      "arquivo_hash":  "81f4f05d1d972749733ce0160e388c96ab4e055c1227addbad0c949f61014716",
+                      "storage_ref":  "fs:tripulantes/10-adao-ferraz-de-oliveira/documentos/b2a9ecad6b2c4ca2b06e9808456359ae_008-Adao_Records_e_Certificados_CitationJet_e_CJ2_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "target_path":  "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\10-adao-ferraz-de-oliveira\\documentos\\b2a9ecad6b2c4ca2b06e9808456359ae_008-Adao_Records_e_Certificados_CitationJet_e_CJ2_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "matches_found":  0,
+                      "copied":  false,
+                      "classification":  "irrecuperavel_confirmado_no_storage_local_auditado"
+                  },
+                  {
+                      "id":  36,
+                      "tripulante_id":  10,
+                      "nome_original":  "009-RG_com_CPF_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "tamanho_bytes":  409430,
+                      "arquivo_hash":  "7c2cf077a50acf8b6738221773be77b3edeb599aa75e66f030c2f8829bfe0b3f",
+                      "storage_ref":  "fs:tripulantes/10-adao-ferraz-de-oliveira/documentos/faf0d5e1980b4f38b60785597c977ee6_009-RG_com_CPF_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "target_path":  "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\10-adao-ferraz-de-oliveira\\documentos\\faf0d5e1980b4f38b60785597c977ee6_009-RG_com_CPF_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "matches_found":  0,
+                      "copied":  false,
+                      "classification":  "irrecuperavel_confirmado_no_storage_local_auditado"
+                  },
+                  {
+                      "id":  37,
+                      "tripulante_id":  10,
+                      "nome_original":  "010-_CPF_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "tamanho_bytes":  272361,
+                      "arquivo_hash":  "0b5163a353391fe812b710220542e700c9108a7bb57446fb23b7faad51fafaaf",
+                      "storage_ref":  "fs:tripulantes/10-adao-ferraz-de-oliveira/documentos/509ea8a0cd2e4d06927b5f45b93f8a92_010-_CPF_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "target_path":  "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\10-adao-ferraz-de-oliveira\\documentos\\509ea8a0cd2e4d06927b5f45b93f8a92_010-_CPF_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "matches_found":  0,
+                      "copied":  false,
+                      "classification":  "irrecuperavel_confirmado_no_storage_local_auditado"
+                  },
+                  {
+                      "id":  38,
+                      "tripulante_id":  10,
+                      "nome_original":  "011-Titulo_de_Eleitor_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "tamanho_bytes":  762857,
+                      "arquivo_hash":  "bdac1e62f26d16a03f876deb33995894ba927996cc7249a53279c105ef14ce35",
+                      "storage_ref":  "fs:tripulantes/10-adao-ferraz-de-oliveira/documentos/603f4bcd44be4dca98604bf8f88bc282_011-Titulo_de_Eleitor_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "target_path":  "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\10-adao-ferraz-de-oliveira\\documentos\\603f4bcd44be4dca98604bf8f88bc282_011-Titulo_de_Eleitor_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "matches_found":  0,
+                      "copied":  false,
+                      "classification":  "irrecuperavel_confirmado_no_storage_local_auditado"
+                  },
+                  {
+                      "id":  39,
+                      "tripulante_id":  10,
+                      "nome_original":  "012-Certificado_de_Reservista_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "tamanho_bytes":  509139,
+                      "arquivo_hash":  "c67d97f85b657a762e9923d9f42e81aefe5f238fe7bbe28746e32a76ef203c90",
+                      "storage_ref":  "fs:tripulantes/10-adao-ferraz-de-oliveira/documentos/8bf2a456de76408980c08a5dee7d912b_012-Certificado_de_Reservista_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "target_path":  "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\10-adao-ferraz-de-oliveira\\documentos\\8bf2a456de76408980c08a5dee7d912b_012-Certificado_de_Reservista_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "matches_found":  0,
+                      "copied":  false,
+                      "classification":  "irrecuperavel_confirmado_no_storage_local_auditado"
+                  },
+                  {
+                      "id":  40,
+                      "tripulante_id":  10,
+                      "nome_original":  "013-Comprovante_endereco_atualizado_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "tamanho_bytes":  794777,
+                      "arquivo_hash":  "429a6419c3139ed13376c61c7821ba809889954b42c8758acc9f70d2a7a46c11",
+                      "storage_ref":  "fs:tripulantes/10-adao-ferraz-de-oliveira/documentos/402164cf3e82477a8bdbfdda99bf19bf_013-Comprovante_endereco_atualizado_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "target_path":  "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\10-adao-ferraz-de-oliveira\\documentos\\402164cf3e82477a8bdbfdda99bf19bf_013-Comprovante_endereco_atualizado_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "matches_found":  0,
+                      "copied":  false,
+                      "classification":  "irrecuperavel_confirmado_no_storage_local_auditado"
+                  },
+                  {
+                      "id":  41,
+                      "tripulante_id":  10,
+                      "nome_original":  "014-Carteira_de_trabalho_digital_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "tamanho_bytes":  122766,
+                      "arquivo_hash":  "ed47c63669414a8af55a816dd10546b1d54ac8360305f8ab84b08ba764cf8098",
+                      "storage_ref":  "fs:tripulantes/10-adao-ferraz-de-oliveira/documentos/b963973d2ed94edfb344902197502c3d_014-Carteira_de_trabalho_digital_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "target_path":  "C:\\srv-data\\controle-treinamentos\\prod\\uploads\\tripulantes\\10-adao-ferraz-de-oliveira\\documentos\\b963973d2ed94edfb344902197502c3d_014-Carteira_de_trabalho_digital_-_Adao_Ferraz_de_Oliveira.pdf",
+                      "matches_found":  0,
+                      "copied":  false,
+                      "classification":  "irrecuperavel_confirmado_no_storage_local_auditado"
+                  }
+              ],
+    "final_summary":  {
+                          "recovered":  0,
+                          "available_without_migration":  0,
+                          "not_found_after_system_search":  12,
+                          "final_classification":  "irrecuperavel_confirmado_no_storage_local_auditado"
+                      }
+}

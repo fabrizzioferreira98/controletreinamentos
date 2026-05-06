@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header"><h1>{{ "Atualizar tipo de treinamento" if tipo else "Cadastrar novo tipo de treinamento" }}</h1></div>
+<form method="post" class="form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Nome<input type="text" name="nome" value="{{ tipo.nome if tipo else '' }}" required></label>
+    <label>Periodicidade em meses<input type="number" name="periodicidade_meses" min="1" value="{{ tipo.periodicidade_meses if tipo else '' }}" required></label>
+    <label class="checkbox-field">
+        <span class="checkbox-label-group">
+            <span class="checkbox-title">Treinamento por equipamento</span>
+            <span class="checkbox-description">Deixe ativo quando este treinamento exigir uma aeronave ou equipamento específico. Desative para treinamentos especiais, como IFR.</span>
+        </span>
+        <span class="toggle-switch">
+            <input type="checkbox" name="exige_equipamento" {% if not tipo or tipo.exige_equipamento %}checked{% endif %}>
+            <span class="toggle-slider"></span>
+            <span class="toggle-text">Exige equipamento</span>
+        </span>
+    </label>
+    <label class="checkbox-field">
+        <span class="checkbox-label-group">
+            <span class="checkbox-title">Status do tipo</span>
+            <span class="checkbox-description">Desative apenas quando esse tipo não puder mais ser usado em novos registros.</span>
+        </span>
+        <span class="toggle-switch">
+            <input type="checkbox" name="ativo" {% if not tipo or tipo.ativo %}checked{% endif %}>
+            <span class="toggle-slider"></span>
+            <span class="toggle-text">Ativo</span>
+        </span>
+    </label>
+    <div class="form-actions full-width">
+        <button type="submit">Salvar alterações</button>
+        <a class="button-link secondary" href="{{ url_for('cadastros.tipos_list') }}">Voltar sem salvar</a>
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Missões operacionais</h1>
+        <p class="page-subtitle">Cadastro de voos/chamados para contagem correta de missão por contratante.</p>
+    </div>
+    {% if can_access('missoes:create') %}
+    <a class="button-link" href="{{ url_for('operacoes.missoes_new') }}">Adicionar missão</a>
+    {% endif %}
+</div>
+
+<section class="panel">
+    <form class="filters" method="get">
+        <input type="text" name="busca" placeholder="Buscar por voo ou tipo de operação" value="{{ filtros.busca }}">
+        <input type="text" name="contratante" placeholder="Buscar por contratante" value="{{ filtros.contratante }}">
+        <button type="submit">Aplicar filtros</button>
+        <a class="button-link secondary" href="{{ url_for('operacoes.missoes_list') }}">Limpar filtros</a>
+    </form>
+
+    <div class="table-wrap">
+        <table class="data-table responsive-cards">
+            <thead>
+                <tr>
+                    <th>Missão</th>
+                    <th>Período</th>
+                    <th>Rota</th>
+                    <th>Tripulantes</th>
+                    <th>Produtividade</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in missoes %}
+                <tr>
+                    <td data-label="Missão">
+                        <div class="primary-cell">{{ row.codigo_voo }}</div>
+                        <div class="secondary-cell">{{ row.contratante }}</div>
+                        <div class="secondary-cell">{{ row.tipo_operacao or "-" }}</div>
+                    </td>
+                    <td data-label="Período">
+                        <div>{{ row.data_inicio|br_date }}</div>
+                        <div class="secondary-cell">até {{ (row.data_fim or row.data_inicio)|br_date }}</div>
+                    </td>
+                    <td data-label="Rota">{{ row.origem or "-" }} → {{ row.destino or "-" }}</td>
+                    <td data-label="Tripulantes">
+                        {% if row.tripulantes_nomes %}
+                        <div class="secondary-cell">{{ row.tripulantes_nomes|join(", ") }}</div>
+                        {% else %}
+                        <div class="secondary-cell">Nenhum vinculado</div>
+                        {% endif %}
+                    </td>
+                    <td data-label="Produtividade">
+                        <span class="status-pill {% if row.conta_missao_produtividade %}status-green{% else %}status-gray{% endif %}">
+                            {{ "Conta missão" if row.conta_missao_produtividade else "Não conta missão" }}
+                        </span>
+                    </td>
+                    <td class="actions" data-label="Ações">
+                        {% if can_access('missoes:edit') %}
+                        <a href="{{ url_for('operacoes.missoes_edit', missao_id=row.id) }}">Editar</a>
+                        {% endif %}
+                        {% if can_access('missoes:delete') %}
+                        <form method="post" action="{{ url_for('operacoes.missoes_delete', missao_id=row.id) }}" onsubmit="return confirm('Excluir esta missão?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="link-danger">Excluir</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="empty">Nenhuma missão encontrada.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination-bar">
+        <div class="pagination-meta">Página {{ pagination.page }} de {{ pagination.pages }} · {{ pagination.total }} registros</div>
+        <div class="pagination-actions">
+            {% if pagination.has_prev %}
+            <a class="button-link secondary" href="{{ pagination.prev_url }}">Anterior</a>
+            {% endif %}
+            {% if pagination.has_next %}
+            <a class="button-link secondary" href="{{ pagination.next_url }}">Próxima</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header"><h1>{{ "Atualizar treinamento" if treinamento else "Cadastrar novo treinamento" }}</h1></div>
+<form method="post" class="form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>
+        Tripulante
+        <select name="tripulante_id" required>
+            <option value="">Selecione</option>
+            {% for row in tripulantes %}
+            <option value="{{ row.id }}" {% if treinamento and treinamento.tripulante_id|string == row.id|string %}selected{% endif %}>{{ row.nome }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>
+        Equipamento
+        <select name="equipamento_id">
+            <option value="">Sem equipamento</option>
+            {% for row in equipamentos %}
+            <option value="{{ row.id }}" {% if treinamento and treinamento.equipamento_id|string == row.id|string %}selected{% endif %}>{{ row.nome }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>
+        Tipo de treinamento
+        <select name="tipo_treinamento_id" id="tipo_treinamento_id" required>
+            <option value="">Selecione</option>
+            {% for row in tipos %}
+            <option value="{{ row.id }}" data-periodicidade="{{ row.periodicidade_meses }}" data-exige-equipamento="{{ 1 if row.exige_equipamento else 0 }}" {% if treinamento and treinamento.tipo_treinamento_id|string == row.id|string %}selected{% endif %}>{{ row.nome }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <div class="full-width hint" id="trainingTypeHint">Selecione o tipo para ver se ele exige vínculo com equipamento específico.</div>
+    <label>Data de realização<input type="date" name="data_realizacao" id="data_realizacao" value="{{ treinamento.data_realizacao if treinamento else '' }}"></label>
+    <label>
+        Opção da data de vencimento
+        <select id="due_date_mode" name="due_date_mode">
+            <option value="auto" {% if not treinamento or treinamento.due_date_mode == 'auto' %}selected{% endif %}>Calcular automaticamente</option>
+            <option value="manual" {% if treinamento and treinamento.due_date_mode == 'manual' %}selected{% endif %}>Informar manualmente</option>
+        </select>
+    </label>
+    <label id="due_date_field_wrap">
+        Data de vencimento
+        <input type="date" name="data_vencimento" id="data_vencimento" value="{{ treinamento.data_vencimento if treinamento else '' }}">
+        <span class="field-help">Escolha "Informar manualmente" para definir a data por conta própria, ou deixe no automático para calcular a partir da realização e da periodicidade.</span>
+    </label>
+    <label class="full-width">Observação<textarea name="observacao">{{ treinamento.observacao if treinamento else '' }}</textarea></label>
+    <div class="form-actions full-width">
+        <button type="submit">Salvar alterações</button>
+        <a class="button-link secondary" href="{{ url_for('cadastros.treinamentos_list') }}">Voltar sem salvar</a>
+    </div>
+</form>
+
+{% if treinamento and treinamento.id %}
+<section class="panel" style="margin-top: 1rem;">
+    <div class="page-header" style="margin-bottom: 12px;">
+        <div>
+            <h2 style="margin:0;">Anexos em PDF do treinamento</h2>
+            <p class="page-subtitle" style="margin-top:4px;">Documentos comprobatórios vinculados ao treinamento.</p>
+        </div>
+    </div>
+
+    {% if can_access('treinamentos_anexos:create') %}
+    <form method="post" action="{{ url_for('cadastros.treinamentos_anexo_upload', treinamento_id=treinamento.id) }}" enctype="multipart/form-data" class="filters filters-wide" style="margin-bottom: 12px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="file" name="arquivo_pdf" id="arquivo_pdf" accept="application/pdf" required>
+        <button type="submit">Anexar PDF</button>
+    </form>
+    <div class="hint">Limite por arquivo: {{ attachment_max_mb }} MB. Apenas arquivos PDF válidos são aceitos.</div>
+    {% endif %}
+
+    <div class="table-wrap" style="margin-top: 12px;">
+        <table class="data-table responsive-cards">
+            <thead>
+                <tr>
+                    <th>Arquivo</th>
+                    <th>Tamanho</th>
+                    <th>Enviado em</th>
+                    <th>Enviado por</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in attachments %}
+                <tr>
+                    <td data-label="Arquivo">
+                        <div class="primary-cell">📄 {{ item.nome_original }}</div>
+                        <div class="secondary-cell">{{ item.mime_type }}</div>
+                    </td>
+                    <td data-label="Tamanho">{{ '%.2f'|format((item.tamanho_bytes or 0) / (1024 * 1024)) }} MB</td>
+                    <td data-label="Enviado em">{{ item.enviado_em.strftime('%d/%m/%Y %H:%M') if item.enviado_em else '-' }}</td>
+                    <td data-label="Enviado por">{{ item.enviado_por_nome or '-' }}</td>
+                    <td class="actions" data-label="Ações">
+                        {% if can_access('treinamentos_anexos:view') %}
+                        <a href="{{ url_for('cadastros.treinamentos_anexo_get', treinamento_id=treinamento.id, anexo_id=item.id) }}" target="_blank" rel="noopener noreferrer">Visualizar</a>
+                        <a href="{{ url_for('cadastros.treinamentos_anexo_get', treinamento_id=treinamento.id, anexo_id=item.id, download=1) }}">Baixar</a>
+                        {% endif %}
+                        {% if can_access('treinamentos_anexos:delete') %}
+                        <form method="post" action="{{ url_for('cadastros.treinamentos_anexo_delete', treinamento_id=treinamento.id, anexo_id=item.id) }}" onsubmit="return confirm('Excluir este anexo PDF?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="link-danger">Excluir</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="empty">Nenhum PDF anexado a este treinamento.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% else %}
+<section class="panel" style="margin-top: 1rem;">
+    <div class="hint">Salve o treinamento primeiro para habilitar anexos PDF.</div>
+</section>
+{% endif %}
+<script>
+    (function () {
+        const typeSelect = document.getElementById("tipo_treinamento_id");
+        const realizedInput = document.getElementById("data_realizacao");
+        const dueModeSelect = document.getElementById("due_date_mode");
+        const dueInput = document.getElementById("data_vencimento");
+        const dueFieldWrap = document.getElementById("due_date_field_wrap");
+        const equipmentSelect = document.querySelector("select[name='equipamento_id']");
+        const trainingTypeHint = document.getElementById("trainingTypeHint");
+        let lastAutoValue = dueInput.value || "";
+
+        function syncEquipmentRequirement() {
+            const selected = typeSelect.options[typeSelect.selectedIndex];
+            const requiresEquipment = selected?.dataset?.exigeEquipamento === "1";
+            equipmentSelect.required = requiresEquipment;
+            if (requiresEquipment) {
+                trainingTypeHint.textContent = "Este tipo exige vínculo com equipamento ou aeronave específica.";
+                trainingTypeHint.className = "hint";
+            } else if (selected?.value) {
+                trainingTypeHint.textContent = "Este tipo pertence à categoria Especiais e pode ser registrado sem equipamento específico. Exemplo: IFR.";
+                trainingTypeHint.className = "hint";
+            } else {
+                trainingTypeHint.textContent = "Selecione o tipo para ver se ele exige vínculo com equipamento específico.";
+                trainingTypeHint.className = "hint";
+            }
+        }
+
+        function syncDueMode() {
+            const isManual = dueModeSelect.value === "manual";
+            dueInput.disabled = !isManual;
+            dueFieldWrap.style.opacity = isManual ? "1" : "0.72";
+            if (!isManual) {
+                if (!dueInput.value || dueInput.value === lastAutoValue) {
+                    dueInput.value = "";
+                }
+                calculateDueDate();
+            }
+        }
+
+        function calculateDueDate() {
+            if (dueModeSelect.value === "manual") return;
+            const selected = typeSelect.options[typeSelect.selectedIndex];
+            const months = Number(selected?.dataset?.periodicidade || 0);
+            const canReplace = !dueInput.value || dueInput.value === lastAutoValue;
+            if (!months || !realizedInput.value || !canReplace) return;
+
+            const [year, month, day] = realizedInput.value.split("-").map(Number);
+            const dueDate = new Date(year, month - 1, day);
+            dueDate.setMonth(dueDate.getMonth() + months);
+
+            const yyyy = dueDate.getFullYear();
+            const mm = String(dueDate.getMonth() + 1).padStart(2, "0");
+            const dd = String(dueDate.getDate()).padStart(2, "0");
+            lastAutoValue = `${yyyy}-${mm}-${dd}`;
+            dueInput.value = lastAutoValue;
+        }
+
+        realizedInput.addEventListener("change", calculateDueDate);
+        typeSelect.addEventListener("change", function () {
+            syncEquipmentRequirement();
+            calculateDueDate();
+        });
+        dueModeSelect.addEventListener("change", syncDueMode);
+        dueInput.addEventListener("input", function () {
+            if (dueInput.value !== lastAutoValue) {
+                lastAutoValue = "";
+            }
+        });
+        syncEquipmentRequirement();
+        syncDueMode();
+        calculateDueDate();
+    })();
+</script>
+{% endblock %}

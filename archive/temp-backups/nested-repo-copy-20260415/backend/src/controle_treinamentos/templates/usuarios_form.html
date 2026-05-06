@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header"><h1>{{ "Atualizar usuário" if usuario else "Cadastrar novo usuário" }}</h1></div>
+<form method="post" class="form-grid usuarios-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Nome<input type="text" name="nome" value="{{ usuario.nome if usuario else '' }}" autocomplete="name" required></label>
+    <label>Login<input type="text" name="login" value="{{ usuario.login if usuario else '' }}" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+    <label>E-mail<input type="email" name="email" value="{{ usuario.email if usuario else '' }}" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" required></label>
+    <label>
+        Senha
+        <input type="password" name="senha" autocomplete="{% if usuario %}new-password{% else %}current-password{% endif %}" {% if not usuario %}required{% endif %}>
+        {% if usuario %}
+        <span class="field-help">Deixe em branco para manter a senha atual.</span>
+        {% endif %}
+    </label>
+    <label>
+        Perfil
+        <select name="perfil" id="perfilUsuario" required>
+            <option value="operador" {% if usuario and usuario.perfil == "operador" %}selected{% endif %}>Operador</option>
+            <option value="gestora" {% if usuario and usuario.perfil == "gestora" %}selected{% endif %}>Gestora</option>
+        </select>
+    </label>
+    <label class="checkbox-field">
+        <span class="checkbox-label-group">
+            <span class="checkbox-title">Acesso ao sistema</span>
+            <span class="checkbox-description">Quando estiver inativo, este usuário não conseguirá entrar no sistema.</span>
+        </span>
+        <span class="toggle-switch">
+            <input type="checkbox" name="ativo" {% if not usuario or usuario.ativo %}checked{% endif %}>
+            <span class="toggle-slider"></span>
+            <span class="toggle-text">Ativo</span>
+        </span>
+    </label>
+
+    <section class="form-section" id="permissionsSection">
+        <h2 class="form-section-title">Permissões por aba e módulo</h2>
+        <p class="form-section-subtitle">
+            Defina os acessos operacionais por usuário. Perfis <strong>Gestora</strong> possuem acesso completo por padrão.
+        </p>
+        {% for group in permission_groups %}
+        <div class="state-note permissions-group-card">
+            <div class="permissions-group-head">
+                <div class="checkbox-title">{{ group["label"] }}</div>
+                <span class="permissions-group-count">{{ group["items"]|length }} permissões</span>
+            </div>
+            <div class="flags-grid">
+                {% for perm_key, perm_label in group["items"] %}
+                <label class="checkbox-field">
+                    <span class="checkbox-title">{{ perm_label }}</span>
+                    <span class="toggle-switch">
+                        <input
+                            type="checkbox"
+                            name="permission_keys"
+                            value="{{ perm_key }}"
+                            {% if usuario and usuario.permission_keys and perm_key in usuario.permission_keys %}checked{% endif %}
+                        >
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-text">{% if usuario and usuario.permission_keys and perm_key in usuario.permission_keys %}Ativo{% else %}Inativo{% endif %}</span>
+                    </span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </section>
+
+    <div class="form-actions full-width">
+        <button type="submit">Salvar alterações</button>
+        <a class="button-link secondary" href="{{ url_for('admin.usuarios_list') }}">Voltar sem salvar</a>
+    </div>
+</form>
+
+<script>
+(() => {
+    const perfilNode = document.getElementById("perfilUsuario");
+    const permissionsSection = document.getElementById("permissionsSection");
+    const permissionToggles = [...document.querySelectorAll("input[name='permission_keys']")];
+    const accessToggle = document.querySelector("input[name='ativo']");
+
+    function syncToggleText(input) {
+        const textNode = input.closest(".toggle-switch")?.querySelector(".toggle-text");
+        if (!textNode) return;
+        textNode.textContent = input.checked ? "Ativo" : "Inativo";
+    }
+
+    function syncPerfilBehavior() {
+        const isGestora = perfilNode && perfilNode.value === "gestora";
+        if (permissionsSection) {
+            permissionsSection.style.opacity = isGestora ? "0.65" : "1";
+        }
+        permissionToggles.forEach((input) => {
+            if (isGestora) {
+                input.checked = true;
+            }
+            input.disabled = isGestora;
+            syncToggleText(input);
+        });
+    }
+
+    if (perfilNode) {
+        perfilNode.addEventListener("change", syncPerfilBehavior);
+        syncPerfilBehavior();
+    }
+
+    if (accessToggle) {
+        accessToggle.addEventListener("change", () => syncToggleText(accessToggle));
+        syncToggleText(accessToggle);
+    }
+
+    permissionToggles.forEach((input) => {
+        input.addEventListener("change", () => syncToggleText(input));
+        syncToggleText(input);
+    });
+})();
+</script>
+{% endblock %}

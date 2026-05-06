@@ -1,0 +1,73 @@
+{
+  "generated_at": "2026-04-28T12:11:09.126240Z",
+  "mode": "dry_run_no_destructive_action",
+  "environment": {
+    "repo_root": "C:\\apps\\controle-treinamentos",
+    "env_file": "C:\\srv\\controle-treinamentos\\env\\prod.env",
+    "app_env": "production",
+    "database_url": "<redacted>",
+    "media_storage_root": "C:\\srv-data\\controle-treinamentos\\prod\\uploads",
+    "upload_root": "C:\\srv-data\\controle-treinamentos\\prod\\uploads",
+    "app_instance_path": "C:\\srv-data\\controle-treinamentos\\prod\\runtime\\instance",
+    "workspace_runtime_root": "C:\\srv-data\\controle-treinamentos\\prod\\runtime"
+  },
+  "surface": {
+    "table": "tripulante_arquivos_pdf",
+    "storage_domain": "tripulantes/<tripulante>/documentos/*.pdf",
+    "endpoints": [
+      "GET /api/v1/tripulantes/<tripulante_id>/files",
+      "POST /api/v1/tripulantes/<tripulante_id>/files",
+      "GET /api/v1/tripulantes/<tripulante_id>/files/<file_id>",
+      "DELETE /api/v1/tripulantes/<tripulante_id>/files/<file_id>"
+    ],
+    "foreign_keys_referencing_tripulante_arquivos_pdf": [
+      {
+        "table_name": "tripulante_arquivos_pdf",
+        "conname": "tripulante_arquivos_pdf_substitui_arquivo_id_fkey",
+        "definition": "FOREIGN KEY (substitui_arquivo_id) REFERENCES tripulante_arquivos_pdf(id)"
+      }
+    ]
+  },
+  "summary": {
+    "records_total": 0,
+    "records_by_status": {},
+    "records_by_classification": {},
+    "active_with_blob_available": 0,
+    "active_without_blob": 0,
+    "removed_logically": 0,
+    "removed_logically_with_blob": 0,
+    "removed_logically_without_blob": 0,
+    "substituido": 0,
+    "legacy_fs_refs": 0,
+    "legacy_fs_refs_available": 0,
+    "legacy_fs_refs_missing_blob": 0,
+    "canonical_fs_refs": 0,
+    "db_blob_rows": 0,
+    "db_blob_bytes": 0,
+    "referenced_physical_files_existing": 0,
+    "referenced_physical_bytes": 0,
+    "orphan_storage_files": 0,
+    "orphan_storage_bytes": 0,
+    "blocked_by_acl": 0,
+    "missing_blob_records": 0,
+    "irrecoverable_confirmed": 0
+  },
+  "dry_run": {
+    "destructive_execution": false,
+    "strategy_candidate": "hard_delete_metadata_after_evidence_plus_physical_delete_available_blobs",
+    "database_rows_that_would_be_deleted": 0,
+    "database_blob_rows_that_would_be_removed_by_row_delete": 0,
+    "physical_files_that_would_be_deleted": 0,
+    "physical_paths_that_would_be_deleted": [],
+    "metadata_only_rows_due_to_missing_blob": 0,
+    "already_removed_records_that_would_be_deleted_from_metadata": 0,
+    "pending_due_to_acl": 0,
+    "pending_due_to_missing_blob": 0,
+    "pending_total": 0
+  },
+  "items": [],
+  "storage_files": [],
+  "storage_scan_errors": [],
+  "orphans": [],
+  "blocked_items": []
+}

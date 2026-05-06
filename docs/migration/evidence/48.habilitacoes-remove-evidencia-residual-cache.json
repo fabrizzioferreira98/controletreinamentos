@@ -1,0 +1,27 @@
+﻿{
+    "block":  "habilitacoes_remove_evidencia_residual_and_asset_nostore",
+    "route":  "#/relatorios/habilitacoes",
+    "date":  "2026-04-28T09:34:47",
+    "frontend_version":  "20260428-093357",
+    "production_frontend":  "C:\\srv\\controle-treinamentos\\frontend\\prod",
+    "caddy_config":  "C:\\srv\\controle-treinamentos\\caddy\\Caddyfile",
+    "caddy_backup":  "C:\\srv\\controle-treinamentos\\caddy\\Caddyfile.backup-assets-nostore-20260428-092840",
+    "frontend_backup":  "C:\\srv\\controle-treinamentos\\frontend-backup\\prod-before-frontend-publish-20260428-093410",
+    "checks":  {
+                   "app_cache_control":  "no-store, no-cache, must-revalidate, max-age=0",
+                   "module_cache_control":  "no-store, no-cache, must-revalidate, max-age=0",
+                   "has_evidencia_upper":  false,
+                   "has_evidencia_lower":  false,
+                   "has_actions_header":  false,
+                   "has_actions_cell":  false,
+                   "has_inline_evidence_link":  false,
+                   "has_export_title":  true,
+                   "has_colspan4":  true
+               },
+    "tests":  [
+                  "tests/contract/test_frontend_training_reports_visual_foundation.py::test_reports_surface_adopts_shared_ui_without_export_or_action_drift",
+                  "tests/contract/test_frontend_table_form_patterns.py::test_table_patterns_are_adopted_in_priority_surfaces_without_route_or_api_drift"
+              ],
+    "test_result":  "2 passed",
+    "caddy_validate":  "valid configuration"
+}

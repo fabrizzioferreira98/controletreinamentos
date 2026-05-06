@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Backups automáticos</h1>
+        <p class="page-subtitle">Histórico de execuções com retenção e rastreabilidade operacional.</p>
+    </div>
+    <form method="post" action="{{ url_for('admin.backups_run') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit">Executar backup agora</button>
+    </form>
+</div>
+
+<section class="panel">
+    <div class="state-note" style="margin-bottom:12px;">
+        Retenção configurada: <strong>{{ backup_retention_days }} dia(s)</strong>.
+        {% if backup_remote_enabled and backup_remote_bucket %}
+        Storage remoto: <strong>ativo</strong> (bucket {{ backup_remote_bucket }}).
+        {% elif backup_remote_enabled %}
+        Storage remoto: <strong>ativo</strong>, mas bucket não configurado.
+        {% else %}
+        Storage remoto: <strong>inativo</strong> (apenas armazenamento local/efêmero).
+        {% endif %}
+    </div>
+    <div class="table-wrap">
+        <table class="data-table responsive-cards">
+            <thead>
+                <tr>
+                    <th>Execução</th>
+                    <th>Tipo</th>
+                    <th>Status</th>
+                    <th>Arquivo principal</th>
+                    <th>Tamanho</th>
+                    <th>Duração</th>
+                    <th>Mensagem</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in backups %}
+                <tr>
+                    <td data-label="Execução">{{ row.executado_em|br_datetime }}</td>
+                    <td data-label="Tipo">{{ row.tipo }}</td>
+                    <td data-label="Status">
+                        <span class="status-pill {% if row.status == 'sucesso' %}status-green{% else %}status-red{% endif %}">
+                            {{ row.status }}
+                        </span>
+                    </td>
+                    <td data-label="Arquivo principal"><div class="secondary-cell">{{ row.arquivo_principal or "-" }}</div></td>
+                    <td data-label="Tamanho">{{ row.tamanho_bytes or 0 }} bytes</td>
+                    <td data-label="Duração">{{ row.duracao_ms or 0 }} ms</td>
+                    <td data-label="Mensagem"><div class="secondary-cell">{{ row.mensagem or "-" }}</div></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="empty">Nenhum backup registrado ainda.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

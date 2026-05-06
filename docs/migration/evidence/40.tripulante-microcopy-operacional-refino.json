@@ -1,0 +1,67 @@
+{
+  "id": "40.tripulante-microcopy-operacional-refino",
+  "date": "2026-04-27",
+  "scope": "tripulantes_frontend_microcopy",
+  "changed_files": [
+    "frontend/src/features/tripulantes/form-page.js",
+    "frontend/src/features/tripulantes/avatar.js",
+    "frontend/src/features/tripulantes/list-page.js",
+    "tests/contract/test_frontend_third_surface_visual_foundation.py",
+    "tests/contract/test_frontend_responsive_master_detail_policy.py"
+  ],
+  "expected_strings": {
+    "form-page.js": [
+      "Documentos do tripulante",
+      "Arquivos PDF vinculados ao cadastro.",
+      "Adicionar documento PDF",
+      "Modo de envio",
+      "Visualiza\u00e7\u00e3o indispon\u00edvel",
+      "pr\u00e9-visualiza\u00e7\u00e3o local; ainda n\u00e3o salva",
+      "Foto salva e dispon\u00edvel para exibi\u00e7\u00e3o.",
+      "O registro existe, mas o arquivo n\u00e3o est\u00e1 acess\u00edvel no armazenamento atual. Visualiza\u00e7\u00e3o e download foram bloqueados."
+    ],
+    "avatar.js": [
+      "Foto indispon\u00edvel. A refer\u00eancia existe, mas o arquivo n\u00e3o carregou."
+    ],
+    "list-page.js": [
+      "Documentos"
+    ]
+  },
+  "removed_visible_terms": [
+    "Aba File",
+    "Persistencia",
+    "Selecao",
+    "Sem preview",
+    "Arquivo fisico indisponivel",
+    "Preview embutido",
+    "Carregando preview autenticado",
+    "Foto salva e disponivel",
+    "pre-visualizacao local"
+  ],
+  "checks": [
+    {
+      "command": ".venv\\Scripts\\python.exe -m pytest tests\\contract\\test_frontend_responsive_master_detail_policy.py::test_tripulante_documents_adopt_master_detail_without_file_contract_drift tests\\contract\\test_frontend_third_surface_visual_foundation.py::test_tripulante_form_detail_preserves_functional_contracts -q",
+      "result": "2 passed"
+    },
+    {
+      "command": ".venv\\Scripts\\python.exe -B frontend\\scripts\\build_frontend.py --env-file frontend\\.env.example --output-dir runtime\\tmp\\tripulante-microcopy-build-check-20260427145409",
+      "result": "Frontend build generated"
+    },
+    {
+      "command": "prod microcopy verification",
+      "result": "missing=0; forbidden_hits=[] for form-page.js, avatar.js and list-page.js"
+    }
+  ],
+  "prod": {
+    "backup": "C:\\srv\\controle-treinamentos\\frontend-backup\\prod-tripulante-microcopy-20260427145543",
+    "output": "C:\\srv\\controle-treinamentos\\frontend\\prod"
+  },
+  "functional_contract": {
+    "endpoints_changed": false,
+    "permissions_changed": false,
+    "business_logic_changed": false,
+    "storage_changed": false,
+    "layout_redesign_changed": false
+  },
+  "closure": "fechado"
+}

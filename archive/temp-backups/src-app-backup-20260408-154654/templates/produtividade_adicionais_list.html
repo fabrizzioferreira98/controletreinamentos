@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Adicionais excepcionais</h1>
+        <p class="page-subtitle">Lançamentos mensais para regras especiais de produtividade.</p>
+    </div>
+    {% if can_access('produtividade_adicionais:create') %}
+    <a class="button-link" href="{{ url_for('relatorios.produtividade_adicionais_new') }}">Novo adicional</a>
+    {% endif %}
+</div>
+
+<section class="panel">
+    <form class="filters" method="get">
+        <label>Competência<input type="month" name="competencia" value="{{ competencia }}"></label>
+        <button type="submit">Aplicar</button>
+        <a class="button-link secondary" href="{{ url_for('relatorios.produtividade_adicionais_list') }}">Atual</a>
+    </form>
+
+    <div class="table-wrap">
+        <table class="data-table responsive-cards">
+            <thead>
+                <tr>
+                    <th>Tripulante</th>
+                    <th>Competência</th>
+                    <th>Valor</th>
+                    <th>Status</th>
+                    <th>Observação</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td data-label="Tripulante">{{ row.tripulante_nome }}<div class="secondary-cell">{{ row.base }}</div></td>
+                    <td data-label="Competência">{{ row.competencia|br_month }}</td>
+                    <td data-label="Valor">R$ {{ "%.2f"|format(row.valor)|replace('.', ',') }}</td>
+                    <td data-label="Status"><span class="status-pill {% if row.ativo %}status-green{% else %}status-gray{% endif %}">{{ "Ativo" if row.ativo else "Inativo" }}</span></td>
+                    <td data-label="Observação">{{ row.observacao or "-" }}</td>
+                    <td class="actions" data-label="Ações">
+                        {% if can_access('produtividade_adicionais:edit') %}
+                        <a href="{{ url_for('relatorios.produtividade_adicionais_edit', adicional_id=row.id) }}">Editar</a>
+                        {% endif %}
+                        {% if can_access('produtividade_adicionais:delete') %}
+                        <form method="post" action="{{ url_for('relatorios.produtividade_adicionais_delete', adicional_id=row.id) }}" onsubmit="return confirm('Excluir este adicional?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="link-danger">Excluir</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="empty">Nenhum adicional encontrado para esta competência.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

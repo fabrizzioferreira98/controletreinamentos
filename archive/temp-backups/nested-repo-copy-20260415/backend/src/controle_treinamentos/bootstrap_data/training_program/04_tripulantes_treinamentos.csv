@@ -1,0 +1,4 @@
+id;tripulante_id;tipo_treinamento_id;aeronave_modelo;segmento_id;data_realizacao;data_vencimento;anexo_path;observacao
+1;12345;4;King Air B200/200/C90A/C90GT;31;15/03/2026;15/03/2027;/anexos/crm_joao.pdf;CRM realizado
+2;12345;4;King Air B200/200/C90A/C90GT;32;10/01/2025;10/01/2027;/anexos/avsec_joao.pdf;
+3;12345;4;King Air B200/200/C90A/C90GT;28;10/01/2025;10/01/2026;/anexos/emergencias_joao.pdf;VENCIDO

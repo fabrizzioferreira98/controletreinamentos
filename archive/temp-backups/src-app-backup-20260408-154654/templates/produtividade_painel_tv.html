@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel TV Produtividade</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='produtividade-tv.css') }}">
+</head>
+<body>
+    <main class="ptv-shell">
+        <header class="ptv-header">
+            <div>
+                <div class="ptv-brand-row">
+                    <img class="ptv-brand-logo" src="{{ url_for('static', filename='logo-brasilvida.svg') }}" alt="Brasilvida">
+                </div>
+                <p class="ptv-kicker">Operação mensal</p>
+                <h1>Painel gestor de produtividade</h1>
+                <p class="ptv-subtitle">Competência <strong id="ptvCompetencia">{{ competencia }}</strong></p>
+            </div>
+            <div class="ptv-meta">
+                <div class="ptv-clock" id="ptvClock">--:--:--</div>
+                <div id="ptvUpdatedAt">Atualizado em --</div>
+                <button type="button" id="ptvFullscreen">Tela cheia</button>
+            </div>
+        </header>
+
+        <section class="ptv-cards" id="ptvCards">
+            <article class="ptv-card"><span>Tripulantes</span><strong data-key="total_tripulantes">0</strong></article>
+            <article class="ptv-card"><span>Missões</span><strong data-key="total_missoes">0</strong></article>
+            <article class="ptv-card"><span>Pernoites</span><strong data-key="total_pernoites">0</strong></article>
+            <article class="ptv-card"><span>Total piso mínimo</span><strong data-key="total_pago_piso">R$ 0,00</strong></article>
+            <article class="ptv-card"><span>Total produtividade</span><strong data-key="total_pago_produtividade">R$ 0,00</strong></article>
+            <article class="ptv-card"><span>Valor consolidado</span><strong data-key="valor_total_consolidado">R$ 0,00</strong></article>
+            <article class="ptv-card"><span>Categorias A / B / N.A</span><strong data-key="categorias">0 / 0 / 0</strong></article>
+            <article class="ptv-card"><span>Com adicionais ativos</span><strong data-key="tripulantes_com_adicionais">0</strong></article>
+        </section>
+
+        <section class="ptv-stage">
+            <div class="ptv-slides" id="ptvSlides">
+                <section class="ptv-grid ptv-slide is-active" data-slide="0">
+                    <article class="ptv-panel">
+                        <h2>Ranking por valor final</h2>
+                        <div id="ptvRankingValor"></div>
+                    </article>
+                    <article class="ptv-panel">
+                        <h2>Ranking por produtividade</h2>
+                        <div id="ptvRankingProd"></div>
+                    </article>
+                    <article class="ptv-panel">
+                        <h2>Destaques de fechamento</h2>
+                        <div id="ptvHighlights"></div>
+                    </article>
+                </section>
+
+                <section class="ptv-grid ptv-slide" data-slide="1">
+                    <article class="ptv-panel">
+                        <h2>Ranking por base</h2>
+                        <div id="ptvRankingBase"></div>
+                    </article>
+                    <article class="ptv-panel">
+                        <h2>Alertas operacionais</h2>
+                        <div id="ptvAlerts"></div>
+                    </article>
+                    <article class="ptv-panel">
+                        <h2>Top volume operacional</h2>
+                        <div id="ptvTopVolume"></div>
+                    </article>
+                </section>
+            </div>
+            <div class="ptv-pager">
+                <span class="ptv-dot is-active" data-dot="0"></span>
+                <span class="ptv-dot" data-dot="1"></span>
+            </div>
+        </section>
+    </main>
+
+    <script id="ptvInitialPayload" type="application/json">{{ initial_payload|tojson }}</script>
+    <script>
+        window.PTV_CONFIG = {
+            endpoint: "{{ url_for('relatorios.produtividade_painel_tv_dados', competencia=competencia) }}",
+            competencia: "{{ competencia }}",
+            refreshMs: 60000,
+        };
+    </script>
+    <script src="{{ url_for('static', filename='produtividade-tv.js') }}"></script>
+</body>
+</html>

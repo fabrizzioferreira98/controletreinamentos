@@ -1,0 +1,131 @@
+{
+  "schema": "edge_routing_recovery_v1",
+  "target": "controle.brasilvida.app.br",
+  "executed_at": "2026-04-29",
+  "frontend_repository_touched": false,
+  "change_applied": false,
+  "dns": {
+    "system": "201.16.254.25",
+    "internal_dns_192_168_25_112": "201.16.254.25",
+    "public_dns_1_1_1_1": "201.16.254.25",
+    "split_dns_present": false
+  },
+  "local_network": {
+    "host": "DESKTOP-9KM25F0",
+    "host_ipv4": "192.168.25.33",
+    "gateway": "192.168.25.1",
+    "dhcp_server": "192.168.25.1",
+    "dns_servers": [
+      "192.168.25.112",
+      "1.1.1.1"
+    ],
+    "egress_public_ip": "201.16.254.25"
+  },
+  "internal_hairpin_path": {
+    "source": "192.168.25.33",
+    "target": "controle.brasilvida.app.br",
+    "resolved_ip": "201.16.254.25",
+    "observed": {
+      "tcp_80": true,
+      "tcp_443": false,
+      "http_root": {
+        "status": 200,
+        "server": "nginx",
+        "title": "Error"
+      },
+      "http_index": {
+        "status": 404,
+        "server": "nginx"
+      },
+      "http_manifest": {
+        "status": 404,
+        "server": "nginx"
+      }
+    },
+    "classification": "hairpin/split-horizon ausente ou NAT reflection incorreto"
+  },
+  "gateway_signature": {
+    "url": "http://192.168.25.1/",
+    "status": 200,
+    "server": "nginx",
+    "title": "fw - Login",
+    "matches_public_ip_http_root": true,
+    "tokens": [
+      "csrfMagicToken",
+      "csrf-magic.js",
+      "fw - Login",
+      "/vendor/bootstrap/css/bootstrap.min.css",
+      "/css/login.css"
+    ]
+  },
+  "correct_internal_destination": {
+    "url": "http://192.168.25.33/",
+    "status": 200,
+    "server": "Caddy",
+    "title": "Treinamentos Brasil Vida",
+    "prod_root": "C:/srv/controle-treinamentos/frontend/prod",
+    "prod_backend": "127.0.0.1:8101"
+  },
+  "external_public_validation": {
+    "check_host_http_request_id": "3ec9419bk57",
+    "check_host_https_root_request_id": "3ec94717kfa7",
+    "check_host_https_manifest_request_id": "3ec9472fk264",
+    "check_host_tcp_443_request_id": "3ec941aakc4a",
+    "http_external": {
+      "ru2": "308 Permanent Redirect",
+      "uk1": "308 Permanent Redirect",
+      "ir5": "connect timeout"
+    },
+    "tcp_443_external": {
+      "cz1": "open",
+      "fi1": "open",
+      "pt1": "open"
+    },
+    "https_root_external": {
+      "ca1": "200 OK",
+      "se2": "200 OK",
+      "ua2": "200 OK"
+    },
+    "https_manifest_external": {
+      "fi1": "200 OK",
+      "in3": "200 OK",
+      "ua3": "200 OK"
+    },
+    "local_caddy_log_correlation": {
+      "external_checkhost_user_agent_seen": true,
+      "root_hits": [
+        "198.135.169.20",
+        "195.137.245.1",
+        "91.231.182.39"
+      ],
+      "manifest_hits": [
+        "65.109.182.130",
+        "151.243.98.61",
+        "104.28.192.94"
+      ],
+      "server": "Caddy",
+      "status": 200
+    }
+  },
+  "required_correction": {
+    "preferred": "split-DNS interno: controle.brasilvida.app.br -> 192.168.25.33 para clientes da LAN",
+    "alternative": "NAT reflection/hairpin no gateway 192.168.25.1 para encaminhar 201.16.254.25:80/443 -> 192.168.25.33:80/443",
+    "must_not": [
+      "manter painel fw/nginx exposto para clientes internos ao acessar o dominio",
+      "editar hosts local como solucao final",
+      "mudar DNS publico para IP privado",
+      "alterar frontend"
+    ]
+  },
+  "rollback": {
+    "split_dns": "remover/retornar o registro interno controle.brasilvida.app.br para 201.16.254.25",
+    "nat_reflection": "restaurar backup/export da regra anterior do gateway/firewall 192.168.25.1",
+    "validation_after_rollback": [
+      "DNS interno volta ao estado anterior",
+      "HTTP interno volta ao comportamento anterior conhecido",
+      "probes externos Check-Host continuam 200/308 no Caddy"
+    ]
+  },
+  "closure": "bloqueado",
+  "blocker": "sem acesso administrativo ao gateway/firewall 192.168.25.1 ou ao DNS interno 192.168.25.112 para aplicar split-DNS/NAT reflection com rollback controlado"
+}

@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Consolidado de produtividade</h1>
+        <p class="page-subtitle">Competência {{ competencia_label }} · visão executiva de piso mínimo x produtividade apurada.</p>
+    </div>
+    <div class="page-header-actions print-hide">
+        <a class="button-link secondary" href="{{ url_for('relatorios.produtividade_adicionais_list', competencia=competencia) }}">Adicionais excepcionais</a>
+        <a class="button-link secondary" href="{{ url_for('relatorios.produtividade_painel_tv', competencia=competencia) }}">Painel TV</a>
+        <button type="button" class="button-link" onclick="window.print()">Imprimir visualização</button>
+    </div>
+</div>
+
+<section class="panel">
+    <section class="consolidated-brand-banner print-hide">
+        <div class="consolidated-brand-left">
+            <img class="consolidated-brand-logo" src="{{ url_for('static', filename='logo-brasilvida.svg') }}" alt="Brasilvida">
+            <div>
+                <div class="consolidated-brand-kicker">Treinamentos Brasil vida</div>
+                <div class="consolidated-brand-title">Relatório consolidado de produtividade</div>
+                <div class="consolidated-brand-subtitle">Padrão operacional corporativo para fechamento mensal e conferência.</div>
+            </div>
+        </div>
+        <div class="consolidated-brand-meta">
+            <div class="consolidated-brand-meta-label">Emissão</div>
+            <div class="consolidated-brand-meta-value">{{ emitted_at }}</div>
+        </div>
+    </section>
+
+    <header class="report-print-header report-only">
+        <div class="report-brand-row">
+            <img class="report-logo" src="{{ url_for('static', filename='logo-brasilvida.svg') }}" alt="Brasilvida">
+            <div class="report-brand-meta">
+                <div class="report-doc-title">Consolidado de Produtividade</div>
+                <div class="report-doc-subtitle">Relatório operacional de bonificação por tripulante</div>
+            </div>
+        </div>
+        <div class="report-issued-at">Emissão: {{ emitted_at }}</div>
+    </header>
+
+    <section class="competencia-history print-hide">
+        <div class="competencia-history-title">Histórico de bonificação disponível</div>
+        <div class="competencia-history-list">
+            {% for item in competencias_disponiveis %}
+            <a class="competencia-chip {% if item == competencia %}active{% endif %}" href="{{ url_for('relatorios.produtividade_consolidado', competencia=item, nome=filtros.nome, base=filtros.base, funcao=filtros.funcao, categoria=filtros.categoria, ordenacao=filtros.ordenacao) }}">
+                {{ format_competencia_label(item) }}
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+
+    <div class="state-note print-hide" style="margin-bottom: 12px;">
+        Emissão operacional: registre <strong>Missões</strong> e <strong>Pernoites</strong>, valide <strong>Adicionais</strong> e feche a competência com conferência.
+    </div>
+
+    <div class="filters-toggle-row print-hide">
+        <button type="button" class="button-link secondary filters-toggle-btn" id="productivityFiltersToggle" aria-expanded="false" aria-controls="productivityFiltersPanel">Mostrar filtros</button>
+    </div>
+
+    <div class="filters-panel {% if filtros.nome or filtros.base or filtros.funcao or filtros.categoria or filtros.ordenacao != 'valor_final' %}{% else %}collapsed{% endif %}" id="productivityFiltersPanel">
+        <form class="filters filters-wide" method="get">
+            <label>Competência<input type="month" name="competencia" value="{{ competencia }}"></label>
+            <input type="text" name="nome" placeholder="Buscar tripulante" value="{{ filtros.nome }}">
+            <select name="base">
+                <option value="">Base</option>
+                {% for item in bases %}
+                <option value="{{ item }}" {% if filtros.base == item %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+            <select name="funcao">
+                <option value="">Função</option>
+                {% for item in funcoes %}
+                <option value="{{ item }}" {% if filtros.funcao == item %}selected{% endif %}>{{ item|title }}</option>
+                {% endfor %}
+            </select>
+            <select name="categoria">
+                <option value="">Categoria</option>
+                {% for item in categorias %}
+                <option value="{{ item }}" {% if filtros.categoria == item %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+            <select name="ordenacao">
+                <option value="valor_final" {% if filtros.ordenacao == "valor_final" %}selected{% endif %}>Ordenar por maior valor final</option>
+                <option value="produtividade" {% if filtros.ordenacao == "produtividade" %}selected{% endif %}>Ordenar por maior produtividade</option>
+                <option value="base" {% if filtros.ordenacao == "base" %}selected{% endif %}>Ordenar por base</option>
+                <option value="nome" {% if filtros.ordenacao == "nome" %}selected{% endif %}>Ordenar por nome</option>
+            </select>
+            <button type="submit">Aplicar filtros</button>
+            <a class="button-link secondary" href="{{ url_for('relatorios.produtividade_consolidado') }}">Limpar filtros</a>
+        </form>
+    </div>
+
+    <section class="summary-grid consolidated-summary-grid">
+        <div class="summary-card"><strong>Tripulantes processados</strong><span>{{ summary.total_tripulantes }}</span></div>
+        <div class="summary-card"><strong>Total de missões</strong><span>{{ summary.total_missoes }}</span></div>
+        <div class="summary-card"><strong>Total de pernoites</strong><span>{{ summary.total_pernoites }}</span></div>
+        <div class="summary-card"><strong>Total piso mínimo</strong><span>{{ moeda(summary.total_pago_piso) }}</span></div>
+        <div class="summary-card"><strong>Total por produtividade</strong><span>{{ moeda(summary.total_pago_produtividade) }}</span></div>
+        <div class="summary-card"><strong>Valor consolidado</strong><span>{{ moeda(summary.valor_total_consolidado) }}</span></div>
+        <div class="summary-card"><strong>Categorias A/B</strong><span>{{ summary.categoria_a }} / {{ summary.categoria_b }}</span></div>
+        <div class="summary-card"><strong>Com adicionais ativos</strong><span>{{ summary.tripulantes_com_adicionais }}</span></div>
+    </section>
+
+    <div class="table-wrap">
+        <table class="data-table consolidated-table responsive-cards">
+            <thead>
+                <tr>
+                    <th>Tripulante</th>
+                    <th>Base / Perfil</th>
+                    <th>Missões</th>
+                    <th>Pernoites</th>
+                    <th>Piso mínimo</th>
+                    <th>Produtividade</th>
+                    <th>Valor final</th>
+                    <th>Critério</th>
+                    <th>Conferência</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr class="{% if row.criterio_fechamento == 'piso mínimo' %}consolidated-row-critical{% endif %}">
+                    <td data-label="Tripulante"><strong>{{ row.tripulante_nome }}</strong></td>
+                    <td data-label="Base / Perfil">{{ row.base }}<div class="secondary-cell">{{ row.funcao|title }} · {{ row.categoria }}</div></td>
+                    <td data-label="Missões">{{ row.total_missoes_validas }}</td>
+                    <td data-label="Pernoites">{{ row.total_pernoites_cobertura + row.total_pernoites_operacionais_elegiveis }}</td>
+                    <td data-label="Piso mínimo">{{ moeda(row.piso_minimo_mensal) }}</td>
+                    <td data-label="Produtividade">{{ moeda(row.total_produtividade) }}</td>
+                    <td data-label="Valor final"><span class="date-strong">{{ moeda(row.valor_final_mes) }}</span></td>
+                    <td data-label="Critério"><span class="status-pill {% if row.criterio_fechamento == 'piso mínimo' %}status-yellow{% else %}status-green{% endif %}">{{ row.criterio_fechamento }}</span></td>
+                    <td data-label="Conferência">
+                        {% if row.conferencia %}
+                        <div class="secondary-cell"><span class="status-pill status-green">Conferido</span></div>
+                        <div class="secondary-cell">{{ row.conferencia.conferido_por_nome }}</div>
+                        <div class="secondary-cell">{{ row.conferencia.conferido_em|br_datetime }}</div>
+                        {% else %}
+                        <span class="status-pill status-gray">Pendente</span>
+                        {% endif %}
+                    </td>
+                    <td class="actions" data-label="Ações">
+                        <form method="post" action="{{ url_for('relatorios.produtividade_conferencia_set') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="tripulante_id" value="{{ row.tripulante_id }}">
+                            <input type="hidden" name="competencia" value="{{ competencia }}">
+                            <input type="hidden" name="next" value="{{ request.full_path }}">
+                            <input type="hidden" name="action" value="{% if row.conferencia %}unmark{% else %}mark{% endif %}">
+                            <button type="submit" class="{% if row.conferencia %}link-danger{% endif %}">
+                                {% if row.conferencia %}Desmarcar{% else %}Marcar conferido{% endif %}
+                            </button>
+                        </form>
+                        <a href="{{ url_for('cadastros.produtividade_tripulante', tripulante_id=row.tripulante_id, competencia=competencia) }}">Relatório</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="10" class="empty">Nenhum tripulante encontrado para os filtros informados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if summary.total_missoes == 0 and summary.total_pernoites == 0 %}
+    <div class="empty" style="margin-top: 1rem;">
+        Nenhum lançamento operacional encontrado nesta competência.
+        Cadastre primeiro em
+        <a href="{{ url_for('operacoes.missoes_new') }}">Missões</a>,
+        <a href="{{ url_for('operacoes.pernoites_new') }}">Pernoites</a>
+        e, se necessário,
+        <a href="{{ url_for('relatorios.produtividade_adicionais_new') }}">Adicional excepcional</a>.
+    </div>
+    {% endif %}
+
+    <footer class="report-print-footer report-only">
+        Treinamentos Brasil vida · Consolidado de produtividade · Emissão {{ emitted_at }}
+    </footer>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(() => {
+    const toggle = document.getElementById("productivityFiltersToggle");
+    const panel = document.getElementById("productivityFiltersPanel");
+    if (!toggle || !panel) return;
+    const mobileQuery = window.matchMedia("(max-width: 900px)");
+
+    function syncCollapsedState() {
+        const shouldCollapse = mobileQuery.matches;
+        if (!shouldCollapse) {
+            panel.classList.remove("collapsed");
+            toggle.setAttribute("aria-expanded", "true");
+            toggle.textContent = "Filtros";
+            return;
+        }
+
+        const expanded = !panel.classList.contains("collapsed");
+        toggle.setAttribute("aria-expanded", String(expanded));
+        toggle.textContent = expanded ? "Ocultar filtros" : "Mostrar filtros";
+    }
+
+    toggle.addEventListener("click", () => {
+        panel.classList.toggle("collapsed");
+        syncCollapsedState();
+    });
+
+    syncCollapsedState();
+    if (typeof mobileQuery.addEventListener === "function") {
+        mobileQuery.addEventListener("change", syncCollapsedState);
+    } else {
+        window.addEventListener("resize", syncCollapsedState, { passive: true });
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("auto_print") === "1") {
+        setTimeout(() => window.print(), 120);
+    }
+})();
+</script>
+{% endblock %}

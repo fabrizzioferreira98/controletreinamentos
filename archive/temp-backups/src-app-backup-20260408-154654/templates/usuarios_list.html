@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Usuários</h1>
+        <p class="page-subtitle">Cuide dos acessos de quem usa o sistema no dia a dia.</p>
+    </div>
+    <a class="button-link" href="{{ url_for('admin.usuarios_new') }}">Adicionar usuário</a>
+</div>
+<section class="panel">
+    <div class="table-wrap">
+        <table class="data-table responsive-cards">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Login</th>
+                    <th>E-mail</th>
+                    <th>Perfil</th>
+                    <th>Permissões</th>
+                    <th>Ativo</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in usuarios %}
+                <tr>
+                    <td data-label="Nome"><div class="primary-cell">{{ row.nome }}</div></td>
+                    <td data-label="Login">{{ row.login }}</td>
+                    <td data-label="E-mail">{{ row.email }}</td>
+                    <td data-label="Perfil">{{ row.perfil }}</td>
+                    <td data-label="Permissões">{{ row.permissions_total }}</td>
+                    <td data-label="Ativo"><span class="status-pill {% if row.ativo %}status-green{% else %}status-gray{% endif %}">{{ "Ativo" if row.ativo else "Inativo" }}</span></td>
+                    <td class="actions" data-label="Ações"><a href="{{ url_for('admin.usuarios_edit', usuario_id=row.id) }}">Editar</a></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="empty">Ainda não há outros usuários cadastrados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="pagination-bar">
+        <div class="pagination-meta">Página {{ pagination.page }} de {{ pagination.pages }} · {{ pagination.total }} registros</div>
+        <div class="pagination-actions">
+            {% if pagination.has_prev %}
+            <a class="button-link secondary" href="{{ pagination.prev_url }}">Anterior</a>
+            {% endif %}
+            {% if pagination.has_next %}
+            <a class="button-link secondary" href="{{ pagination.next_url }}">Próxima</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

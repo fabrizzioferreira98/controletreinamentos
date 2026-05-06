@@ -1,0 +1,78 @@
+﻿{
+    "schema":  "internal_dns_split_horizon_execution_v1",
+    "target":  "controle.brasilvida.app.br",
+    "executed_at":  "2026-04-29T09:43:50.2550648-03:00",
+    "frontend_repository_touched":  false,
+    "public_dns_touched":  false,
+    "hosts_file_touched":  false,
+    "dns_server":  "DNS-BRVIDA.brasilvida.local",
+    "dns_server_ip":  "192.168.25.112",
+    "desired_record":  {
+                           "zone":  "controle.brasilvida.app.br",
+                           "name":  "@",
+                           "type":  "A",
+                           "value":  "192.168.25.33",
+                           "ttl":  "00:05:00"
+                       },
+    "precheck":  [
+                     {
+                         "value":  "brasilvida\\fabrizzio.araujo",
+                         "step":  "local_identity"
+                     },
+                     {
+                         "value":  {
+                                       "Name":  "controle.brasilvida.app.br",
+                                       "Type":  1,
+                                       "IPAddress":  "201.16.254.25",
+                                       "TTL":  1270,
+                                       "Section":  1
+                                   },
+                         "step":  "current_internal_answer"
+                     },
+                     {
+                         "value":  [
+                                       {
+                                           "Name":  "brasilvida.app.br",
+                                           "Type":  6,
+                                           "PrimaryServer":  "b.sec.dns.br",
+                                           "NameAdministrator":  "hostmaster.registro.br",
+                                           "SerialNumber":  2026111000,
+                                           "TTL":  60,
+                                           "Section":  2
+                                       },
+                                       {
+                                           "Name":  "b.sec.dns.br",
+                                           "Type":  1,
+                                           "PrimaryServer":  null,
+                                           "NameAdministrator":  null,
+                                           "SerialNumber":  null,
+                                           "TTL":  19936,
+                                           "Section":  3
+                                       },
+                                       {
+                                           "Name":  "b.sec.dns.br",
+                                           "Type":  28,
+                                           "PrimaryServer":  null,
+                                           "NameAdministrator":  null,
+                                           "SerialNumber":  null,
+                                           "TTL":  19936,
+                                           "Section":  3
+                                       }
+                                   ],
+                         "step":  "current_authority"
+                     }
+                 ],
+    "remote_execution":  [
+
+                         ],
+    "validation":  [
+
+                   ],
+    "rollback":  [
+                     "Remove-DnsServerZone -Name \"controle.brasilvida.app.br\" -Force",
+                     "Clear-DnsServerCache -Force"
+                 ],
+    "change_applied":  false,
+    "closure":  "bloqueado",
+    "error":  "Não é possível associar o argumento ao parâmetro \u0027Credential\u0027 porque ele é nulo."
+}

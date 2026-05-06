@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header"><h1>{{ "Atualizar destinatário" if notificacao else "Cadastrar novo destinatário" }}</h1></div>
+<form method="post" class="form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>E-mail destinatário<input type="email" name="email_destinatario" value="{{ notificacao.email_destinatario if notificacao else '' }}" required></label>
+    <label class="checkbox-field">
+        <span class="checkbox-label-group">
+            <span class="checkbox-title">Receber notificações</span>
+            <span class="checkbox-description">Use este controle para incluir ou pausar este destinatário nos envios diários.</span>
+        </span>
+        <span class="toggle-switch">
+            <input type="checkbox" name="ativo" {% if not notificacao or notificacao.ativo %}checked{% endif %}>
+            <span class="toggle-slider"></span>
+            <span class="toggle-text">Ativo</span>
+        </span>
+    </label>
+    <div class="form-actions full-width">
+        <button type="submit">Salvar alterações</button>
+        <a class="button-link secondary" href="{{ url_for('admin.notificacoes_list') }}">Voltar sem salvar</a>
+    </div>
+</form>
+{% endblock %}

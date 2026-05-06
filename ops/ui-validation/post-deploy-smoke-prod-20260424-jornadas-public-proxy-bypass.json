@@ -1,0 +1,187 @@
+{
+  "failed": true,
+  "generated_at": "2026-04-24T20:28:00.054191Z",
+  "environment": "production",
+  "base_url": "https://controle.brasilvida.app.br",
+  "metrics_url": "https://controle.brasilvida.app.br/api/internal/metrics",
+  "release_id": "release_20260420_2932_210420-2935a-A",
+  "commit_sha": "",
+  "evidence_manifest": "",
+  "runtime_release_id": "release_20260420_2932_210420-2935a-A",
+  "runtime_release_instance_id": "release_20260420_2932_210420-2935a-A",
+  "results": [
+    {
+      "url": "https://controle.brasilvida.app.br/healthz",
+      "status": 0,
+      "ok": false,
+      "error": "url_error",
+      "detail": "timed out",
+      "duration_ms": 15176.18,
+      "headers": {},
+      "release_headers": {},
+      "body_sample": "",
+      "check": "healthz",
+      "expected": [
+        200
+      ],
+      "runtime_identity": {
+        "release_id": "",
+        "release_instance_id": "",
+        "request_id": "",
+        "correlation_id": ""
+      },
+      "runtime_identity_ok": false,
+      "contract": "status=ok and checks.database=ok",
+      "body_json": {}
+    },
+    {
+      "url": "https://controle.brasilvida.app.br/login",
+      "status": 0,
+      "ok": false,
+      "error": "url_error",
+      "detail": "timed out",
+      "duration_ms": 15041.03,
+      "headers": {},
+      "release_headers": {},
+      "body_sample": "",
+      "check": "login_page",
+      "expected": [
+        200,
+        302,
+        303
+      ],
+      "runtime_identity": {
+        "release_id": "",
+        "release_instance_id": "",
+        "request_id": "",
+        "correlation_id": ""
+      },
+      "runtime_identity_ok": false,
+      "contract": "route is alive and responds with the expected unauthenticated page or redirect"
+    },
+    {
+      "url": "https://controle.brasilvida.app.br/dashboard",
+      "status": 0,
+      "ok": false,
+      "error": "url_error",
+      "detail": "timed out",
+      "duration_ms": 15046.84,
+      "headers": {},
+      "release_headers": {},
+      "body_sample": "",
+      "check": "dashboard_redirect",
+      "expected": [
+        302,
+        303
+      ],
+      "runtime_identity": {
+        "release_id": "",
+        "release_instance_id": "",
+        "request_id": "",
+        "correlation_id": ""
+      },
+      "runtime_identity_ok": false,
+      "contract": "route is alive and responds with the expected unauthenticated page or redirect"
+    },
+    {
+      "url": "https://controle.brasilvida.app.br/notificacoes-email",
+      "status": 0,
+      "ok": false,
+      "error": "url_error",
+      "detail": "timed out",
+      "duration_ms": 15023.31,
+      "headers": {},
+      "release_headers": {},
+      "body_sample": "",
+      "check": "notificacoes_redirect",
+      "expected": [
+        302,
+        303
+      ],
+      "runtime_identity": {
+        "release_id": "",
+        "release_instance_id": "",
+        "request_id": "",
+        "correlation_id": ""
+      },
+      "runtime_identity_ok": false,
+      "contract": "route is alive and responds with the expected unauthenticated page or redirect"
+    },
+    {
+      "url": "https://controle.brasilvida.app.br/api/internal/metrics",
+      "status": 0,
+      "ok": false,
+      "error": "url_error",
+      "detail": "timed out",
+      "duration_ms": 15047.47,
+      "headers": {},
+      "release_headers": {},
+      "check": "internal_metrics",
+      "expected": [
+        200
+      ],
+      "runtime_identity": {
+        "release_id": "",
+        "release_instance_id": "",
+        "request_id": "",
+        "correlation_id": ""
+      },
+      "runtime_identity_ok": false,
+      "contract": "valid X-Metrics-Token returns Prometheus metrics",
+      "metrics_sample": "",
+      "metrics_contract_markers": {
+        "prometheus_content": false,
+        "runtime_resource_metric_present": false
+      }
+    },
+    {
+      "check": "runtime_headers",
+      "url": "https://controle.brasilvida.app.br",
+      "status": 0,
+      "expected": [
+        "X-Release-ID",
+        "X-Release-Instance-ID"
+      ],
+      "ok": false,
+      "runtime_ids": [
+        {
+          "release_id": "",
+          "release_instance_id": "",
+          "request_id": "",
+          "correlation_id": ""
+        },
+        {
+          "release_id": "",
+          "release_instance_id": "",
+          "request_id": "",
+          "correlation_id": ""
+        },
+        {
+          "release_id": "",
+          "release_instance_id": "",
+          "request_id": "",
+          "correlation_id": ""
+        },
+        {
+          "release_id": "",
+          "release_instance_id": "",
+          "request_id": "",
+          "correlation_id": ""
+        },
+        {
+          "release_id": "",
+          "release_instance_id": "",
+          "request_id": "",
+          "correlation_id": ""
+        }
+      ],
+      "contract": "runtime emits release headers on real HTTP responses"
+    }
+  ],
+  "runtime": {
+    "alive": false,
+    "headers_present": false,
+    "release_id": "release_20260420_2932_210420-2935a-A",
+    "release_instance_id": "release_20260420_2932_210420-2935a-A"
+  }
+}

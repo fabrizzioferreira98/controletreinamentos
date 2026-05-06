@@ -1,0 +1,77 @@
+id;tipo_treinamento_id;modelo_segmento;nome_segmento;carga_horaria;carga_teorica;carga_pratica;periodicidade_meses;observacao
+TREINAMENTO INICIAL (id=1);;;;;;;;
+1;1;Gerais;Doutrinamento Básico;12.0;12.0;0.0;0;
+2;1;Gerais;Operações Autorizadas nas Especificações Operativas;1.0;1.0;0.0;0;
+3;1;Gerais;Conhecimentos Gerais de Aeronaves;3.0;3.0;0.0;0;
+4;1;Gerais;Emergências Gerais;3.0;3.0;0.0;0;
+5;1;Específicos;Artigos Perigosos;8.0;8.0;0.0;0;
+6;1;Específicos;SGSO;4.0;4.0;0.0;0;
+7;1;Específicos;CRM;20.0;20.0;0.0;0;
+8;1;Específicos;AVSEC;8.0;8.0;0.0;0;
+9;1;Específicos;Uso da MEL;1.5;1.5;0.0;0;
+10;1;Especiais;CAVOK;1.5;1.5;0.0;0;
+11;1;Especiais;Sobrevivência na Selva;8.0;8.0;0.0;0;
+12;1;Especiais;Sobrevivência no Mar;4.0;4.0;0.0;0;
+13;1;Especiais;Sobrevivência no Deserto e Polar;2.0;2.0;0.0;0;
+14;1;Especiais;EFB;1.5;1.5;0.0;0;
+15;1;Especiais;PBN;8.0;8.0;0.0;0;
+16;1;Especiais;RVSM;4.0;4.0;0.0;0;
+17;1;Especiais;Operação Internacional;8.0;8.0;0.0;0;
+18;1;Especiais;Operação de Degelo e Antigelo no Solo;1.5;1.5;0.0;0;
+19;1;Especiais;Transporte Aéreo de Enfermos;9.0;8.0;1.0;0;
+TREINAMENTO INICIAL DE INSTRUTOR (id=2);;;;;;;;
+20;2;Solo e Voo;Solo com INVA;2.0;2.0;0.0;0;Apenas para quem tem INVA
+21;2;Solo e Voo;Solo sem INVA;8.0;8.0;0.0;0;Apenas para quem não tem INVA
+22;2;Solo e Voo;Voo + Observação;3.0;0.0;3.0;0;
+TREINAMENTO INICIAL DE EXAMINADOR (id=3);;;;;;;;
+23;3;Solo e Voo;Solo com INVA;2.0;2.0;0.0;0;Apenas para quem tem INVA
+24;3;Solo e Voo;Solo sem INVA;8.0;8.0;0.0;0;Apenas para quem não tem INVA
+25;3;Solo e Voo;Voo + Observação;4.0;0.0;4.0;0;
+TREINAMENTO PERIÓDICO (id=4);;;;;;;;
+26;4;Gerais;Operações Autorizadas nas Especificações Operativas;0.5;0.5;0.0;12;
+27;4;Gerais;Conhecimentos Gerais de Aeronaves;1.5;1.5;0.0;12;
+28;4;Gerais;Emergências Gerais;1.5;1.5;0.0;12;
+29;4;Específicos;Artigos Perigosos;4.0;4.0;0.0;24;
+30;4;Específicos;SGSO;2.0;2.0;0.0;12;
+31;4;Específicos;CRM;8.0;8.0;0.0;12;
+32;4;Específicos;AVSEC;4.0;4.0;0.0;24;
+33;4;Específicos;Uso da MEL;1.0;1.0;0.0;12;
+34;4;Especiais;Sobrevivência na Selva;4.0;4.0;0.0;24;
+35;4;Especiais;Sobrevivência no Mar;2.0;2.0;0.0;24;
+36;4;Especiais;Sobrevivência no Deserto e Polar;1.0;1.0;0.0;24;
+37;4;Especiais;EFB;1.0;1.0;0.0;12;
+38;4;Especiais;PBN;4.0;4.0;0.0;12;
+39;4;Especiais;RVSM;2.0;2.0;0.0;24;
+40;4;Especiais;Operação Internacional;4.0;4.0;0.0;24;
+41;4;Especiais;Operação de Degelo e Antigelo no Solo;1.0;1.0;0.0;12;
+42;4;Especiais;Transporte Aéreo de Enfermos;5.0;4.0;1.0;12;
+TREINAMENTO PERIÓDICO DE INSTRUTOR (id=5);;;;;;;;
+43;5;Solo e Voo;Voo de Observação;1.0;0.0;1.0;24;
+TREINAMENTO PERIÓDICO DE EXAMINADOR (id=6);;;;;;;;
+44;6;Solo e Voo;Voo de Observação;1.0;0.0;1.0;24;
+TREINAMENTO DE TRANSIÇÃO (id=7);;;;;;;;
+45;7;Gerais;Emergências Gerais;2.0;2.0;0.0;0;Único segmento teórico
+TREINAMENTO DE TRANSIÇÃO INSTRUTOR (id=8);;;;;;;;
+46;8;Solo e Voo;Solo;2.0;2.0;0.0;0;
+47;8;Solo e Voo;Voo + Observação;2.0;0.0;2.0;0;
+TREINAMENTO DE TRANSIÇÃO EXAMINADOR (id=9);;;;;;;;
+48;9;Solo e Voo;Solo;2.0;2.0;0.0;0;
+49;9;Solo e Voo;Voo + Observação;3.0;0.0;3.0;0;
+TREINAMENTO DE ELEVAÇÃO DE NÍVEL (id=10);;;;;;;;
+50;10;Gerais;Operações Autorizadas nas Especificações Operativas;0.5;0.5;0.0;0;
+51;10;Gerais;Conhecimentos Gerais de Aeronaves;1.5;1.5;0.0;0;
+52;10;Gerais;Emergências Gerais;1.5;1.5;0.0;0;
+53;10;Específicos;Artigos Perigosos;4.0;4.0;0.0;0;
+54;10;Específicos;SGSO;2.0;2.0;0.0;0;
+55;10;Específicos;CRM;8.0;8.0;0.0;0;
+56;10;Específicos;AVSEC;4.0;4.0;0.0;0;
+57;10;Específicos;Uso da MEL;1.0;1.0;0.0;0;
+58;10;Especiais;Sobrevivência na Selva;4.0;4.0;0.0;0;
+59;10;Especiais;Sobrevivência no Mar;2.0;2.0;0.0;0;
+60;10;Especiais;Sobrevivência no Deserto e Polar;1.0;1.0;0.0;0;
+61;10;Especiais;EFB;1.0;1.0;0.0;0;
+62;10;Especiais;PBN;4.0;4.0;0.0;0;
+63;10;Especiais;RVSM;2.0;2.0;0.0;0;
+64;10;Especiais;Operação Internacional;4.0;4.0;0.0;0;
+65;10;Especiais;Operação de Degelo e Antigelo no Solo;1.0;1.0;0.0;0;
+66;10;Especiais;Transporte Aéreo de Enfermos;5.0;4.0;1.0;0;

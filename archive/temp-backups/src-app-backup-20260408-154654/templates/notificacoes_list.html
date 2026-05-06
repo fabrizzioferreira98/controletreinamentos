@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Destinatários de E-mail</h1>
+        <p class="page-subtitle">Defina quem deve receber os avisos diários de vencimento.</p>
+    </div>
+    <a class="button-link" href="{{ url_for('admin.notificacoes_new') }}">Adicionar destinatário</a>
+</div>
+<section class="panel operation-panel">
+    <div class="operation-card">
+        <div class="operation-title">Enviar agora</div>
+        <div class="operation-text">Se precisar, você pode disparar o consolidado do dia manualmente sem esperar a rotina automática.</div>
+        <form method="post" action="{{ url_for('admin.notificacoes_manual_send') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit">Enviar e-mail agora</button>
+        </form>
+    </div>
+    <div class="operation-card operation-card-soft">
+        <div class="operation-title">Resumo do envio</div>
+        <div class="operation-text">Destinatários ativos: {{ email_preview.recipients|join(', ') if email_preview.recipients else 'nenhum cadastrado no momento' }}</div>
+        <div class="operation-meta">
+            <span>Total vencidos/a vencer (dia): <strong>{{ email_preview.total_items_all }}</strong></span>
+            <span>Pendentes para envio agora: <strong>{{ email_preview.total_items }}</strong></span>
+            <span>Já enviados hoje: <strong>{{ email_preview.total_items_sent_today }}</strong></span>
+            <span>Último envio: <strong>{{ last_sent_at or 'nunca' }}</strong></span>
+            <span>Última rotina diária: <strong>{{ last_run or 'nunca' }}</strong></span>
+            <span>Provider: <strong>{{ email_preview.provider|upper }}</strong></span>
+            <span>Entrega: <strong>{{ 'configurada' if email_preview.email_ready else 'não configurada' }}</strong></span>
+            {% if email_preview.missing_config_fields %}
+            <span>Config ausente: <strong>{{ email_preview.missing_config_fields|join(', ') }}</strong></span>
+            {% endif %}
+        </div>
+    </div>
+</section>
+<section class="panel">
+    <div class="table-wrap">
+        <table class="data-table responsive-cards">
+            <thead>
+                <tr>
+                    <th>E-mail destinatário</th>
+                    <th>Ativo</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in notificacoes %}
+                <tr>
+                    <td data-label="E-mail destinatário"><div class="primary-cell">{{ row.email_destinatario }}</div></td>
+                    <td data-label="Ativo"><span class="status-pill {% if row.ativo %}status-green{% else %}status-gray{% endif %}">{{ "Ativo" if row.ativo else "Inativo" }}</span></td>
+                    <td class="actions" data-label="Ações"><a href="{{ url_for('admin.notificacoes_edit', notificacao_id=row.id) }}">Editar</a></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="3" class="empty">Ainda não há destinatários cadastrados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="pagination-bar">
+        <div class="pagination-meta">Página {{ pagination.page }} de {{ pagination.pages }} · {{ pagination.total }} registros</div>
+        <div class="pagination-actions">
+            {% if pagination.has_prev %}
+            <a class="button-link secondary" href="{{ pagination.prev_url }}">Anterior</a>
+            {% endif %}
+            {% if pagination.has_next %}
+            <a class="button-link secondary" href="{{ pagination.next_url }}">Próxima</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+<section class="panel email-preview-panel">
+    <div class="section-title">Conteúdo do e-mail diário</div>
+    <p class="operation-text">Prévia operacional completa do dia (inclui itens já enviados nesta data).</p>
+    {% if not preview_enabled %}
+    <div class="operation-card operation-card-soft" style="margin-bottom: 16px;">
+        <div class="operation-text">A prévia completa foi desativada nesta visualização para reduzir custo de processamento.</div>
+        <a class="button-link secondary" href="{{ url_for('admin.notificacoes_list', page=pagination.page, preview=1) }}">Carregar prévia completa</a>
+    </div>
+    {% endif %}
+    {% if preview_enabled %}
+    <div class="email-block">
+        <div class="email-block-title">1. Vencidos ({{ email_preview.blocks_all.vencidos|length }})</div>
+        {% if email_preview.blocks_all.vencidos %}
+        <div class="table-wrap">
+            <table class="data-table compact-table responsive-cards">
+                <thead>
+                    <tr>
+                        <th>Tripulante</th>
+                        <th>Equipamento</th>
+                        <th>Tipo</th>
+                        <th>Vencimento</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in email_preview.blocks_all.vencidos %}
+                    <tr>
+                        <td data-label="Tripulante">{{ item.tripulante }}</td>
+                        <td data-label="Equipamento">{{ item.equipamento }}</td>
+                        <td data-label="Tipo">{{ item.tipo }}</td>
+                        <td data-label="Vencimento">{{ item.data_vencimento|br_date }}</td>
+                        <td data-label="Status"><span class="status-pill status-red">{{ item.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state-inline">Nenhum item neste grupo.</div>
+        {% endif %}
+    </div>
+    <div class="email-block">
+        <div class="email-block-title">2. Vencendo em até 30 dias ({{ email_preview.blocks_all.em_30_dias|length }})</div>
+        {% if email_preview.blocks_all.em_30_dias %}
+        <div class="table-wrap">
+            <table class="data-table compact-table responsive-cards">
+                <thead>
+                    <tr>
+                        <th>Tripulante</th>
+                        <th>Equipamento</th>
+                        <th>Tipo</th>
+                        <th>Vencimento</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in email_preview.blocks_all.em_30_dias %}
+                    <tr>
+                        <td data-label="Tripulante">{{ item.tripulante }}</td>
+                        <td data-label="Equipamento">{{ item.equipamento }}</td>
+                        <td data-label="Tipo">{{ item.tipo }}</td>
+                        <td data-label="Vencimento">{{ item.data_vencimento|br_date }}</td>
+                        <td data-label="Status"><span class="status-pill status-yellow">{{ item.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state-inline">Nenhum item neste grupo.</div>
+        {% endif %}
+    </div>
+    <div class="email-block">
+        <div class="email-block-title">3. Vencendo entre 31 e 60 dias ({{ email_preview.blocks_all.em_60_dias|length }})</div>
+        {% if email_preview.blocks_all.em_60_dias %}
+        <div class="table-wrap">
+            <table class="data-table compact-table responsive-cards">
+                <thead>
+                    <tr>
+                        <th>Tripulante</th>
+                        <th>Equipamento</th>
+                        <th>Tipo</th>
+                        <th>Vencimento</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in email_preview.blocks_all.em_60_dias %}
+                    <tr>
+                        <td data-label="Tripulante">{{ item.tripulante }}</td>
+                        <td data-label="Equipamento">{{ item.equipamento }}</td>
+                        <td data-label="Tipo">{{ item.tipo }}</td>
+                        <td data-label="Vencimento">{{ item.data_vencimento|br_date }}</td>
+                        <td data-label="Status"><span class="status-pill status-yellow">{{ item.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state-inline">Nenhum item neste grupo.</div>
+        {% endif %}
+    </div>
+    <div class="email-block">
+        <div class="email-block-title">4. Vencendo entre 61 e 90 dias ({{ email_preview.blocks_all.em_90_dias|length }})</div>
+        {% if email_preview.blocks_all.em_90_dias %}
+        <div class="table-wrap">
+            <table class="data-table compact-table responsive-cards">
+                <thead>
+                    <tr>
+                        <th>Tripulante</th>
+                        <th>Equipamento</th>
+                        <th>Tipo</th>
+                        <th>Vencimento</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in email_preview.blocks_all.em_90_dias %}
+                    <tr>
+                        <td data-label="Tripulante">{{ item.tripulante }}</td>
+                        <td data-label="Equipamento">{{ item.equipamento }}</td>
+                        <td data-label="Tipo">{{ item.tipo }}</td>
+                        <td data-label="Vencimento">{{ item.data_vencimento|br_date }}</td>
+                        <td data-label="Status"><span class="status-pill status-yellow">{{ item.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state-inline">Nenhum item neste grupo.</div>
+        {% endif %}
+    </div>
+    <div class="email-raw">
+        <div class="section-title">Texto consolidado</div>
+        <pre>{{ email_preview.body }}</pre>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

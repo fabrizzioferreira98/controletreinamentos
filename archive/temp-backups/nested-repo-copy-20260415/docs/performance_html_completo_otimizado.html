@@ -1,0 +1,1430 @@
+<!-- ARQUIVO CONSOLIDADO DE HTML OTIMIZADO (templates Jinja) -->
+<!-- FILE: backend/src/controle_treinamentos/templates/dashboard.html -->
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Dashboard</h1>
+        <p class="page-subtitle">Visão operacional diária com foco no que exige ação imediata.</p>
+    </div>
+    <div class="page-header-actions">
+        <a class="button-link secondary" href="{{ url_for('missoes_new') }}">+ Missão</a>
+        <a class="button-link secondary" href="{{ url_for('pernoites_new') }}">+ Pernoite</a>
+        <a class="button-link secondary" href="{{ url_for('produtividade_consolidado') }}">Produtividade</a>
+        <a class="button-link secondary" href="{{ url_for('painel_tv') }}">Painel TV</a>
+    </div>
+</div>
+
+<div class="state-note">
+    Prioridade de leitura: <strong>Vencidos</strong> → <strong>7 dias</strong> → <strong>30 dias</strong>. Use os atalhos para tratativa imediata.
+</div>
+
+<section class="summary-grid">
+    <a class="summary-card summary-link-card" href="{{ url_for('tripulantes_list') }}"><strong>Tripulantes</strong><span>{{ totals.tripulantes }}</span></a>
+    <a class="summary-card summary-link-card" href="{{ url_for('equipamentos_list') }}"><strong>Equipamentos ativos</strong><span>{{ totals.equipamentos }}</span></a>
+    <a class="summary-card summary-link-card" href="{{ url_for('tipos_list') }}"><strong>Tipos ativos</strong><span>{{ totals.tipos }}</span></a>
+    <a class="summary-card summary-link-card" href="{{ url_for('treinamentos_list') }}"><strong>Treinamentos</strong><span>{{ totals.treinamentos }}</span></a>
+</section>
+
+<section class="dashboard-grid">
+    <div class="panel dashboard-panel">
+        <div class="section-title">O que precisa de atenção</div>
+        <div class="dashboard-alerts">
+            <a class="alert-card alert-red" href="{{ url_for('treinamentos_list', status='vencido') }}">
+                <strong>Vencidos</strong>
+                <span>{{ alerts.vencidos }}</span>
+                <span class="alert-link-text">Abrir lista</span>
+            </a>
+            <a class="alert-card alert-yellow" href="{{ url_for('treinamentos_list', periodo='7') }}">
+                <strong>Vencem em até 7 dias</strong>
+                <span>{{ alerts.em_7_dias }}</span>
+                <span class="alert-link-text">Abrir lista</span>
+            </a>
+            <a class="alert-card alert-soft" href="{{ url_for('treinamentos_list', periodo='30') }}">
+                <strong>Vencem em até 30 dias</strong>
+                <span>{{ alerts.em_30_dias }}</span>
+                <span class="alert-link-text">Abrir lista</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="panel dashboard-panel">
+        <div class="section-title">Visão geral dos status</div>
+        <div class="dashboard-status-list">
+            <a href="{{ url_for('treinamentos_list', status='vencido') }}"><span>Vencidos</span><strong>{{ summary.vencido }}</strong></a>
+            <a href="{{ url_for('treinamentos_list', status='a vencer') }}"><span>A vencer</span><strong>{{ summary["a vencer"] }}</strong></a>
+            <a href="{{ url_for('treinamentos_list', status='regular') }}"><span>Regulares</span><strong>{{ summary.regular }}</strong></a>
+            <a href="{{ url_for('treinamentos_list', status='sem informação') }}"><span>Sem informação</span><strong>{{ summary["sem informação"] }}</strong></a>
+        </div>
+    </div>
+</section>
+
+<section class="panel dashboard-calendar-panel">
+    <div class="page-header dashboard-subheader dashboard-calendar-header">
+        <div>
+            <h2>Calendário de vencimentos</h2>
+            <p class="page-subtitle">Clique no dia ou no cartão do vencimento para abrir o treinamento e acessar o tripulante vinculado.</p>
+        </div>
+        <div class="dashboard-calendar-meta">
+            <span class="dashboard-calendar-chip">Mês atual: <strong>{{ calendar.month_label }}</strong></span>
+            <span class="dashboard-calendar-chip">Vencimentos no mês: <strong>{{ calendar.items_total }}</strong></span>
+        </div>
+    </div>
+
+    <div class="dashboard-calendar-layout">
+        <div class="dashboard-calendar-shell">
+            <div class="dashboard-calendar-weekdays">
+                {% for label in calendar.weekday_labels %}
+                <div>{{ label }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="dashboard-calendar-grid">
+                {% for week in calendar.weeks %}
+                    {% for day in week %}
+                    <button
+                        type="button"
+                        class="dashboard-calendar-day{% if not day.is_current_month %} is-muted{% endif %}{% if day.is_today %} is-today{% endif %}{% if day.has_due %} has-due{% endif %}"
+                        data-calendar-day="{{ day.iso_date }}"
+                        aria-label="Dia {{ day.day_number }} com {{ day.count }} vencimento(s)"
+                    >
+                        <span class="dashboard-calendar-day-number{% if day.pulse %} pulse{% endif %}">{{ day.day_number }}</span>
+                        {% if day.count %}
+                        <span class="dashboard-calendar-day-counter">{{ day.count }}</span>
+                        {% endif %}
+                        <span class="dashboard-calendar-day-label">{% if day.count %}{{ day.count }} venc.{% else %}Sem eventos{% endif %}</span>
+                        <span class="dashboard-calendar-day-dots">
+                            {% for item in day['items'][:3] %}
+                            <span class="dashboard-calendar-day-dot {{ item.status_class }}"></span>
+                            {% endfor %}
+                        </span>
+                    </button>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <aside class="dashboard-calendar-aside" id="dashboardCalendarDetail">
+            <div class="section-title">Detalhes do dia</div>
+            <p class="page-subtitle" id="dashboardCalendarDetailSubtitle">Selecione um dia para expandir os vencimentos.</p>
+            <div class="dashboard-calendar-detail-list" id="dashboardCalendarDetailList">
+                <div class="empty">Selecione um dia com vencimento para ver os detalhes.</div>
+            </div>
+            <div class="dashboard-calendar-divider"></div>
+            <div class="section-title">Próximos vencimentos</div>
+            <div class="dashboard-calendar-upcoming">
+                {% for item in calendar.upcoming_rows %}
+                <a class="dashboard-calendar-upcoming-card" href="{{ item.training_url }}">
+                    <span class="status-pill {{ item.status_class }}">{{ item.data_vencimento }}</span>
+                    <strong>{{ item.tripulante_nome }}</strong>
+                    <span>{{ item.tipo_treinamento_nome }}</span>
+                    <small>{{ item.equipamento_nome }}</small>
+                </a>
+                {% else %}
+                <div class="empty">Nenhum vencimento futuro no calendário atual.</div>
+                {% endfor %}
+            </div>
+        </aside>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="page-header dashboard-subheader">
+        <div>
+            <h2>Treinamentos mais críticos</h2>
+            <p class="page-subtitle">Vencidos primeiro, depois os mais próximos do vencimento.</p>
+        </div>
+        <a class="button-link secondary" href="{{ url_for('treinamentos_list') }}">Abrir lista completa</a>
+    </div>
+
+    <div class="table-wrap">
+        <table class="data-table responsive-cards">
+            <thead>
+                <tr>
+                    <th>Tripulante</th>
+                    <th>Equipamento</th>
+                    <th>Tipo</th>
+                    <th>Vencimento</th>
+                    <th>Status</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in critical_rows %}
+                <tr>
+                    <td data-label="Tripulante"><div class="primary-cell">{{ row.tripulante_nome }}</div></td>
+                    <td data-label="Equipamento">{{ row.equipamento_nome or "-" }}</td>
+                    <td data-label="Tipo">{{ row.tipo_treinamento_nome }}</td>
+                    <td data-label="Vencimento"><span class="date-strong">{{ row.data_vencimento|br_date }}</span></td>
+                    <td data-label="Status"><span class="status-pill {{ row.status_class }}">{{ row.status_calculado }}</span></td>
+                    <td class="actions" data-label="Ação"><a href="{{ url_for('treinamentos_edit', treinamento_id=row.id) }}">Abrir</a></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="empty">Ainda não há treinamentos suficientes para mostrar aqui.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script id="dashboardCalendarPayload" type="application/json">{{ calendar|tojson }}</script>
+<script>
+(() => {
+    const payloadNode = document.getElementById("dashboardCalendarPayload");
+    if (!payloadNode) return;
+
+    const calendar = JSON.parse(payloadNode.textContent);
+    const detailList = document.getElementById("dashboardCalendarDetailList");
+    const detailSubtitle = document.getElementById("dashboardCalendarDetailSubtitle");
+    const calendarGrid = document.querySelector(".dashboard-calendar-grid");
+    const dayButtons = [...document.querySelectorAll("[data-calendar-day]")];
+    const dayValues = [];
+
+    const dayMap = {};
+    (calendar.weeks || []).forEach((week) => {
+        week.forEach((day) => {
+            dayMap[day.iso_date] = day;
+            dayValues.push(day);
+        });
+    });
+    const detailsCache = new Map();
+
+    function formatDisplayDate(isoDate) {
+        const [year, month, day] = isoDate.split("-");
+        return `${day}/${month}/${year}`;
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
+    }
+
+    function renderDayDetails(isoDate) {
+        const selected = dayMap[isoDate];
+        if (!selected) return;
+
+        dayButtons.forEach((button) => {
+            button.classList.toggle("is-selected", button.dataset.calendarDay === isoDate);
+        });
+
+        if (!selected.items || !selected.items.length) {
+            detailSubtitle.textContent = `${formatDisplayDate(isoDate)} · nenhum vencimento neste dia`;
+            detailList.innerHTML = '<div class="empty">Nenhum vencimento cadastrado para esta data.</div>';
+            return;
+        }
+
+        detailSubtitle.textContent = `${formatDisplayDate(isoDate)} · ${selected.items.length} vencimento(s)`;
+        if (!detailsCache.has(isoDate)) {
+            detailsCache.set(isoDate, selected.items.map((item) => `
+                <article class="dashboard-calendar-detail-card ${item.status_class}">
+                    <div class="dashboard-calendar-detail-top">
+                        <span class="status-pill ${item.status_class}">${escapeHtml(item.data_vencimento)}</span>
+                        <a class="dashboard-calendar-event-pilot" href="${item.tripulante_url}">Ver piloto</a>
+                    </div>
+                    <a class="dashboard-calendar-event-main" href="${item.training_url}">
+                        <strong>${escapeHtml(item.tripulante_nome)}</strong>
+                        <span>${escapeHtml(item.tipo_treinamento_nome)}</span>
+                        <small>${escapeHtml(item.equipamento_nome)}</small>
+                    </a>
+                </article>
+            `).join(""));
+        }
+        detailList.innerHTML = detailsCache.get(isoDate);
+    }
+
+    if (calendarGrid) {
+        calendarGrid.addEventListener("click", (event) => {
+            const button = event.target.closest("[data-calendar-day]");
+            if (!button) return;
+            renderDayDetails(button.dataset.calendarDay);
+        });
+    } else {
+        dayButtons.forEach((button) => {
+            button.addEventListener("click", () => renderDayDetails(button.dataset.calendarDay));
+        });
+    }
+
+    const firstDueDay = dayValues.find((day) => day.items && day.items.length);
+    const firstDay = firstDueDay || dayValues.find((day) => day.is_today) || dayValues[0];
+    if (firstDay) {
+        renderDayDetails(firstDay.iso_date);
+    }
+})();
+</script>
+{% endblock %}
+
+<!-- FILE: backend/src/controle_treinamentos/templates/bases/index.html -->
+{% extends "base.html" %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Gestão de Bases</h1>
+        <p class="page-subtitle">Acompanhe a distribuição dos pilotos nas bases operacionais e atualize status e movimentações em tempo real.</p>
+    </div>
+</div>
+
+<section class="panel bases-panel">
+    <div class="bases-toolbar">
+        <div class="status-filter-group" id="statusFilterGroup">
+            <button type="button" class="status-filter active" data-status="">Todos</button>
+            {% for item in status_options %}
+            <button type="button" class="status-filter" data-status="{{ item.key }}">{{ item.label }}</button>
+            {% endfor %}
+        </div>
+        <div class="bases-toolbar-meta">
+            <span>Total de pilotos monitorados: <strong id="totalPilotsCounter">{{ pilotos_data|length }}</strong></span>
+        </div>
+    </div>
+
+    <div class="bases-map-wrap">
+        <input type="hidden" id="basesCsrfToken" value="{{ csrf_token() }}">
+        <div id="basesMap" class="bases-map" aria-label="Mapa das bases do Brasil"></div>
+
+        <aside class="bases-sidebar" id="basesSidebar" aria-hidden="true">
+            <div class="bases-sidebar-header">
+                <div>
+                    <div class="section-title" id="sidebarBaseName">Base</div>
+                    <div class="page-subtitle" id="sidebarBaseMeta">0 pilotos</div>
+                </div>
+                <button type="button" class="sidebar-close-btn" id="sidebarCloseBtn">Fechar</button>
+            </div>
+            <div class="bases-sidebar-list" id="sidebarPilotList"></div>
+        </aside>
+    </div>
+</section>
+
+<div class="modal-shell" id="basesModalShell" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+
+    <div class="modal-card" id="modalStatus" hidden>
+        <div class="modal-header">
+            <h2>Alterar status</h2>
+            <button type="button" class="modal-close-btn" data-close-modal>Fechar</button>
+        </div>
+        <form id="statusForm" class="form-grid">
+            <input type="hidden" name="pilot_id" id="statusPilotId">
+            <label class="full-width">Piloto<input type="text" id="statusPilotName" disabled></label>
+            <label class="full-width">Status atual<input type="text" id="statusPilotCurrent" disabled></label>
+            <label>
+                Novo status
+                <select name="status_novo" required>
+                    <option value="">Selecione</option>
+                    {% for item in status_options %}
+                    <option value="{{ item.key }}">{{ item.label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="full-width">Observação<textarea name="observacao" placeholder="Opcional"></textarea></label>
+            <div class="form-actions full-width">
+                <button type="submit">Atualizar status</button>
+                <button type="button" class="button-link secondary" data-close-modal>Cancelar</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="modal-card" id="modalMovePilot" hidden>
+        <div class="modal-header">
+            <h2>Mover piloto</h2>
+            <button type="button" class="modal-close-btn" data-close-modal>Fechar</button>
+        </div>
+        <form id="movePilotForm" class="form-grid">
+            <input type="hidden" name="pilot_id" id="movePilotId">
+            <label class="full-width">Piloto<input type="text" id="movePilotName" disabled></label>
+            <label class="full-width">Base atual<input type="text" id="movePilotCurrentBase" disabled></label>
+            <label>
+                Nova base
+                <select name="base_nova_id" id="movePilotBaseSelect" required>
+                    <option value="">Selecione</option>
+                    {% for base in bases_data %}
+                    <option value="{{ base.id }}">{{ base.nome }} / {{ base.uf }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="full-width">Observação<textarea name="observacao" placeholder="Opcional"></textarea></label>
+            <div class="form-actions full-width">
+                <button type="submit">Mover piloto</button>
+                <button type="button" class="button-link secondary" data-close-modal>Cancelar</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="modal-card modal-history-card" id="modalHistory" hidden>
+        <div class="modal-header">
+            <h2>Histórico do piloto</h2>
+            <button type="button" class="modal-close-btn" data-close-modal>Fechar</button>
+        </div>
+        <div class="page-subtitle" id="historyPilotName"></div>
+        <div class="history-timeline" id="historyTimeline"></div>
+    </div>
+</div>
+
+<script id="basesInitialPayload" type="application/json">{{ initial_payload|tojson }}</script>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+(() => {
+    const compactQuery = window.matchMedia("(max-width: 900px)");
+    const initialPayload = JSON.parse(document.getElementById("basesInitialPayload").textContent);
+    const csrfToken = document.getElementById("basesCsrfToken").value;
+    const canManage = {{ "true" if can_manage_bases else "false" }};
+    const state = {
+        payload: initialPayload,
+        selectedBaseId: initialPayload.bases[0] ? initialPayload.bases[0].id : null,
+        activeStatus: initialPayload.status_filter || "",
+        map: null,
+        markers: [],
+        compactMarkers: compactQuery.matches,
+        lastMarkerMode: null,
+        baseById: new Map(),
+        pilotById: new Map(),
+    };
+
+    const endpoints = {
+        data: "{{ url_for('bases.api_dados') }}",
+        pilotStatus: "{{ url_for('bases.alterar_status', pilot_id=0) }}",
+        pilotMove: "{{ url_for('bases.mover_piloto', pilot_id=0) }}",
+        pilotHistory: "{{ url_for('bases.historico_piloto', pilot_id=0) }}",
+    };
+
+    const sidebar = document.getElementById("basesSidebar");
+    const sidebarBaseName = document.getElementById("sidebarBaseName");
+    const sidebarBaseMeta = document.getElementById("sidebarBaseMeta");
+    const sidebarPilotList = document.getElementById("sidebarPilotList");
+    const totalPilotsCounter = document.getElementById("totalPilotsCounter");
+    const statusFilterGroup = document.getElementById("statusFilterGroup");
+    const modalShell = document.getElementById("basesModalShell");
+    const modalHistory = document.getElementById("modalHistory");
+    const modalStatus = document.getElementById("modalStatus");
+    const modalMovePilot = document.getElementById("modalMovePilot");
+    const statusForm = document.getElementById("statusForm");
+    const movePilotForm = document.getElementById("movePilotForm");
+    const movePilotBaseSelect = document.getElementById("movePilotBaseSelect");
+    const mapRoot = document.getElementById("basesMap");
+    const contentRoot = document.querySelector(".content");
+    const statusButtons = [...statusFilterGroup.querySelectorAll(".status-filter")];
+    let resizeRaf = null;
+
+    const statusOptions = initialPayload.status_options || [];
+    const moveSelectOptions = [...movePilotBaseSelect.options];
+
+    function reindexPayload() {
+        state.baseById = new Map((state.payload.bases || []).map((item) => [item.id, item]));
+        state.pilotById = new Map((state.payload.pilotos || []).map((item) => [item.id, item]));
+    }
+    reindexPayload();
+
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
+    }
+
+    function flashMessage(message, category = "success") {
+        const flash = document.createElement("div");
+        flash.className = `flash ${category}`;
+        flash.textContent = message;
+        contentRoot.prepend(flash);
+        setTimeout(() => flash.remove(), 4500);
+    }
+
+    function openSidebar(baseId) {
+        state.selectedBaseId = baseId;
+        sidebar.classList.add("open");
+        sidebar.setAttribute("aria-hidden", "false");
+        renderSidebar();
+    }
+
+    function closeSidebar() {
+        sidebar.classList.remove("open");
+        sidebar.setAttribute("aria-hidden", "true");
+    }
+
+    function buildBadge(label, count, className) {
+        return `<span class="status-pill ${className}">${label}: ${count}</span>`;
+    }
+
+    function pilotAvatar(pilot, extraClass = "") {
+        const indicator = pilot.expiry_indicator || {};
+        const indicatorClass = indicator.css_class ? ` ${indicator.css_class}` : "";
+        const pulseClass = indicator.pulse ? " avatar-expiry-pulse" : "";
+        const daysRemaining = Number.isInteger(indicator.days_remaining) ? indicator.days_remaining : null;
+        const tooltip = daysRemaining === null
+            ? "Sem data de vencimento cadastrada"
+            : (daysRemaining < 0
+                ? `Habilitação vencida há ${Math.abs(daysRemaining)} dia(s)`
+                : (daysRemaining === 0
+                    ? "Habilitação vence hoje"
+                    : `Habilitação vence em ${daysRemaining} dia(s)`));
+
+        if (pilot.foto_base64) {
+            return `<div class="avatar avatar-expiry ${extraClass}${indicatorClass}${pulseClass}" title="${escapeHtml(tooltip)}"><img src="${pilot.foto_base64}" alt="${escapeHtml(pilot.nome)}"></div>`;
+        }
+        return `<div class="avatar avatar-expiry ${extraClass}${indicatorClass}${pulseClass}" title="${escapeHtml(tooltip)}"><span>${escapeHtml(pilot.iniciais || "?")}</span></div>`;
+    }
+
+    function isCompactViewport() {
+        return compactQuery.matches;
+    }
+
+    function markerMode() {
+        const zoom = state.map ? state.map.getZoom() : 4;
+        const expandedZoom = state.compactMarkers ? 6 : 5;
+        return zoom >= expandedZoom ? "expanded" : "peek";
+    }
+
+    function renderSidebar() {
+        const base = state.baseById.get(state.selectedBaseId);
+        if (!base) {
+            sidebarBaseName.textContent = "Base";
+            sidebarBaseMeta.textContent = "Nenhum dado carregado.";
+            sidebarPilotList.innerHTML = "";
+            return;
+        }
+
+        sidebarBaseName.textContent = `${base.nome} / ${base.uf}`;
+        sidebarBaseMeta.textContent = `${base.total_pilotos} piloto(s) com o filtro atual`;
+
+        sidebarPilotList.innerHTML = base.pilotos.length ? base.pilotos.map((pilot) => `
+            <article class="pilot-card">
+                <div class="pilot-card-top">
+                    <div class="pilot-card-identity">
+                        ${pilotAvatar(pilot, "avatar-sm")}
+                        <div>
+                            <div class="primary-cell">${escapeHtml(pilot.nome)}</div>
+                            <div class="secondary-cell">Matrícula ${escapeHtml(pilot.matricula)}</div>
+                        </div>
+                    </div>
+                    <span class="status-pill ${pilot.status_class}">${escapeHtml(pilot.status_label)}</span>
+                </div>
+                <div class="pilot-card-actions">
+                    <button type="button" class="button-link secondary action-status" data-id="${pilot.id}">Alterar status</button>
+                    ${canManage ? `<button type="button" class="button-link secondary action-move" data-id="${pilot.id}">Mover para outra base</button>` : ""}
+                    <button type="button" class="button-link secondary action-history" data-id="${pilot.id}">Ver histórico</button>
+                </div>
+            </article>
+        `).join("") : `<div class="empty">Nenhum piloto nesta base para o filtro atual.</div>`;
+    }
+
+    function markerHtml(base) {
+        const compact = state.compactMarkers;
+        const mode = state.lastMarkerMode || markerMode();
+        const badges = statusOptions
+            .map((item) => {
+                const count = base.counts[item.key] || 0;
+                const label = compact ? item.label.slice(0, 3) : item.label;
+                return buildBadge(label, count, item.class);
+            })
+            .join("");
+        const avatars = (base.pilotos || [])
+            .slice(0, mode === "peek" ? (compact ? 4 : 5) : (compact ? 3 : 4))
+            .map((pilot) => pilotAvatar(pilot, mode === "peek" ? "avatar-xs" : (compact ? "avatar-xs" : "avatar-sm")))
+            .join("");
+
+        if (mode === "peek") {
+            return `
+                <button type="button" class="base-marker-card base-marker-card-peek ${compact ? "compact" : ""} base-marker-trigger" data-base-id="${base.id}">
+                    <div class="base-marker-peek-top">
+                        <strong>${escapeHtml(base.nome)}</strong>
+                        <span>${escapeHtml(base.total_pilotos)} piloto(s)</span>
+                    </div>
+                    <div class="base-marker-peek-avatars">${avatars || '<span class="secondary-cell">Sem tripulantes</span>'}</div>
+                    <div class="base-marker-peek-footer">
+                        <span class="base-marker-peek-status">${Number(base.total_pilotos || 0)} monitorados</span>
+                        <span class="base-marker-peek-link">Abrir</span>
+                    </div>
+                </button>
+            `;
+        }
+
+        return `
+            <div class="base-marker-card ${compact ? "compact" : ""}">
+                <div class="base-marker-head">
+                    <strong>${escapeHtml(base.nome)}</strong>
+                    <span>${escapeHtml(base.uf)}</span>
+                </div>
+                <div class="base-marker-total">${escapeHtml(base.total_pilotos)} piloto(s)</div>
+                <div class="base-marker-avatars">${avatars || '<span class="secondary-cell">Sem tripulantes vinculados</span>'}</div>
+                <div class="base-marker-badges">${badges}</div>
+                <button type="button" class="base-marker-button" data-base-id="${base.id}">Ver pilotos</button>
+            </div>
+        `;
+    }
+
+    function renderMapMarkers(force = false) {
+        const mode = markerMode();
+        if (!force && mode === state.lastMarkerMode) {
+            totalPilotsCounter.textContent = String((state.payload.pilotos || []).length);
+            return;
+        }
+        state.lastMarkerMode = mode;
+        state.markers.forEach((marker) => state.map.removeLayer(marker));
+        state.markers = [];
+        const compact = state.compactMarkers;
+        const iconSize = mode === "peek"
+            ? (compact ? [156, 84] : [184, 88])
+            : (compact ? [168, 136] : [220, 158]);
+        const iconAnchor = mode === "peek"
+            ? (compact ? [78, 42] : [92, 44])
+            : (compact ? [84, 68] : [110, 79]);
+
+        state.payload.bases.forEach((base) => {
+            const icon = L.divIcon({
+                className: "base-marker-wrapper",
+                html: markerHtml(base),
+                iconSize,
+                iconAnchor,
+            });
+            const marker = L.marker([base.latitude, base.longitude], { icon }).addTo(state.map);
+            state.markers.push(marker);
+        });
+        totalPilotsCounter.textContent = String((state.payload.pilotos || []).length);
+    }
+
+    function initMap() {
+        state.map = L.map("basesMap", {
+            zoomControl: true,
+            scrollWheelZoom: true,
+        }).setView([-14.235, -51.925], 4);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 18,
+            attribution: '&copy; OpenStreetMap contributors',
+        }).addTo(state.map);
+
+        renderMapMarkers(true);
+        state.map.on("zoomend", () => {
+            renderMapMarkers(false);
+        });
+    }
+
+    function showModal(modal) {
+        modalShell.classList.add("show");
+        modalShell.setAttribute("aria-hidden", "false");
+        [modalStatus, modalMovePilot, modalHistory].forEach((item) => { item.hidden = item !== modal; });
+    }
+
+    function closeModal() {
+        modalShell.classList.remove("show");
+        modalShell.setAttribute("aria-hidden", "true");
+        [modalStatus, modalMovePilot, modalHistory].forEach((item) => { item.hidden = true; });
+    }
+
+    async function loadPayload(status = state.activeStatus) {
+        const url = status ? `${endpoints.data}?status=${encodeURIComponent(status)}` : endpoints.data;
+        const response = await fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+        if (!response.ok) {
+            throw new Error("Não foi possível carregar os dados das bases.");
+        }
+        state.payload = await response.json();
+        reindexPayload();
+        state.lastMarkerMode = null;
+        renderMapMarkers(true);
+        if (state.selectedBaseId && state.baseById.has(state.selectedBaseId)) {
+            renderSidebar();
+        } else if (state.payload.bases[0]) {
+            state.selectedBaseId = state.payload.bases[0].id;
+            renderSidebar();
+        } else {
+            closeSidebar();
+        }
+    }
+
+    async function postForm(url, form) {
+        const data = new FormData(form);
+        data.append("csrf_token", csrfToken);
+        const response = await fetch(url, {
+            method: "POST",
+            body: data,
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.success) {
+            throw new Error(payload.message || "Não foi possível concluir a operação.");
+        }
+        return payload;
+    }
+
+    function getPilotById(pilotId) {
+        return state.pilotById.get(pilotId);
+    }
+
+    function fillStatusModal(pilotId) {
+        const pilot = getPilotById(pilotId);
+        if (!pilot) return;
+        statusForm.reset();
+        document.getElementById("statusPilotId").value = String(pilot.id);
+        document.getElementById("statusPilotName").value = pilot.nome;
+        document.getElementById("statusPilotCurrent").value = pilot.status_label;
+        statusForm.elements.status_novo.value = "";
+        showModal(modalStatus);
+    }
+
+    function fillMoveModal(pilotId) {
+        const pilot = getPilotById(pilotId);
+        if (!pilot) return;
+        movePilotForm.reset();
+        document.getElementById("movePilotId").value = String(pilot.id);
+        document.getElementById("movePilotName").value = pilot.nome;
+        document.getElementById("movePilotCurrentBase").value = `${pilot.base_nome} / ${pilot.base_uf}`;
+        moveSelectOptions.forEach((option) => {
+            option.hidden = option.value === String(pilot.base_id);
+        });
+        movePilotBaseSelect.value = "";
+        showModal(modalMovePilot);
+    }
+
+    async function showHistoryModal(pilotId) {
+        const response = await fetch(endpoints.pilotHistory.replace("/0/", `/${pilotId}/`), {
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.success) {
+            throw new Error(payload.message || "Não foi possível carregar o histórico.");
+        }
+        document.getElementById("historyPilotName").textContent = `${payload.piloto.nome} · ${payload.piloto.matricula}`;
+        const timeline = document.getElementById("historyTimeline");
+        timeline.innerHTML = payload.historico.length ? payload.historico.map((item) => `
+            <div class="history-item">
+                <div class="history-dot"></div>
+                <div class="history-body">
+                    <div class="history-top">
+                        <strong>${escapeHtml(item.event_type)}</strong>
+                        <span>${escapeHtml(item.alterado_em)}</span>
+                    </div>
+                    <div class="history-text">Status: ${escapeHtml(item.status_anterior || "—")} → ${escapeHtml(item.status_novo || "—")}</div>
+                    <div class="history-text">Base: ${escapeHtml(item.base_anterior_nome || "—")} → ${escapeHtml(item.base_nova_nome || "—")}</div>
+                    <div class="history-text">Alterado por: ${escapeHtml(item.alterado_por)}</div>
+                    ${item.observacao ? `<div class="history-note">${escapeHtml(item.observacao)}</div>` : ""}
+                </div>
+            </div>
+        `).join("") : `<div class="empty">Nenhum evento registrado.</div>`;
+        showModal(modalHistory);
+    }
+
+    statusFilterGroup.addEventListener("click", async (event) => {
+        const button = event.target.closest(".status-filter");
+        if (!button) return;
+        const status = button.dataset.status || "";
+        state.activeStatus = status;
+        statusButtons.forEach((item) => item.classList.toggle("active", item === button));
+        try {
+            await loadPayload(status);
+        } catch (error) {
+            flashMessage(error.message, "error");
+        }
+    });
+
+    mapRoot.addEventListener("click", (event) => {
+        const button = event.target.closest(".base-marker-button, .base-marker-trigger");
+        if (!button) return;
+        openSidebar(Number(button.dataset.baseId));
+    });
+
+    sidebarPilotList.addEventListener("click", async (event) => {
+        const statusButton = event.target.closest(".action-status");
+        const moveButton = event.target.closest(".action-move");
+        const historyButton = event.target.closest(".action-history");
+        try {
+            if (statusButton) fillStatusModal(Number(statusButton.dataset.id));
+            if (moveButton) fillMoveModal(Number(moveButton.dataset.id));
+            if (historyButton) await showHistoryModal(Number(historyButton.dataset.id));
+        } catch (error) {
+            flashMessage(error.message, "error");
+        }
+    });
+
+    document.getElementById("sidebarCloseBtn").addEventListener("click", closeSidebar);
+
+    modalShell.addEventListener("click", (event) => {
+        if (event.target.hasAttribute("data-close-modal")) {
+            closeModal();
+        }
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+            if (modalShell.classList.contains("show")) {
+                closeModal();
+            }
+            if (sidebar.classList.contains("open")) {
+                closeSidebar();
+            }
+        }
+    });
+
+    statusForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const pilotId = event.currentTarget.elements.pilot_id.value;
+        try {
+            await postForm(endpoints.pilotStatus.replace("/0/", `/${pilotId}/`), event.currentTarget);
+            closeModal();
+            await loadPayload();
+            flashMessage("Status atualizado com sucesso.");
+        } catch (error) {
+            flashMessage(error.message, "error");
+        }
+    });
+
+    movePilotForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const pilotId = event.currentTarget.elements.pilot_id.value;
+        try {
+            await postForm(endpoints.pilotMove.replace("/0/", `/${pilotId}/`), event.currentTarget);
+            closeModal();
+            await loadPayload();
+            flashMessage("Piloto movido com sucesso.");
+        } catch (error) {
+            flashMessage(error.message, "error");
+        }
+    });
+
+    initMap();
+
+    window.addEventListener("resize", () => {
+        if (resizeRaf) return;
+        resizeRaf = window.requestAnimationFrame(() => {
+            resizeRaf = null;
+            const nextCompact = isCompactViewport();
+            if (nextCompact !== state.compactMarkers) {
+                state.compactMarkers = nextCompact;
+                state.lastMarkerMode = null;
+                renderMapMarkers(true);
+            }
+            if (state.map) {
+                state.map.invalidateSize();
+            }
+        });
+    });
+
+    if (typeof compactQuery.addEventListener === "function") {
+        compactQuery.addEventListener("change", (event) => {
+            const nextCompact = event.matches;
+            if (nextCompact !== state.compactMarkers) {
+                state.compactMarkers = nextCompact;
+                state.lastMarkerMode = null;
+                renderMapMarkers(true);
+            }
+            if (state.map) {
+                state.map.invalidateSize();
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}
+
+<!-- FILE: backend/src/controle_treinamentos/templates/treinamentos_list.html -->
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Treinamentos</h1>
+        <p class="page-subtitle">Acompanhe o que já venceu, o que vence em breve e o que está regular.</p>
+    </div>
+    {% if can_access('treinamentos:create') %}
+    <a class="button-link" href="{{ url_for('treinamentos_new') }}">Adicionar treinamento</a>
+    {% endif %}
+</div>
+
+<section class="panel">
+    <div class="quick-filters">
+        <a class="quick-filter {% if filtros.periodo == '30' %}active{% endif %}" href="{{ url_for('treinamentos_list', tripulante=filtros.tripulante, equipamento=filtros.equipamento, tipo=filtros.tipo, status=filtros.status, periodo='30') }}">30 dias</a>
+        <a class="quick-filter {% if filtros.periodo == '60' %}active{% endif %}" href="{{ url_for('treinamentos_list', tripulante=filtros.tripulante, equipamento=filtros.equipamento, tipo=filtros.tipo, status=filtros.status, periodo='60') }}">60 dias</a>
+        <a class="quick-filter {% if filtros.periodo == '90' %}active{% endif %}" href="{{ url_for('treinamentos_list', tripulante=filtros.tripulante, equipamento=filtros.equipamento, tipo=filtros.tipo, status=filtros.status, periodo='90') }}">90 dias</a>
+    </div>
+
+    <div class="filters-toggle-row print-hide">
+        <button type="button" class="button-link secondary filters-toggle-btn" id="trainingFiltersToggle" aria-expanded="false" aria-controls="trainingFiltersPanel">Mostrar filtros detalhados</button>
+    </div>
+
+    <div class="filters-panel {% if filtros.tripulante or filtros.equipamento or filtros.tipo or filtros.status or filtros.periodo %}{% else %}collapsed{% endif %}" id="trainingFiltersPanel">
+        <form class="filters filters-wide" method="get">
+            <select name="tripulante">
+                <option value="">Tripulante</option>
+                {% for row in tripulantes %}
+                <option value="{{ row.id }}" {% if filtros.tripulante == row.id|string %}selected{% endif %}>{{ row.nome }}</option>
+                {% endfor %}
+            </select>
+            <select name="equipamento">
+                <option value="">Equipamento</option>
+                {% for row in equipamentos %}
+                <option value="{{ row.id }}" {% if filtros.equipamento == row.id|string %}selected{% endif %}>{{ row.nome }}</option>
+                {% endfor %}
+            </select>
+            <select name="tipo">
+                <option value="">Tipo de treinamento</option>
+                {% for row in tipos %}
+                <option value="{{ row.id }}" {% if filtros.tipo == row.id|string %}selected{% endif %}>{{ row.nome }}</option>
+                {% endfor %}
+            </select>
+            <select name="status">
+                <option value="">Status</option>
+                {% for item in ["vencido", "a vencer", "regular", "sem informação"] %}
+                <option value="{{ item }}" {% if filtros.status == item %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+            <select name="periodo">
+                <option value="">Período de vencimento</option>
+                <option value="7" {% if filtros.periodo == "7" %}selected{% endif %}>Até 7 dias</option>
+                <option value="30" {% if filtros.periodo == "30" %}selected{% endif %}>Até 30 dias</option>
+                <option value="60" {% if filtros.periodo == "60" %}selected{% endif %}>Até 60 dias</option>
+                <option value="90" {% if filtros.periodo == "90" %}selected{% endif %}>Até 90 dias</option>
+                <option value="expired" {% if filtros.periodo == "expired" %}selected{% endif %}>Vencidos</option>
+            </select>
+            <button type="submit">Aplicar filtros</button>
+            <a class="button-link secondary" href="{{ url_for('treinamentos_list') }}">Limpar filtros</a>
+        </form>
+    </div>
+
+    <section class="summary-grid compact-summary-grid">
+        <div class="summary-card"><strong>Total</strong><span>{{ resumo.total }}</span></div>
+        <div class="summary-card"><strong>Vencidos</strong><span>{{ resumo.vencido }}</span></div>
+        <div class="summary-card"><strong>A vencer</strong><span>{{ resumo["a vencer"] }}</span></div>
+        <div class="summary-card"><strong>Regulares</strong><span>{{ resumo.regular }}</span></div>
+    </section>
+
+    <div class="table-wrap">
+        <table class="data-table responsive-cards">
+            <thead>
+                <tr>
+                    <th>Tripulante</th>
+                    <th>Equipamento</th>
+                    <th>Tipo de treinamento</th>
+                    <th>Realização</th>
+                    <th>Vencimento</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in treinamentos %}
+                <tr>
+                    <td data-label="Tripulante"><div class="primary-cell">{{ row.tripulante_nome }}</div></td>
+                    <td data-label="Equipamento">{{ row.equipamento_nome or "-" }}</td>
+                    <td data-label="Tipo de treinamento">{{ row.tipo_treinamento_nome }}</td>
+                    <td data-label="Realização">{{ row.data_realizacao|br_date }}</td>
+                    <td data-label="Vencimento"><span class="date-strong">{{ row.data_vencimento|br_date }}</span></td>
+                    <td data-label="Status"><span class="status-pill {{ row.status_class }}">{{ row.status_calculado }}</span></td>
+                    <td class="actions" data-label="Ações">
+                        {% if can_access('treinamentos:edit') %}
+                        <a href="{{ url_for('treinamentos_edit', treinamento_id=row.id) }}">Editar</a>
+                        {% endif %}
+                        {% if can_access('treinamentos:delete') %}
+                        <form method="post" action="{{ url_for('treinamentos_delete', treinamento_id=row.id) }}" onsubmit="return confirm('Excluir este treinamento?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="link-danger">Excluir</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="empty">Nenhum treinamento encontrado com os filtros atuais.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination-bar">
+        <div class="pagination-meta">Página {{ pagination.page }} de {{ pagination.pages }} · {{ pagination.total }} registros</div>
+        <div class="pagination-actions">
+            {% if pagination.has_prev %}
+            <a class="button-link secondary" href="{{ pagination.prev_url }}">Anterior</a>
+            {% endif %}
+            {% if pagination.has_next %}
+            <a class="button-link secondary" href="{{ pagination.next_url }}">Próxima</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+(() => {
+    const toggle = document.getElementById("trainingFiltersToggle");
+    const panel = document.getElementById("trainingFiltersPanel");
+    if (!toggle || !panel) return;
+    const mobileQuery = window.matchMedia("(max-width: 900px)");
+
+    function syncCollapsedState() {
+        const shouldCollapse = mobileQuery.matches;
+        if (!shouldCollapse) {
+            panel.classList.remove("collapsed");
+            toggle.setAttribute("aria-expanded", "true");
+            toggle.textContent = "Filtros detalhados";
+            return;
+        }
+
+        const expanded = !panel.classList.contains("collapsed");
+        toggle.setAttribute("aria-expanded", String(expanded));
+        toggle.textContent = expanded ? "Ocultar filtros detalhados" : "Mostrar filtros detalhados";
+    }
+
+    toggle.addEventListener("click", () => {
+        panel.classList.toggle("collapsed");
+        syncCollapsedState();
+    });
+
+    syncCollapsedState();
+    if (typeof mobileQuery.addEventListener === "function") {
+        mobileQuery.addEventListener("change", syncCollapsedState);
+    } else {
+        window.addEventListener("resize", syncCollapsedState, { passive: true });
+    }
+})();
+</script>
+{% endblock %}
+
+<!-- FILE: backend/src/controle_treinamentos/templates/treinamentos_consolidado.html -->
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Consolidado de habilitações</h1>
+        <p class="page-subtitle">Visão operacional consolidada de vencimentos de habilitações por tripulante.</p>
+    </div>
+    <div class="page-header-actions print-hide">
+        <a class="button-link secondary" href="{{ url_for('treinamentos_list') }}">Voltar para treinamentos</a>
+        <a class="button-link secondary" href="{{ url_for('treinamentos_consolidado_export_csv', nome=filtros.nome, base=filtros.base, status=filtros.status, tipo=filtros.tipo, ordenacao=filtros.ordenacao) }}">Exportar CSV</a>
+        <a class="button-link" target="_blank" rel="noopener noreferrer" href="{{ url_for('treinamentos_consolidado_relatorio', nome=filtros.nome, base=filtros.base, status=filtros.status, tipo=filtros.tipo, ordenacao=filtros.ordenacao, auto_print=1) }}">Imprimir visualização</a>
+        <a class="button-link secondary" target="_blank" rel="noopener noreferrer" href="{{ url_for('treinamentos_consolidado_relatorio', nome=filtros.nome, base=filtros.base, status=filtros.status, tipo=filtros.tipo, ordenacao=filtros.ordenacao) }}">Visualizar impressão</a>
+    </div>
+</div>
+
+<section class="panel">
+    <section class="consolidated-brand-banner print-hide">
+        <div class="consolidated-brand-left">
+            <img class="consolidated-brand-logo" src="{{ url_for('static', filename='logo-brasilvida.svg') }}" alt="Brasilvida">
+            <div>
+<div class="consolidated-brand-kicker">Treinamentos Brasil Vida</div>
+                <div class="consolidated-brand-title">Relatório consolidado de habilitações</div>
+                <div class="consolidated-brand-subtitle">Padrão operacional corporativo para vencimentos e criticidade.</div>
+            </div>
+        </div>
+        <div class="consolidated-brand-meta">
+            <div class="consolidated-brand-meta-label">Emissão</div>
+            <div class="consolidated-brand-meta-value">{{ emitted_at }}</div>
+        </div>
+    </section>
+
+    <header class="report-print-header report-only">
+        <div class="report-brand-row">
+            <img class="report-logo" src="{{ url_for('static', filename='logo-brasilvida.svg') }}" alt="Brasilvida">
+            <div class="report-brand-meta">
+                <div class="report-doc-title">Consolidado de Habilitações</div>
+                <div class="report-doc-subtitle">Relatório operacional de vencimentos por tripulante</div>
+            </div>
+        </div>
+        <div class="report-issued-at">Emissão: {{ emitted_at }}</div>
+    </header>
+
+    <div class="state-note print-hide" style="margin-bottom: 12px;">
+        Emissão operacional: use <strong>Imprimir visualização</strong> para gerar o documento e <strong>Exportar CSV</strong> para análise externa com os filtros atuais.
+    </div>
+    <div class="filters-toggle-row print-hide">
+        <button type="button" class="button-link secondary filters-toggle-btn" id="consolidatedFiltersToggle" aria-expanded="false" aria-controls="consolidatedFiltersPanel">Mostrar filtros</button>
+    </div>
+
+    <div class="filters-panel {% if filtros.nome or filtros.base or filtros.status or filtros.tipo or filtros.ordenacao != 'criticidade' %}{% else %}collapsed{% endif %}" id="consolidatedFiltersPanel">
+        <form class="filters filters-wide" method="get">
+            <input type="text" name="nome" placeholder="Buscar tripulante" value="{{ filtros.nome }}">
+            <select name="base">
+                <option value="">Base</option>
+                {% for row in base_options %}
+                <option value="{{ row.nome }}" {% if filtros.base == row.nome %}selected{% endif %}>{{ row.nome }}{% if row.uf and row.uf != '--' %} / {{ row.uf }}{% endif %}</option>
+                {% endfor %}
+            </select>
+            <select name="tipo">
+                <option value="">Tipo de habilitação</option>
+                {% for row in tipo_options %}
+                <option value="{{ row.id }}" {% if filtros.tipo == row.id|string %}selected{% endif %}>{{ row.nome }}</option>
+                {% endfor %}
+            </select>
+            <select name="status">
+                <option value="">Status</option>
+                {% for item in status_options %}
+                <option value="{{ item.key }}" {% if filtros.status == item.key %}selected{% endif %}>{{ item.label }}</option>
+                {% endfor %}
+            </select>
+            <select name="ordenacao">
+                <option value="criticidade" {% if filtros.ordenacao == "criticidade" %}selected{% endif %}>Ordenar por criticidade</option>
+                <option value="vencimento" {% if filtros.ordenacao == "vencimento" %}selected{% endif %}>Ordenar por vencimento</option>
+            </select>
+            <button type="submit">Aplicar filtros</button>
+            <a class="button-link secondary" href="{{ url_for('treinamentos_consolidado') }}">Limpar filtros</a>
+        </form>
+    </div>
+
+    <section class="summary-grid consolidated-summary-grid">
+        <div class="summary-card"><strong>Total de tripulantes</strong><span>{{ summary.total_tripulantes }}</span></div>
+        <div class="summary-card"><strong>Total de habilitações</strong><span>{{ summary.total_habilitacoes }}</span></div>
+        <div class="summary-card"><strong>Em dia</strong><span>{{ summary.total_em_dia }}</span></div>
+        <div class="summary-card"><strong>A vencer até 90 dias</strong><span>{{ summary.total_vencer_90 }}</span></div>
+        <div class="summary-card"><strong>A vencer até 60 dias</strong><span>{{ summary.total_vencer_60 }}</span></div>
+        <div class="summary-card"><strong>A vencer até 30 dias</strong><span>{{ summary.total_vencer_30 }}</span></div>
+        <div class="summary-card"><strong>Crítico até 15 dias</strong><span>{{ summary.total_critico_15 }}</span></div>
+        <div class="summary-card"><strong>Vencido</strong><span>{{ summary.total_vencido }}</span></div>
+    </section>
+
+    <div class="consolidated-table-wrap">
+        <div class="table-wrap">
+            <table class="data-table consolidated-table">
+                <thead>
+                    <tr>
+                        <th>Habilitação</th>
+                        <th>Data de vencimento</th>
+                        <th>Dias restantes</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for group in tripulantes_grouped %}
+                    <tr class="consolidated-group-row">
+                        <td colspan="5">
+                            <div class="consolidated-group-header">
+                                <div>
+                                    <strong>{{ group.tripulante_nome }}</strong>
+                                    <span>Base: {{ group.base or "-" }}</span>
+                                </div>
+                                <div class="consolidated-group-meta">Função/Cargo: {{ group.funcao_cargo or "-" }}</div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% for item in group.habilitacoes %}
+                    <tr class="{% if item.status_key in ['vencido', 'critico_15'] %}consolidated-row-critical{% endif %}">
+                        <td>{{ item.habilitacao_nome }}</td>
+                        <td><span class="date-strong">{{ item.data_vencimento }}</span></td>
+                        <td>{{ item.days_remaining_label }}</td>
+                        <td><span class="status-pill {{ item.status_class }}{% if item.pulse %} status-pill-pulse{% endif %}">{{ item.status_label }}</span></td>
+                        <td class="actions">
+                            {% if item.treinamento_id %}
+                            <a href="{{ url_for('treinamentos_edit', treinamento_id=item.treinamento_id) }}">Abrir</a>
+                            {% else %}
+                            <span class="secondary-cell">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr><td colspan="5" class="empty">Nenhum registro encontrado para os filtros atuais.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <section class="consolidated-mobile-list">
+        {% for group in tripulantes_grouped %}
+        <article class="consolidated-mobile-group">
+            <header class="consolidated-mobile-group-header">
+                <strong>{{ group.tripulante_nome }}</strong>
+                <span>Base: {{ group.base or "-" }}</span>
+                <span>Função/Cargo: {{ group.funcao_cargo or "-" }}</span>
+            </header>
+            {% for item in group.habilitacoes %}
+            <div class="consolidated-mobile-item {% if item.status_key in ['vencido', 'critico_15'] %}consolidated-row-critical{% endif %}">
+                <div class="consolidated-mobile-item-name">{{ item.habilitacao_nome }}</div>
+                <div class="consolidated-mobile-line">
+                    <strong>Vencimento</strong>
+                    <span class="date-strong">{{ item.data_vencimento }}</span>
+                </div>
+                <div class="consolidated-mobile-line">
+                    <strong>Dias restantes</strong>
+                    <span>{{ item.days_remaining_label }}</span>
+                </div>
+                <div class="consolidated-mobile-line">
+                    <strong>Status</strong>
+                    <span class="status-pill {{ item.status_class }}{% if item.pulse %} status-pill-pulse{% endif %}">{{ item.status_label }}</span>
+                </div>
+                {% if item.treinamento_id %}
+                <div class="consolidated-mobile-line">
+                    <strong>Ação</strong>
+                    <a href="{{ url_for('treinamentos_edit', treinamento_id=item.treinamento_id) }}">Abrir</a>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </article>
+        {% else %}
+        <div class="empty">Nenhum registro encontrado para os filtros atuais.</div>
+        {% endfor %}
+    </section>
+
+    <footer class="report-print-footer report-only">
+Treinamentos Brasil Vida · Consolidado de habilitações · Emissão {{ emitted_at }}
+    </footer>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(() => {
+    const toggle = document.getElementById("consolidatedFiltersToggle");
+    const panel = document.getElementById("consolidatedFiltersPanel");
+    if (!toggle || !panel) return;
+    const mobileQuery = window.matchMedia("(max-width: 900px)");
+
+    function syncCollapsedState() {
+        const shouldCollapse = mobileQuery.matches;
+        if (!shouldCollapse) {
+            panel.classList.remove("collapsed");
+            toggle.setAttribute("aria-expanded", "true");
+            toggle.textContent = "Filtros";
+            return;
+        }
+
+        const expanded = !panel.classList.contains("collapsed");
+        toggle.setAttribute("aria-expanded", String(expanded));
+        toggle.textContent = expanded ? "Ocultar filtros" : "Mostrar filtros";
+    }
+
+    toggle.addEventListener("click", () => {
+        panel.classList.toggle("collapsed");
+        syncCollapsedState();
+    });
+
+    syncCollapsedState();
+    if (typeof mobileQuery.addEventListener === "function") {
+        mobileQuery.addEventListener("change", syncCollapsedState);
+    } else {
+        window.addEventListener("resize", syncCollapsedState, { passive: true });
+    }
+})();
+
+</script>
+{% endblock %}
+
+<!-- FILE: backend/src/controle_treinamentos/templates/produtividade_consolidado.html -->
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Consolidado de produtividade</h1>
+        <p class="page-subtitle">Competência {{ competencia_label }} · visão executiva de piso mínimo x produtividade apurada.</p>
+    </div>
+    <div class="page-header-actions print-hide">
+        <a class="button-link secondary" href="{{ url_for('produtividade_adicionais_list', competencia=competencia) }}">Adicionais excepcionais</a>
+        <a class="button-link secondary" href="{{ url_for('produtividade_painel_tv', competencia=competencia) }}">Painel TV</a>
+        <button type="button" class="button-link" onclick="window.print()">Imprimir visualização</button>
+    </div>
+</div>
+
+<section class="panel">
+    <section class="consolidated-brand-banner print-hide">
+        <div class="consolidated-brand-left">
+            <img class="consolidated-brand-logo" src="{{ url_for('static', filename='logo-brasilvida.svg') }}" alt="Brasilvida">
+            <div>
+<div class="consolidated-brand-kicker">Treinamentos Brasil Vida</div>
+                <div class="consolidated-brand-title">Relatório consolidado de produtividade</div>
+                <div class="consolidated-brand-subtitle">Padrão operacional corporativo para fechamento mensal e conferência.</div>
+            </div>
+        </div>
+        <div class="consolidated-brand-meta">
+            <div class="consolidated-brand-meta-label">Emissão</div>
+            <div class="consolidated-brand-meta-value">{{ emitted_at }}</div>
+        </div>
+    </section>
+
+    <header class="report-print-header report-only">
+        <div class="report-brand-row">
+            <img class="report-logo" src="{{ url_for('static', filename='logo-brasilvida.svg') }}" alt="Brasilvida">
+            <div class="report-brand-meta">
+                <div class="report-doc-title">Consolidado de Produtividade</div>
+                <div class="report-doc-subtitle">Relatório operacional de bonificação por tripulante</div>
+            </div>
+        </div>
+        <div class="report-issued-at">Emissão: {{ emitted_at }}</div>
+    </header>
+
+    <section class="competencia-history print-hide">
+        <div class="competencia-history-title">Histórico de bonificação disponível</div>
+        <div class="competencia-history-list">
+            {% for item in competencias_disponiveis %}
+            <a class="competencia-chip {% if item == competencia %}active{% endif %}" href="{{ url_for('produtividade_consolidado', competencia=item, nome=filtros.nome, base=filtros.base, funcao=filtros.funcao, categoria=filtros.categoria, ordenacao=filtros.ordenacao) }}">
+                {{ format_competencia_label(item) }}
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+
+    <div class="state-note print-hide" style="margin-bottom: 12px;">
+        Emissão operacional: registre <strong>Missões</strong> e <strong>Pernoites</strong>, valide <strong>Adicionais</strong> e feche a competência com conferência.
+    </div>
+
+    <div class="filters-toggle-row print-hide">
+        <button type="button" class="button-link secondary filters-toggle-btn" id="productivityFiltersToggle" aria-expanded="false" aria-controls="productivityFiltersPanel">Mostrar filtros</button>
+    </div>
+
+    <div class="filters-panel {% if filtros.nome or filtros.base or filtros.funcao or filtros.categoria or filtros.ordenacao != 'valor_final' %}{% else %}collapsed{% endif %}" id="productivityFiltersPanel">
+        <form class="filters filters-wide" method="get">
+            <label>Competência<input type="month" name="competencia" value="{{ competencia }}"></label>
+            <input type="text" name="nome" placeholder="Buscar tripulante" value="{{ filtros.nome }}">
+            <select name="base">
+                <option value="">Base</option>
+                {% for item in bases %}
+                <option value="{{ item }}" {% if filtros.base == item %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+            <select name="funcao">
+                <option value="">Função</option>
+                {% for item in funcoes %}
+                <option value="{{ item }}" {% if filtros.funcao == item %}selected{% endif %}>{{ item|title }}</option>
+                {% endfor %}
+            </select>
+            <select name="categoria">
+                <option value="">Categoria</option>
+                {% for item in categorias %}
+                <option value="{{ item }}" {% if filtros.categoria == item %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+            <select name="ordenacao">
+                <option value="valor_final" {% if filtros.ordenacao == "valor_final" %}selected{% endif %}>Ordenar por maior valor final</option>
+                <option value="produtividade" {% if filtros.ordenacao == "produtividade" %}selected{% endif %}>Ordenar por maior produtividade</option>
+                <option value="base" {% if filtros.ordenacao == "base" %}selected{% endif %}>Ordenar por base</option>
+                <option value="nome" {% if filtros.ordenacao == "nome" %}selected{% endif %}>Ordenar por nome</option>
+            </select>
+            <button type="submit">Aplicar filtros</button>
+            <a class="button-link secondary" href="{{ url_for('produtividade_consolidado') }}">Limpar filtros</a>
+        </form>
+    </div>
+
+    <section class="summary-grid consolidated-summary-grid">
+        <div class="summary-card"><strong>Tripulantes processados</strong><span>{{ summary.total_tripulantes }}</span></div>
+        <div class="summary-card"><strong>Total de missões</strong><span>{{ summary.total_missoes }}</span></div>
+        <div class="summary-card"><strong>Total de pernoites</strong><span>{{ summary.total_pernoites }}</span></div>
+        <div class="summary-card"><strong>Total piso mínimo</strong><span>{{ moeda(summary.total_pago_piso) }}</span></div>
+        <div class="summary-card"><strong>Total por produtividade</strong><span>{{ moeda(summary.total_pago_produtividade) }}</span></div>
+        <div class="summary-card"><strong>Valor consolidado</strong><span>{{ moeda(summary.valor_total_consolidado) }}</span></div>
+        <div class="summary-card"><strong>Categorias A/B</strong><span>{{ summary.categoria_a }} / {{ summary.categoria_b }}</span></div>
+        <div class="summary-card"><strong>Com adicionais ativos</strong><span>{{ summary.tripulantes_com_adicionais }}</span></div>
+    </section>
+
+    <div class="table-wrap">
+        <table class="data-table consolidated-table responsive-cards">
+            <thead>
+                <tr>
+                    <th>Tripulante</th>
+                    <th>Base / Perfil</th>
+                    <th>Missões</th>
+                    <th>Pernoites</th>
+                    <th>Piso mínimo</th>
+                    <th>Produtividade</th>
+                    <th>Valor final</th>
+                    <th>Critério</th>
+                    <th>Conferência</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr class="{% if row.criterio_fechamento == 'piso mínimo' %}consolidated-row-critical{% endif %}">
+                    <td data-label="Tripulante"><strong>{{ row.tripulante_nome }}</strong></td>
+                    <td data-label="Base / Perfil">{{ row.base }}<div class="secondary-cell">{{ row.funcao|title }} · {{ row.categoria }}</div></td>
+                    <td data-label="Missões">{{ row.total_missoes_validas }}</td>
+                    <td data-label="Pernoites">{{ row.total_pernoites_cobertura + row.total_pernoites_operacionais_elegiveis }}</td>
+                    <td data-label="Piso mínimo">{{ moeda(row.piso_minimo_mensal) }}</td>
+                    <td data-label="Produtividade">{{ moeda(row.total_produtividade) }}</td>
+                    <td data-label="Valor final"><span class="date-strong">{{ moeda(row.valor_final_mes) }}</span></td>
+                    <td data-label="Critério"><span class="status-pill {% if row.criterio_fechamento == 'piso mínimo' %}status-yellow{% else %}status-green{% endif %}">{{ row.criterio_fechamento }}</span></td>
+                    <td data-label="Conferência">
+                        {% if row.conferencia %}
+                        <div class="secondary-cell"><span class="status-pill status-green">Conferido</span></div>
+                        <div class="secondary-cell">{{ row.conferencia.conferido_por_nome }}</div>
+                        <div class="secondary-cell">{{ row.conferencia.conferido_em|br_datetime }}</div>
+                        {% else %}
+                        <span class="status-pill status-gray">Pendente</span>
+                        {% endif %}
+                    </td>
+                    <td class="actions" data-label="Ações">
+                        <form method="post" action="{{ url_for('produtividade_conferencia_set') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="tripulante_id" value="{{ row.tripulante_id }}">
+                            <input type="hidden" name="competencia" value="{{ competencia }}">
+                            <input type="hidden" name="next" value="{{ request.full_path }}">
+                            <input type="hidden" name="action" value="{% if row.conferencia %}unmark{% else %}mark{% endif %}">
+                            <button type="submit" class="{% if row.conferencia %}link-danger{% endif %}">
+                                {% if row.conferencia %}Desmarcar{% else %}Marcar conferido{% endif %}
+                            </button>
+                        </form>
+                        <a href="{{ url_for('produtividade_tripulante', tripulante_id=row.tripulante_id, competencia=competencia) }}">Relatório</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="10" class="empty">Nenhum tripulante encontrado para os filtros informados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if summary.total_missoes == 0 and summary.total_pernoites == 0 %}
+    <div class="empty" style="margin-top: 1rem;">
+        Nenhum lançamento operacional encontrado nesta competência.
+        Cadastre primeiro em
+        <a href="{{ url_for('missoes_new') }}">Missões</a>,
+        <a href="{{ url_for('pernoites_new') }}">Pernoites</a>
+        e, se necessário,
+        <a href="{{ url_for('produtividade_adicionais_new') }}">Adicional excepcional</a>.
+    </div>
+    {% endif %}
+
+    <footer class="report-print-footer report-only">
+Treinamentos Brasil Vida · Consolidado de produtividade · Emissão {{ emitted_at }}
+    </footer>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(() => {
+    const toggle = document.getElementById("productivityFiltersToggle");
+    const panel = document.getElementById("productivityFiltersPanel");
+    if (!toggle || !panel) return;
+    const mobileQuery = window.matchMedia("(max-width: 900px)");
+
+    function syncCollapsedState() {
+        const shouldCollapse = mobileQuery.matches;
+        if (!shouldCollapse) {
+            panel.classList.remove("collapsed");
+            toggle.setAttribute("aria-expanded", "true");
+            toggle.textContent = "Filtros";
+            return;
+        }
+
+        const expanded = !panel.classList.contains("collapsed");
+        toggle.setAttribute("aria-expanded", String(expanded));
+        toggle.textContent = expanded ? "Ocultar filtros" : "Mostrar filtros";
+    }
+
+    toggle.addEventListener("click", () => {
+        panel.classList.toggle("collapsed");
+        syncCollapsedState();
+    });
+
+    syncCollapsedState();
+    if (typeof mobileQuery.addEventListener === "function") {
+        mobileQuery.addEventListener("change", syncCollapsedState);
+    } else {
+        window.addEventListener("resize", syncCollapsedState, { passive: true });
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("auto_print") === "1") {
+        setTimeout(() => window.print(), 120);
+    }
+})();
+</script>
+{% endblock %}

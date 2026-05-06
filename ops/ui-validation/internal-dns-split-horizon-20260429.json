@@ -1,0 +1,69 @@
+{
+  "schema": "internal_dns_split_horizon_v1",
+  "target": "controle.brasilvida.app.br",
+  "executed_at": "2026-04-29",
+  "frontend_repository_touched": false,
+  "change_applied": false,
+  "desired_internal_answer": {
+    "name": "controle.brasilvida.app.br",
+    "type": "A",
+    "value": "192.168.25.33",
+    "scope": "internal LAN DNS only"
+  },
+  "current_internal_dns": {
+    "primary_dns_from_dhcp": "192.168.25.112",
+    "server_hostname": "DNS-BRVIDA.brasilvida.local",
+    "server_ip": "192.168.25.112",
+    "active": true,
+    "current_answer": {
+      "name": "controle.brasilvida.app.br",
+      "type": "A",
+      "value": "201.16.254.25",
+      "ttl_seconds_observed": 2905,
+      "authoritative": false
+    },
+    "soa_observed_for_brasilvida_app_br": {
+      "primary_server": "b.sec.dns.br",
+      "administrator": "hostmaster.registro.br",
+      "serial": "2026111000",
+      "meaning": "internal DNS currently forwards/recurses to public authoritative DNS for brasilvida.app.br"
+    },
+    "conflicts": {
+      "controle_cname": "none observed",
+      "app_brasilvida_app_br": "NXDOMAIN via internal DNS"
+    }
+  },
+  "access_check": {
+    "current_identity": "brasilvida\\fabrizzio.araujo",
+    "winrm_192_168_25_112": "reachable but IP authentication blocked without TrustedHosts/explicit credentials",
+    "winrm_dns_brvida_hostname": "security error",
+    "admin_share_dns_brvida": "access denied",
+    "local_dnsserver_powershell_module": "not installed",
+    "dnscmd": "not available",
+    "result": "no administrative path available in this session"
+  },
+  "safe_change_plan_windows_dns": {
+    "preferred_narrow_zone": [
+      "Add-DnsServerPrimaryZone -Name \"controle.brasilvida.app.br\" -ReplicationScope \"Domain\" -DynamicUpdate None",
+      "Add-DnsServerResourceRecordA -ZoneName \"controle.brasilvida.app.br\" -Name \"@\" -IPv4Address \"192.168.25.33\" -TimeToLive 00:05:00",
+      "Clear-DnsServerCache -Force"
+    ],
+    "why_narrow_zone": "avoids shadowing the entire public brasilvida.app.br zone and changes only the requested hostname"
+  },
+  "rollback_plan_windows_dns": [
+    "Remove-DnsServerZone -Name \"controle.brasilvida.app.br\" -Force",
+    "Clear-DnsServerCache -Force",
+    "Confirm Resolve-DnsName controle.brasilvida.app.br -Server 192.168.25.112 returns 201.16.254.25 or public recursive answer again"
+  ],
+  "post_change_validation": [
+    "Resolve-DnsName controle.brasilvida.app.br -Server 192.168.25.112 -Type A must return 192.168.25.33",
+    "ipconfig /flushdns on a LAN client or wait TTL/cache expiration",
+    "Resolve-DnsName controle.brasilvida.app.br -Type A from LAN client must return 192.168.25.33",
+    "GET http://controle.brasilvida.app.br/ must return Server: Caddy and title Treinamentos Brasil Vida",
+    "GET http://controle.brasilvida.app.br/index.html must return 200 Server: Caddy",
+    "GET http://controle.brasilvida.app.br/asset-manifest.json must return 200 Server: Caddy",
+    "No response body should contain fw - Login or csrf-magic.js from gateway UI"
+  ],
+  "closure": "bloqueado",
+  "blocker": "missing administrative access to internal DNS server 192.168.25.112"
+}

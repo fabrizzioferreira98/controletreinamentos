@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Tipos de Treinamento</h1>
+        <p class="page-subtitle">Organize os tipos de treinamento e defina a periodicidade de cada um.</p>
+    </div>
+    {% if can_access('tipos_treinamento:create') %}
+    <a class="button-link" href="{{ url_for('cadastros.tipos_new') }}">Adicionar tipo</a>
+    {% endif %}
+</div>
+<section class="panel">
+    <div class="table-wrap">
+        <table class="data-table responsive-cards">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Periodicidade (meses)</th>
+                    <th>Categoria</th>
+                    <th>Ativo</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in tipos %}
+                <tr>
+                    <td data-label="Nome"><div class="primary-cell">{{ row.nome }}</div></td>
+                    <td data-label="Periodicidade">{{ row.periodicidade_meses }}</td>
+                    <td data-label="Categoria">
+                        <span class="status-pill {% if row.exige_equipamento %}status-blue{% else %}status-purple{% endif %}">
+                            {{ "Por equipamento" if row.exige_equipamento else "Especiais" }}
+                        </span>
+                    </td>
+                    <td data-label="Ativo"><span class="status-pill {% if row.ativo %}status-green{% else %}status-gray{% endif %}">{{ "Ativo" if row.ativo else "Inativo" }}</span></td>
+                    <td class="actions" data-label="Ações">
+                        {% if can_access('tipos_treinamento:edit') %}
+                        <a href="{{ url_for('cadastros.tipos_edit', tipo_id=row.id) }}">Editar</a>
+                        {% endif %}
+                        {% if can_access('tipos_treinamento:delete') %}
+                        <form method="post" action="{{ url_for('cadastros.tipos_delete', tipo_id=row.id) }}" onsubmit="return confirm('Excluir este tipo de treinamento?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="link-danger">Excluir</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="empty">Ainda não há tipos de treinamento cadastrados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="pagination-bar">
+        <div class="pagination-meta">Página {{ pagination.page }} de {{ pagination.pages }} · {{ pagination.total }} registros</div>
+        <div class="pagination-actions">
+            {% if pagination.has_prev %}
+            <a class="button-link secondary" href="{{ pagination.prev_url }}">Anterior</a>
+            {% endif %}
+            {% if pagination.has_next %}
+            <a class="button-link secondary" href="{{ pagination.next_url }}">Próxima</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

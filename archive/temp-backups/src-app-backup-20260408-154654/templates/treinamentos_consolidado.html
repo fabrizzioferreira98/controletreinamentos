@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Consolidado de habilitações</h1>
+        <p class="page-subtitle">Visão operacional consolidada de vencimentos de habilitações por tripulante.</p>
+    </div>
+    <div class="page-header-actions print-hide">
+        <a class="button-link secondary" href="{{ url_for('cadastros.treinamentos_list') }}">Voltar para treinamentos</a>
+        <a class="button-link secondary" href="{{ url_for('cadastros.treinamentos_consolidado_export_csv', nome=filtros.nome, base=filtros.base, status=filtros.status, tipo=filtros.tipo, ordenacao=filtros.ordenacao) }}">Exportar CSV</a>
+        <a class="button-link" target="_blank" rel="noopener noreferrer" href="{{ url_for('cadastros.treinamentos_consolidado_relatorio', nome=filtros.nome, base=filtros.base, status=filtros.status, tipo=filtros.tipo, ordenacao=filtros.ordenacao, auto_print=1) }}">Imprimir visualização</a>
+        <a class="button-link secondary" target="_blank" rel="noopener noreferrer" href="{{ url_for('cadastros.treinamentos_consolidado_relatorio', nome=filtros.nome, base=filtros.base, status=filtros.status, tipo=filtros.tipo, ordenacao=filtros.ordenacao) }}">Visualizar impressão</a>
+    </div>
+</div>
+
+<section class="panel">
+    <section class="consolidated-brand-banner print-hide">
+        <div class="consolidated-brand-left">
+            <img class="consolidated-brand-logo" src="{{ url_for('static', filename='logo-brasilvida.svg') }}" alt="Brasilvida">
+            <div>
+                <div class="consolidated-brand-kicker">Treinamentos Brasil vida</div>
+                <div class="consolidated-brand-title">Relatório consolidado de habilitações</div>
+                <div class="consolidated-brand-subtitle">Padrão operacional corporativo para vencimentos e criticidade.</div>
+            </div>
+        </div>
+        <div class="consolidated-brand-meta">
+            <div class="consolidated-brand-meta-label">Emissão</div>
+            <div class="consolidated-brand-meta-value">{{ emitted_at }}</div>
+        </div>
+    </section>
+
+    <header class="report-print-header report-only">
+        <div class="report-brand-row">
+            <img class="report-logo" src="{{ url_for('static', filename='logo-brasilvida.svg') }}" alt="Brasilvida">
+            <div class="report-brand-meta">
+                <div class="report-doc-title">Consolidado de Habilitações</div>
+                <div class="report-doc-subtitle">Relatório operacional de vencimentos por tripulante</div>
+            </div>
+        </div>
+        <div class="report-issued-at">Emissão: {{ emitted_at }}</div>
+    </header>
+
+    <div class="state-note print-hide" style="margin-bottom: 12px;">
+        Emissão operacional: use <strong>Imprimir visualização</strong> para gerar o documento e <strong>Exportar CSV</strong> para análise externa com os filtros atuais.
+    </div>
+    <div class="filters-toggle-row print-hide">
+        <button type="button" class="button-link secondary filters-toggle-btn" id="consolidatedFiltersToggle" aria-expanded="false" aria-controls="consolidatedFiltersPanel">Mostrar filtros</button>
+    </div>
+
+    <div class="filters-panel {% if filtros.nome or filtros.base or filtros.status or filtros.tipo or filtros.ordenacao != 'criticidade' %}{% else %}collapsed{% endif %}" id="consolidatedFiltersPanel">
+        <form class="filters filters-wide" method="get">
+            <input type="text" name="nome" placeholder="Buscar tripulante" value="{{ filtros.nome }}">
+            <select name="base">
+                <option value="">Base</option>
+                {% for row in base_options %}
+                <option value="{{ row.nome }}" {% if filtros.base == row.nome %}selected{% endif %}>{{ row.nome }}{% if row.uf and row.uf != '--' %} / {{ row.uf }}{% endif %}</option>
+                {% endfor %}
+            </select>
+            <select name="tipo">
+                <option value="">Tipo de habilitação</option>
+                {% for row in tipo_options %}
+                <option value="{{ row.id }}" {% if filtros.tipo == row.id|string %}selected{% endif %}>{{ row.nome }}</option>
+                {% endfor %}
+            </select>
+            <select name="status">
+                <option value="">Status</option>
+                {% for item in status_options %}
+                <option value="{{ item.key }}" {% if filtros.status == item.key %}selected{% endif %}>{{ item.label }}</option>
+                {% endfor %}
+            </select>
+            <select name="ordenacao">
+                <option value="criticidade" {% if filtros.ordenacao == "criticidade" %}selected{% endif %}>Ordenar por criticidade</option>
+                <option value="vencimento" {% if filtros.ordenacao == "vencimento" %}selected{% endif %}>Ordenar por vencimento</option>
+            </select>
+            <button type="submit">Aplicar filtros</button>
+            <a class="button-link secondary" href="{{ url_for('cadastros.treinamentos_consolidado') }}">Limpar filtros</a>
+        </form>
+    </div>
+
+    <section class="summary-grid consolidated-summary-grid">
+        <div class="summary-card"><strong>Total de tripulantes</strong><span>{{ summary.total_tripulantes }}</span></div>
+        <div class="summary-card"><strong>Total de habilitações</strong><span>{{ summary.total_habilitacoes }}</span></div>
+        <div class="summary-card"><strong>Em dia</strong><span>{{ summary.total_em_dia }}</span></div>
+        <div class="summary-card"><strong>A vencer até 90 dias</strong><span>{{ summary.total_vencer_90 }}</span></div>
+        <div class="summary-card"><strong>A vencer até 60 dias</strong><span>{{ summary.total_vencer_60 }}</span></div>
+        <div class="summary-card"><strong>A vencer até 30 dias</strong><span>{{ summary.total_vencer_30 }}</span></div>
+        <div class="summary-card"><strong>Crítico até 15 dias</strong><span>{{ summary.total_critico_15 }}</span></div>
+        <div class="summary-card"><strong>Vencido</strong><span>{{ summary.total_vencido }}</span></div>
+    </section>
+
+    <div class="consolidated-table-wrap">
+        <div class="table-wrap">
+            <table class="data-table consolidated-table responsive-cards">
+                <thead>
+                    <tr>
+                        <th>Habilitação</th>
+                        <th>Data de vencimento</th>
+                        <th>Dias restantes</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for group in tripulantes_grouped %}
+                    <tr class="consolidated-group-row">
+                        <td colspan="5">
+                            <div class="consolidated-group-header">
+                                <div>
+                                    <strong>{{ group.tripulante_nome }}</strong>
+                                    <span>Base: {{ group.base or "-" }}</span>
+                                </div>
+                                <div class="consolidated-group-meta">Função/Cargo: {{ group.funcao_cargo or "-" }}</div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% for item in group.habilitacoes %}
+                    <tr class="{% if item.status_key in ['vencido', 'critico_15'] %}consolidated-row-critical{% endif %}">
+                        <td data-label="Habilitação">{{ item.habilitacao_nome }}</td>
+                        <td data-label="Data de vencimento"><span class="date-strong">{{ item.data_vencimento }}</span></td>
+                        <td data-label="Dias restantes">{{ item.days_remaining_label }}</td>
+                        <td data-label="Status"><span class="status-pill {{ item.status_class }}{% if item.pulse %} status-pill-pulse{% endif %}">{{ item.status_label }}</span></td>
+                        <td class="actions" data-label="Ações">
+                            {% if item.treinamento_id %}
+                            <a href="{{ url_for('cadastros.treinamentos_edit', treinamento_id=item.treinamento_id) }}">Abrir</a>
+                            {% else %}
+                            <span class="secondary-cell">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr><td colspan="5" class="empty">Nenhum registro encontrado para os filtros atuais.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer class="report-print-footer report-only">
+        Treinamentos Brasil vida · Consolidado de habilitações · Emissão {{ emitted_at }}
+    </footer>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(() => {
+    const toggle = document.getElementById("consolidatedFiltersToggle");
+    const panel = document.getElementById("consolidatedFiltersPanel");
+    if (!toggle || !panel) return;
+    const mobileQuery = window.matchMedia("(max-width: 900px)");
+
+    function syncCollapsedState() {
+        const shouldCollapse = mobileQuery.matches;
+        if (!shouldCollapse) {
+            panel.classList.remove("collapsed");
+            toggle.setAttribute("aria-expanded", "true");
+            toggle.textContent = "Filtros";
+            return;
+        }
+
+        const expanded = !panel.classList.contains("collapsed");
+        toggle.setAttribute("aria-expanded", String(expanded));
+        toggle.textContent = expanded ? "Ocultar filtros" : "Mostrar filtros";
+    }
+
+    toggle.addEventListener("click", () => {
+        panel.classList.toggle("collapsed");
+        syncCollapsedState();
+    });
+
+    syncCollapsedState();
+    if (typeof mobileQuery.addEventListener === "function") {
+        mobileQuery.addEventListener("change", syncCollapsedState);
+    } else {
+        window.addEventListener("resize", syncCollapsedState, { passive: true });
+    }
+})();
+
+</script>
+{% endblock %}

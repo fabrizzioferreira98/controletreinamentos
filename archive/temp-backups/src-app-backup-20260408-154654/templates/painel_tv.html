@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel TV | Treinamentos Brasil vida</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='tv-panel.css') }}">
+</head>
+<body>
+    <main class="tv-shell">
+        <header class="tv-header">
+            <div>
+                <div class="tv-brand-row">
+                    <img class="tv-brand-logo" src="{{ url_for('static', filename='logo-brasilvida.svg') }}" alt="Brasilvida">
+                </div>
+                <p class="tv-kicker">Centro de monitoramento operacional</p>
+                <h1>Painel gestor de vencimentos</h1>
+                <p class="tv-subtitle">Monitoramento continuo de habilitacoes de tripulantes</p>
+            </div>
+            <div class="tv-header-meta">
+                <div class="tv-clock" id="tvClock">--:--:--</div>
+                <div class="tv-date" id="tvDate">--/--/----</div>
+                <div class="tv-refresh">Atualizacao automatica: <strong>{{ refresh_seconds }}s</strong></div>
+                <div class="tv-last-update">Ultima atualizacao de dados: <strong id="tvLastUpdate">--</strong></div>
+                <div class="tv-actions">
+                    <button type="button" class="tv-btn" id="tvFullscreenBtn">Tela cheia</button>
+                    <a class="tv-btn secondary" href="{{ url_for('dashboard.dashboard') }}">Voltar</a>
+                </div>
+            </div>
+        </header>
+
+        <section class="tv-cards" id="tvSummaryCards">
+            <article class="tv-card" data-key="total_tripulantes"><h2>Total de tripulantes</h2><strong>0</strong></article>
+            <article class="tv-card" data-key="total_habilitacoes"><h2>Habilitacoes monitoradas</h2><strong>0</strong></article>
+            <article class="tv-card is-safe" data-key="total_em_dia"><h2>Em dia</h2><strong>0</strong></article>
+            <article class="tv-card is-warning-90" data-key="total_vencer_90"><h2>Ate 90 dias</h2><strong>0</strong></article>
+            <article class="tv-card is-warning-60" data-key="total_vencer_60"><h2>Ate 60 dias</h2><strong>0</strong></article>
+            <article class="tv-card is-warning-30" data-key="total_vencer_30"><h2>Ate 30 dias</h2><strong>0</strong></article>
+            <article class="tv-card is-critical" data-key="total_critico_15"><h2>Critico ate 15 dias</h2><strong>0</strong></article>
+            <article class="tv-card is-expired" data-key="total_vencido"><h2>Vencido</h2><strong>0</strong></article>
+        </section>
+
+        <section class="tv-main-grid">
+            <article class="tv-panel" data-panel-rotate>
+                <div class="tv-panel-header">
+                    <h3>Proximos vencimentos</h3>
+                    <span>Prioridade operacional</span>
+                </div>
+                <div class="tv-list" id="tvUpcomingList"></div>
+            </article>
+
+            <article class="tv-panel" data-panel-rotate>
+                <div class="tv-panel-header">
+                    <h3>Alertas criticos (ate 15 dias)</h3>
+                    <span>Acao preventiva imediata</span>
+                </div>
+                <div class="tv-list" id="tvCriticalList"></div>
+            </article>
+
+            <article class="tv-panel" data-panel-rotate>
+                <div class="tv-panel-header">
+                    <h3>Habilitacoes vencidas</h3>
+                    <span>Destaque maximo</span>
+                </div>
+                <div class="tv-list" id="tvExpiredList"></div>
+            </article>
+
+            <article class="tv-panel" data-panel-rotate>
+                <div class="tv-panel-header">
+                    <h3>Ranking de bases com pendencias</h3>
+                    <span>Concentracao de riscos</span>
+                </div>
+                <div class="tv-list" id="tvBaseRankingList"></div>
+            </article>
+
+            <article class="tv-panel" data-panel-rotate>
+                <div class="tv-panel-header">
+                    <h3>Ranking de tripulantes com pendencias</h3>
+                    <span>Priorizar tratativas</span>
+                </div>
+                <div class="tv-list" id="tvPilotRankingList"></div>
+            </article>
+
+            <article class="tv-panel tv-alert-panel">
+                <div class="tv-panel-header">
+                    <h3>Status operacional</h3>
+                    <span>Alertas rotativos</span>
+                </div>
+                <div class="tv-alert-rotator" id="tvAlertRotator"></div>
+            </article>
+        </section>
+
+        <footer class="tv-footer">
+            <span>Painel preparado para exibicao continua em televisao</span>
+            <span>Monitoramento em tempo real</span>
+        </footer>
+
+        <section class="tv-newsbar" aria-live="polite" aria-label="Barra rotativa de alertas operacionais">
+            <div class="tv-newsbar-label">Plantao</div>
+            <div class="tv-newsbar-viewport">
+                <div class="tv-newsbar-track" id="tvNewsbarTrack"></div>
+            </div>
+            <div class="tv-newsbar-meta" id="tvConnectionState">Conectado</div>
+        </section>
+    </main>
+
+    <script id="tvInitialPayload" type="application/json">{{ initial_payload|tojson }}</script>
+    <script>
+        window.TV_PANEL_CONFIG = {
+            endpoints: {
+                dados: "{{ url_for('dashboard.painel_tv_dados') }}",
+            },
+            refreshSeconds: {{ refresh_seconds }},
+            baseFilter: "{{ base_filter|e }}",
+        };
+    </script>
+    <script src="{{ url_for('static', filename='tv-panel.js') }}"></script>
+</body>
+</html>

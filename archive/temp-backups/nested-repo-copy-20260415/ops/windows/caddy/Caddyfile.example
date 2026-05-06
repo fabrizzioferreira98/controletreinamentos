@@ -1,0 +1,32 @@
+{
+    admin off
+    email admin@seudominio.com
+}
+
+(common_security) {
+    encode zstd gzip
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}
+
+app.seudominio.com {
+    import common_security
+    reverse_proxy 127.0.0.1:8101
+    log {
+        output file C:/srv/controle-treinamentos/logs/caddy/prod-access.log
+        format console
+    }
+}
+
+teste.seudominio.com {
+    import common_security
+    reverse_proxy 127.0.0.1:8102
+    log {
+        output file C:/srv/controle-treinamentos/logs/caddy/hml-access.log
+        format console
+    }
+}

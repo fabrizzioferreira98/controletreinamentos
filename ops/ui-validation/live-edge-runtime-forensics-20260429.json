@@ -1,0 +1,179 @@
+{
+  "schema": "edge_runtime_forensics_v1",
+  "target": "controle.brasilvida.app.br",
+  "executed_at": "2026-04-29",
+  "frontend_repository_touched": false,
+  "dns": {
+    "a_record": "201.16.254.25"
+  },
+  "public_edge_observed": {
+    "tcp": {
+      "80": true,
+      "443": false
+    },
+    "domain_http_root": {
+      "url": "http://controle.brasilvida.app.br/",
+      "status": 200,
+      "server": "nginx",
+      "content_type": "text/html; charset=UTF-8",
+      "cache_control": "no-store, no-cache, must-revalidate",
+      "title": "Error",
+      "body_signature": [
+        "/vendor/bootstrap/css/bootstrap.min.css",
+        "/css/login.css?v=1756397406",
+        "/csrf/csrf-magic.js"
+      ]
+    },
+    "public_ip_http_root": {
+      "url": "http://201.16.254.25/",
+      "status": 200,
+      "server": "nginx",
+      "content_type": "text/html; charset=UTF-8",
+      "cache_control": "no-store, no-cache, must-revalidate",
+      "title": "fw - Login"
+    },
+    "spa_paths_on_public_domain": {
+      "/index.html": {
+        "status": 404,
+        "server": "nginx"
+      },
+      "/asset-manifest.json": {
+        "status": 404,
+        "server": "nginx"
+      },
+      "/app.20260428-195754.f503f1a49298.js": {
+        "status": 404,
+        "server": "nginx"
+      }
+    },
+    "correlation_probe": {
+      "marker": "edgeprobe-20260428235246",
+      "public_http_asset_manifest_status": 404,
+      "public_http_root_status": 200,
+      "public_http_server": "nginx",
+      "public_https_result": "timeout",
+      "found_in_local_caddy_prod_access_log": false
+    }
+  },
+  "local_runtime_observed": {
+    "windows_services": {
+      "CT-Caddy": "running automatic",
+      "CT-App-Prod": "running automatic",
+      "CT-App-Hml": "running automatic"
+    },
+    "listeners": {
+      "caddy_pid_21368": [
+        "0.0.0.0:80",
+        "0.0.0.0:443",
+        "0.0.0.0:8082",
+        "[::]:80",
+        "[::]:443",
+        "[::]:8082"
+      ],
+      "prod_upstream": "127.0.0.1:8101",
+      "hml_upstream": "127.0.0.1:8102"
+    },
+    "service_binaries": {
+      "CT-Caddy": "C:\\srv\\controle-treinamentos\\services\\CT-Caddy\\CT-Caddy.exe",
+      "CT-App-Prod": "C:\\srv\\controle-treinamentos\\services\\CT-App-Prod\\CT-App-Prod.exe",
+      "CT-App-Hml": "C:\\srv\\controle-treinamentos\\services\\CT-App-Hml\\CT-App-Hml.exe"
+    },
+    "caddy_service_config": {
+      "executable": "C:\\srv\\controle-treinamentos\\tools\\caddy\\caddy.exe",
+      "arguments": "run --config \"C:\\srv\\controle-treinamentos\\caddy\\Caddyfile\" --adapter caddyfile"
+    },
+    "caddy_vhost": {
+      "site": "controle.brasilvida.app.br, app.brasilvida.app.br",
+      "root": "C:/srv/controle-treinamentos/frontend/prod",
+      "fallback_upstream": "127.0.0.1:8101",
+      "access_log": "C:/srv/controle-treinamentos/logs/caddy/prod-access.log"
+    },
+    "published_frontend_root": {
+      "path": "C:\\srv\\controle-treinamentos\\frontend\\prod",
+      "build_version_utc": "20260428-195754",
+      "manifest": "asset-manifest.json",
+      "entrypoints": {
+        "app.js": "app.20260428-195754.f503f1a49298.js",
+        "app.css": "app.20260428-195754.e292ee36887c.css",
+        "config.js": "config.20260428-195754.5dfceef24f8e.js"
+      }
+    },
+    "local_tls_sni_probe": {
+      "connect_to": "127.0.0.1:443",
+      "server_name": "controle.brasilvida.app.br",
+      "host_header": "controle.brasilvida.app.br",
+      "results": {
+        "/": {
+          "status": 200,
+          "server": "Caddy",
+          "content_type": "text/html; charset=utf-8",
+          "cache_control": "no-store, no-cache, must-revalidate, max-age=0"
+        },
+        "/index.html": {
+          "status": 200,
+          "server": "Caddy",
+          "content_type": "text/html; charset=utf-8",
+          "cache_control": "no-store, no-cache, must-revalidate, max-age=0"
+        },
+        "/asset-manifest.json": {
+          "status": 200,
+          "server": "Caddy",
+          "content_type": "application/json",
+          "cache_control": "no-store, no-cache, must-revalidate, max-age=0"
+        },
+        "/app.20260428-195754.e292ee36887c.css": {
+          "status": 200,
+          "server": "Caddy",
+          "content_type": "text/css; charset=utf-8",
+          "cache_control": "no-store, no-cache, must-revalidate, max-age=0"
+        },
+        "/app.20260428-195754.f503f1a49298.js": {
+          "status": 200,
+          "server": "Caddy",
+          "content_type": "text/javascript; charset=utf-8",
+          "cache_control": "no-store, no-cache, must-revalidate, max-age=0"
+        },
+        "/config.20260428-195754.5dfceef24f8e.js": {
+          "status": 200,
+          "server": "Caddy",
+          "content_type": "text/javascript; charset=utf-8",
+          "cache_control": "no-store, no-cache, must-revalidate, max-age=0"
+        }
+      },
+      "found_in_local_caddy_prod_access_log": true
+    },
+    "upstreams": {
+      "127.0.0.1:8101/api/v1/session": {
+        "status": 200,
+        "server": "controle-treinamentos",
+        "content_type": "application/json",
+        "authenticated": false
+      },
+      "127.0.0.1:8102/api/v1/session": {
+        "status": 200,
+        "server": "controle-treinamentos",
+        "content_type": "application/json",
+        "authenticated": false
+      }
+    }
+  },
+  "material_cause": {
+    "classification": [
+      "edge antigo ou appliance respondendo pelo IP publico",
+      "publicacao correta nao alcancada pelo dominio publico",
+      "NAT/port-forward ou edge externo nao encaminhando 80/443 para o Caddy local",
+      "HTTPS publico nao configurado ou nao encaminhado"
+    ],
+    "not_supported_as_primary_cause": [
+      "frontend workspace",
+      "SPA asset manifest local",
+      "Caddy local inexistente",
+      "upstream Flask/Waitress local indisponivel"
+    ],
+    "remaining_edge_debt": [
+      "Caddy local ativo ainda serve assets fingerprintados com no-store em vez de immutable",
+      "app.brasilvida.app.br esta no vhost local, mas ACME local reporta NXDOMAIN para esse alias"
+    ]
+  },
+  "closure": "fechado"
+}

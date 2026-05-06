@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="report-page">
+    <div class="page-header print-hide">
+        <div>
+            <h1>Relatório consolidado de habilitações</h1>
+            <p class="page-subtitle">Documento operacional para impressão e arquivamento.</p>
+        </div>
+        <div class="page-header-actions">
+            <button type="button" class="button-link" onclick="window.print()">Imprimir / Salvar PDF</button>
+            <a class="button-link secondary" href="{{ url_for('cadastros.treinamentos_consolidado_export_pdf', nome=filtros.nome, base=filtros.base, status=filtros.status, tipo=filtros.tipo, ordenacao=filtros.ordenacao) }}">Baixar PDF do recorte</a>
+            <a class="button-link secondary" href="{{ url_for('cadastros.treinamentos_consolidado', nome=filtros.nome, base=filtros.base, status=filtros.status, tipo=filtros.tipo, ordenacao=filtros.ordenacao) }}">Voltar ao consolidado</a>
+        </div>
+    </div>
+
+    <section class="report-sheet">
+        <header class="report-print-header">
+            <div class="report-brand-row">
+                <img class="report-logo" src="{{ url_for('static', filename='logo-brasilvida.svg') }}" alt="Brasilvida">
+                <div class="report-brand-meta">
+                    <div class="report-doc-title">Consolidado de Habilitações</div>
+                    <div class="report-doc-subtitle">Relatório operacional de vencimentos por tripulante</div>
+                </div>
+            </div>
+            <div class="report-issued-at">Emissão: {{ emitted_at }}</div>
+        </header>
+
+        <section class="report-info-block">
+            <div class="report-block-title">Parâmetros aplicados</div>
+            <div class="report-info-grid">
+                <div class="report-info-item"><strong>Tripulante</strong><span>{{ filtros_aplicados.nome }}</span></div>
+                <div class="report-info-item"><strong>Base</strong><span>{{ filtros_aplicados.base }}</span></div>
+                <div class="report-info-item"><strong>Status</strong><span>{{ filtros_aplicados.status }}</span></div>
+                <div class="report-info-item"><strong>Tipo</strong><span>{{ filtros_aplicados.tipo }}</span></div>
+                <div class="report-info-item"><strong>Ordenacao</strong><span>{{ filtros_aplicados.ordenacao }}</span></div>
+                <div class="report-info-item report-info-item-wide"><strong>Fonte</strong><span>Tela, impressao e PDF usam os mesmos parametros aplicados.</span></div>
+            </div>
+        </section>
+
+        <section class="report-summary-grid">
+            <div class="report-summary-card"><strong>Total de tripulantes</strong><span>{{ summary.total_tripulantes }}</span></div>
+            <div class="report-summary-card"><strong>Total de habilitações</strong><span>{{ summary.total_habilitacoes }}</span></div>
+            <div class="report-summary-card"><strong>Em dia</strong><span>{{ summary.total_em_dia }}</span></div>
+            <div class="report-summary-card"><strong>A vencer até 90 dias</strong><span>{{ summary.total_vencer_90 }}</span></div>
+            <div class="report-summary-card"><strong>A vencer até 60 dias</strong><span>{{ summary.total_vencer_60 }}</span></div>
+            <div class="report-summary-card"><strong>A vencer até 30 dias</strong><span>{{ summary.total_vencer_30 }}</span></div>
+            <div class="report-summary-card"><strong>Crítico até 15 dias</strong><span>{{ summary.total_critico_15 }}</span></div>
+            <div class="report-summary-card"><strong>Vencido</strong><span>{{ summary.total_vencido }}</span></div>
+        </section>
+
+        <section class="report-table-block">
+            <div class="report-section-title">Detalhamento por tripulante</div>
+            <div class="table-wrap">
+                <table class="data-table report-table">
+                    <thead>
+                        <tr>
+                            <th>Tripulante</th>
+                            <th>Base</th>
+                            <th>Habilitação</th>
+                            <th>Vencimento</th>
+                            <th>Dias</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for group in tripulantes_grouped %}
+                            {% for item in group.habilitacoes %}
+                                {% if not item.is_placeholder %}
+                                <tr>
+                                    <td>{{ group.tripulante_nome }}</td>
+                                    <td>{{ group.base or '-' }}</td>
+                                    <td>{{ item.habilitacao_nome }}</td>
+                                    <td>{{ item.data_vencimento }}</td>
+                                    <td>{{ item.days_remaining_label }}</td>
+                                    <td><span class="status-pill {{ item.status_class }}{% if item.pulse %} status-pill-pulse{% endif %}">{{ item.status_label }}</span></td>
+                                </tr>
+                                {% endif %}
+                            {% else %}
+                            <tr><td>{{ group.tripulante_nome }}</td><td>{{ group.base or '-' }}</td><td colspan="4" class="empty">Sem habilitações cadastradas neste recorte.</td></tr>
+                            {% endfor %}
+                        {% else %}
+                        <tr><td colspan="6" class="empty">Nenhum registro encontrado para os filtros atuais.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("auto_print") === "1") {
+        setTimeout(() => window.print(), 120);
+    }
+})();
+</script>
+{% endblock %}

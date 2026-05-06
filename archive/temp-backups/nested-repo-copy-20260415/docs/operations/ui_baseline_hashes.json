@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "files": {
+    "backend/src/controle_treinamentos/templates/base.html": "1a85f008353367be35bf6350ecd22ee13aa9272f44234f0787e296890dda5063",
+    "backend/src/controle_treinamentos/templates/login.html": "77dd662e1645454916282195e5a81069020e8ded657e8a98d313ae0eba111872",
+    "backend/src/controle_treinamentos/templates/dashboard.html": "2b5a8aaacc975e597807e347377244ef1d3119ad0fd79adbfd9c5e59fd0aca3b",
+    "backend/src/controle_treinamentos/templates/tripulantes_list.html": "1fd00b19837025abafee3e47f3cb76ce77632e272a3c8f85e96729c7f31c164b",
+    "backend/src/controle_treinamentos/templates/bases/index.html": "51211e8461b6c9d14d60dcabe86dae206e0e0134447cb8fca1b7a3c8d7789dda",
+    "backend/src/controle_treinamentos/static/styles.css": "04a1fb40a646f9add867b0c01ec9e2260830833acd2416531ca817647d26b296"
+  }
+}

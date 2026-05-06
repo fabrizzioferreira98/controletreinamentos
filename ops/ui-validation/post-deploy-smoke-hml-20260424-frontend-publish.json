@@ -1,0 +1,187 @@
+{
+  "failed": true,
+  "generated_at": "2026-04-24T13:07:18.632826Z",
+  "environment": "hml",
+  "base_url": "http://192.168.25.33:8082",
+  "metrics_url": "http://192.168.25.33:8082/api/internal/metrics",
+  "release_id": "",
+  "commit_sha": "",
+  "evidence_manifest": "",
+  "runtime_release_id": "",
+  "runtime_release_instance_id": "",
+  "results": [
+    {
+      "url": "http://192.168.25.33:8082/healthz",
+      "status": 0,
+      "ok": false,
+      "error": "url_error",
+      "detail": "[WinError 10061] Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente",
+      "duration_ms": 2038.63,
+      "headers": {},
+      "release_headers": {},
+      "body_sample": "",
+      "check": "healthz",
+      "expected": [
+        200
+      ],
+      "runtime_identity": {
+        "release_id": "",
+        "release_instance_id": "",
+        "request_id": "",
+        "correlation_id": ""
+      },
+      "runtime_identity_ok": false,
+      "contract": "status=ok and checks.database=ok",
+      "body_json": {}
+    },
+    {
+      "url": "http://192.168.25.33:8082/login",
+      "status": 0,
+      "ok": false,
+      "error": "url_error",
+      "detail": "[WinError 10061] Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente",
+      "duration_ms": 2055.9,
+      "headers": {},
+      "release_headers": {},
+      "body_sample": "",
+      "check": "login_page",
+      "expected": [
+        200,
+        302,
+        303
+      ],
+      "runtime_identity": {
+        "release_id": "",
+        "release_instance_id": "",
+        "request_id": "",
+        "correlation_id": ""
+      },
+      "runtime_identity_ok": false,
+      "contract": "route is alive and responds with the expected unauthenticated page or redirect"
+    },
+    {
+      "url": "http://192.168.25.33:8082/dashboard",
+      "status": 0,
+      "ok": false,
+      "error": "url_error",
+      "detail": "[WinError 10061] Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente",
+      "duration_ms": 2058.65,
+      "headers": {},
+      "release_headers": {},
+      "body_sample": "",
+      "check": "dashboard_redirect",
+      "expected": [
+        302,
+        303
+      ],
+      "runtime_identity": {
+        "release_id": "",
+        "release_instance_id": "",
+        "request_id": "",
+        "correlation_id": ""
+      },
+      "runtime_identity_ok": false,
+      "contract": "route is alive and responds with the expected unauthenticated page or redirect"
+    },
+    {
+      "url": "http://192.168.25.33:8082/notificacoes-email",
+      "status": 0,
+      "ok": false,
+      "error": "url_error",
+      "detail": "[WinError 10061] Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente",
+      "duration_ms": 2040.81,
+      "headers": {},
+      "release_headers": {},
+      "body_sample": "",
+      "check": "notificacoes_redirect",
+      "expected": [
+        302,
+        303
+      ],
+      "runtime_identity": {
+        "release_id": "",
+        "release_instance_id": "",
+        "request_id": "",
+        "correlation_id": ""
+      },
+      "runtime_identity_ok": false,
+      "contract": "route is alive and responds with the expected unauthenticated page or redirect"
+    },
+    {
+      "url": "http://192.168.25.33:8082/api/internal/metrics",
+      "status": 0,
+      "ok": false,
+      "error": "url_error",
+      "detail": "[WinError 10061] Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente",
+      "duration_ms": 2031.18,
+      "headers": {},
+      "release_headers": {},
+      "check": "internal_metrics",
+      "expected": [
+        200
+      ],
+      "runtime_identity": {
+        "release_id": "",
+        "release_instance_id": "",
+        "request_id": "",
+        "correlation_id": ""
+      },
+      "runtime_identity_ok": false,
+      "contract": "valid X-Metrics-Token returns Prometheus metrics",
+      "metrics_sample": "",
+      "metrics_contract_markers": {
+        "prometheus_content": false,
+        "runtime_resource_metric_present": false
+      }
+    },
+    {
+      "check": "runtime_headers",
+      "url": "http://192.168.25.33:8082",
+      "status": 0,
+      "expected": [
+        "X-Release-ID",
+        "X-Release-Instance-ID"
+      ],
+      "ok": false,
+      "runtime_ids": [
+        {
+          "release_id": "",
+          "release_instance_id": "",
+          "request_id": "",
+          "correlation_id": ""
+        },
+        {
+          "release_id": "",
+          "release_instance_id": "",
+          "request_id": "",
+          "correlation_id": ""
+        },
+        {
+          "release_id": "",
+          "release_instance_id": "",
+          "request_id": "",
+          "correlation_id": ""
+        },
+        {
+          "release_id": "",
+          "release_instance_id": "",
+          "request_id": "",
+          "correlation_id": ""
+        },
+        {
+          "release_id": "",
+          "release_instance_id": "",
+          "request_id": "",
+          "correlation_id": ""
+        }
+      ],
+      "contract": "runtime emits release headers on real HTTP responses"
+    }
+  ],
+  "runtime": {
+    "alive": false,
+    "headers_present": false,
+    "release_id": "",
+    "release_instance_id": ""
+  }
+}

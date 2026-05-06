@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Log de ações</h1>
+        <p class="page-subtitle">Consulte tudo o que foi registrado na trilha de auditoria do sistema.</p>
+    </div>
+    <div class="page-header-actions">
+        <button type="button" class="button-link" onclick="window.print()">Imprimir visualização</button>
+    </div>
+</div>
+
+<section class="panel filters-panel">
+    <form method="get" class="filters-grid audit-filters-grid">
+        <label>
+            <span>Entidade</span>
+            <select name="entidade">
+                <option value="">Todas</option>
+                {% for option in entity_options %}
+                <option value="{{ option.value }}" {% if filtros.entidade == option.value %}selected{% endif %}>{{ option.label }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span>Ação</span>
+            <select name="acao">
+                <option value="">Todas</option>
+                {% for option in action_options %}
+                <option value="{{ option.value }}" {% if filtros.acao == option.value %}selected{% endif %}>{{ option.label }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span>Responsável</span>
+            <select name="autor">
+                <option value="">Todos</option>
+                {% for autor_item in autores %}
+                <option value="{{ autor_item.id }}" {% if filtros.autor == autor_item.id|string %}selected{% endif %}>{{ autor_item.nome }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="filter-search">
+            <span>Busca</span>
+            <input type="search" name="busca" value="{{ filtros.busca }}" placeholder="Nome, observação, ID, conteúdo...">
+        </label>
+        <div class="filters-actions">
+            <button type="submit">Filtrar</button>
+            <a class="button-link secondary" href="{{ url_for('admin.auditoria_list') }}">Limpar</a>
+        </div>
+    </form>
+</section>
+
+<section class="panel audit-log-panel">
+    <div class="audit-log-list">
+        {% for row in audit_rows %}
+        <article class="audit-card">
+            <div class="audit-card-head">
+                <div>
+                    <div class="audit-title">{{ row.resumo_simples }}</div>
+                    <div class="audit-subtitle">{{ row.realizado_em_label }} · {{ row.acao_label }}</div>
+                </div>
+                <div class="audit-meta">
+                    <span class="status-pill status-gray">{{ row.entidade_label }} #{{ row.entidade_id }}</span>
+                </div>
+            </div>
+            {% if row.observacao %}
+            <div class="audit-note">{{ row.observacao }}</div>
+            {% endif %}
+            {% if row.preview_anterior or row.preview_novo %}
+            <div class="audit-note">
+                {% if row.preview_anterior %}<strong>Antes:</strong> {{ row.preview_anterior }}{% endif %}
+                {% if row.preview_anterior and row.preview_novo %} · {% endif %}
+                {% if row.preview_novo %}<strong>Depois:</strong> {{ row.preview_novo }}{% endif %}
+            </div>
+            {% endif %}
+        </article>
+        {% else %}
+        <div class="empty">Nenhuma ação registrada para os filtros selecionados.</div>
+        {% endfor %}
+    </div>
+    <div class="pagination-bar">
+        <div class="pagination-meta">Página {{ pagination.page }} de {{ pagination.pages }} · {{ pagination.total }} registros</div>
+        <div class="pagination-actions">
+            {% if pagination.has_prev %}
+            <a class="button-link secondary" href="{{ pagination.prev_url }}">Anterior</a>
+            {% endif %}
+            {% if pagination.has_next %}
+            <a class="button-link secondary" href="{{ pagination.next_url }}">Próxima</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("auto_print") === "1") {
+        setTimeout(() => window.print(), 120);
+    }
+})();
+</script>
+{% endblock %}

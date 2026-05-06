@@ -1,0 +1,55 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Validação - Tripulantes vinculados</title>
+    <link rel="stylesheet" href="../../backend/src/controle_treinamentos/static/styles.css">
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar" aria-label="Navegação do sistema">
+            <div class="sidebar-top"><div class="brand-wrap"><div class="brand-subtitle">Treinamentos e vencimentos da equipe</div></div></div>
+            <nav class="nav" aria-label="Navegação principal"><div class="nav-group open"><button type="button" class="nav-group-toggle active">Operações</button><div class="nav-group-links"><a class="active" href="#">Missões</a><a href="#">Pernoites</a></div></div></nav>
+        </aside>
+        <div class="main-column">
+            <header class="topbar"><div class="topbar-left"><button class="mobile-menu-btn" aria-label="Abrir menu">☰</button><div><div class="topbar-title">Treinamentos Brasil Vida</div><div class="topbar-subtitle">Um lugar único para acompanhar cadastros, treinamentos e vencimentos.</div></div></div></header>
+            <main class="content">
+                <div class="page-header"><div><h1>Cadastrar missão operacional</h1><p class="page-subtitle">Registre o chamado operacional e vincule a equipe para rastreabilidade da escala.</p></div></div>
+                <form method="post" class="form-grid">
+                    <section class="form-section"><h2 class="form-section-title">Dados da missão</h2><p class="form-section-subtitle">Use identificadores consistentes para evitar duplicidade na contagem de missões.</p></section>
+                    <label>Número do voo / chamado<input type="text" value="BV-2044"></label>
+                    <label>Contratante<input type="text" value="Brasil Vida"></label>
+                    <label>Data início<input type="date" value="2026-04-22"></label>
+                    <label>Data fim<input type="date"></label>
+                    <section class="form-section mission-crew-section full-width" aria-labelledby="missionCrewTitle">
+                        <div class="mission-crew-header">
+                            <div class="mission-crew-heading">
+                                <h2 class="form-section-title mission-crew-title" id="missionCrewTitle">Tripulantes vinculados</h2>
+                                <p class="form-section-subtitle mission-crew-subtitle">Selecione todos os tripulantes que participaram desta missão/chamado.</p>
+                            </div>
+                            <span class="mission-crew-count">8 disponíveis</span>
+                        </div>
+                        <div class="table-wrap mission-crew-table-wrap">
+                            <table class="data-table responsive-cards mission-crew-table">
+                                <colgroup><col class="mission-crew-col-select"><col class="mission-crew-col-name"><col class="mission-crew-col-base"><col class="mission-crew-col-role"></colgroup>
+                                <thead><tr><th>Seleção</th><th>Tripulante</th><th>Base</th><th>Função</th></tr></thead>
+                                <tbody>
+                                    <tr><td class="mission-crew-select" data-label="Selecionar"><input type="checkbox" name="tripulante_ids" value="1" aria-label="Selecionar Ana Carvalho" checked></td><td class="mission-crew-name" data-label="Tripulante"><div class="primary-cell">Ana Carvalho</div></td><td class="mission-crew-base" data-label="Base"><span>Congonhas</span></td><td class="mission-crew-role" data-label="Função"><span>Comandante</span></td></tr>
+                                    <tr><td class="mission-crew-select" data-label="Selecionar"><input type="checkbox" name="tripulante_ids" value="2" aria-label="Selecionar Bruno Mendes"></td><td class="mission-crew-name" data-label="Tripulante"><div class="primary-cell">Bruno Mendes</div></td><td class="mission-crew-base" data-label="Base"><span>Jacarepaguá</span></td><td class="mission-crew-role" data-label="Função"><span>Copiloto</span></td></tr>
+                                    <tr><td class="mission-crew-select" data-label="Selecionar"><input type="checkbox" name="tripulante_ids" value="3" aria-label="Selecionar Camila Rocha" checked></td><td class="mission-crew-name" data-label="Tripulante"><div class="primary-cell">Camila Rocha</div></td><td class="mission-crew-base" data-label="Base"><span>Brasília</span></td><td class="mission-crew-role" data-label="Função"><span>Enfermeira de bordo</span></td></tr>
+                                    <tr><td class="mission-crew-select" data-label="Selecionar"><input type="checkbox" name="tripulante_ids" value="4" aria-label="Selecionar Diego Nascimento"></td><td class="mission-crew-name" data-label="Tripulante"><div class="primary-cell">Diego Nascimento</div></td><td class="mission-crew-base" data-label="Base"><span>Recife</span></td><td class="mission-crew-role" data-label="Função"><span>Médico</span></td></tr>
+                                    <tr><td class="mission-crew-select" data-label="Selecionar"><input type="checkbox" name="tripulante_ids" value="5" aria-label="Selecionar Elisa Andrade"></td><td class="mission-crew-name" data-label="Tripulante"><div class="primary-cell">Elisa Andrade</div></td><td class="mission-crew-base" data-label="Base"><span>Campinas</span></td><td class="mission-crew-role" data-label="Função"><span>Comissária</span></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                    <label class="full-width">Observações<textarea></textarea></label>
+                    <div class="form-actions full-width"><button type="submit">Salvar</button><a class="button-link secondary" href="#">Voltar</a></div>
+                </form>
+            </main>
+        </div>
+    </div>
+</body>
+</html>
+

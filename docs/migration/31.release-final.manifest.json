@@ -1,0 +1,248 @@
+{
+  "front": "31",
+  "block": "31.final",
+  "generated_at": "2026-04-21 America/Sao_Paulo",
+  "status": "closed_governance_go",
+  "decision": "GO_DE_GOVERNANCA",
+  "hash_algorithm": "SHA256",
+  "self_reference_policy": "manifest hash is calculated after creation and is not embedded in this file",
+  "closure_scope": {
+    "front_type": "governance_compat_legacy_topology",
+    "not_release_operational_product": true,
+    "release_gate_general_acceptance": "not_applicable",
+    "release_gate_note": "run_release_strict.py remains mandatory only for future blocks/fronts that touch operational release scope"
+  },
+  "artifacts": [
+    {
+      "path": "docs/migration/31.0-abertura-formal-frente-31.md",
+      "role": "opening_contract",
+      "sha256": "78A2882CD750661FD3C8F4CAB023FCBB43A0866C79633E4588A66A15E2817AA0"
+    },
+    {
+      "path": "docs/migration/31.1-diagnostico-curto-frente-31.md",
+      "role": "short_diagnostic",
+      "sha256": "77F0D90571A591080B245D586414518E4B699986AE747508403DCB91BAAEECA3"
+    },
+    {
+      "path": "docs/migration/31.2.0-matriz-blocos-executaveis-frente-31.md",
+      "role": "execution_matrix",
+      "sha256": "871470FAFBDF9FA98334386077860F980F26D02B6009AF9CD1A1E610292E6580"
+    },
+    {
+      "path": "docs/migration/31.2.1-baseline-gates-estruturais.md",
+      "role": "p0_baseline",
+      "sha256": "B396454D8C856587C52C9D47D6D58972CD4C4ECFB0A214B079FBA36D6D65B9B5"
+    },
+    {
+      "path": "docs/migration/31.a-auditoria-contrato-fechamento.md",
+      "role": "closure_contract_audit",
+      "sha256": "153BB8FCA6EE3E6E26F843A754E86660C61BF8FF9DA6E137A3B29762DB681BC8"
+    },
+    {
+      "path": "docs/migration/31.3.1-wrappers-alto-risco.md",
+      "role": "p0_high_risk_wrappers",
+      "sha256": "3BA07B4117CB6829B1B25A0D43B5955CC54D1D0FE8F2870EACE64DDC4DA3A9D8"
+    },
+    {
+      "path": "docs/migration/31.3.2-wrappers-auxiliares.md",
+      "role": "p1_auxiliary_wrappers",
+      "sha256": "064049D4195F734EC916C6F3A22B3E3E610B568AC0A97616061FB2D2341E163F"
+    },
+    {
+      "path": "docs/migration/31.4.1-archive-snapshots-risco-medio-alto.md",
+      "role": "p1_archive_snapshots",
+      "sha256": "4FB85C6833A037990A886A184B28886EAF51EE6E0058BE940811D3627513B30E"
+    },
+    {
+      "path": "docs/migration/31.4.2-artefatos-locais-baixo-risco.md",
+      "role": "p2_local_artifacts",
+      "sha256": "225D3813457A359002023FE4785C054646140CADDE2002CD7C67BBEE494BC505"
+    },
+    {
+      "path": "docs/migration/31.5.1-local-build-gerado.md",
+      "role": "p1_local_build_generated",
+      "sha256": "2858816D8087795D313FE7A945202803BC6FD682A9FBCF2536ACAC7F850551C5"
+    },
+    {
+      "path": "docs/migration/31.6.1-legacy-vivo.md",
+      "role": "p1_legacy_governance",
+      "sha256": "3E7D74C666FA92E2EE43505128025AD2CC93FED5B7F247BA7979639EC90AD6EE"
+    },
+    {
+      "path": "docs/migration/31.6.c-fechamento-operacional-formal-frente-31.md",
+      "role": "formal_governance_closure_go",
+      "sha256": "00E137CD386B35F3620733BEA4D31A9ED98C67A458552B5A52F7E62CBBD9DAF0"
+    },
+    {
+      "path": "docs/migration/31.7.1-backlog-refino-status.md",
+      "role": "p2_backlog_status",
+      "sha256": "76BE27DF38D6F22E1D02985EC8740926963EE0832F19F1A1187FFE4E08816C66"
+    },
+    {
+      "path": "docs/migration/31.final-consolidacao-executiva-frente-31.md",
+      "role": "final_executive_consolidation",
+      "sha256": "757D1A271435104EBE580226D863C06A42C2ACEA626E07108A3D1670FA7AC162"
+    },
+    {
+      "path": "docs/migration/31.release-final.checklist.md",
+      "role": "final_governance_checklist",
+      "sha256": "EA04983CD88DF9DBB16DCF683D0EE4E56AF46D2F725ED163D58BAA658FFC28D6"
+    },
+    {
+      "path": "docs/migration/31.release-final.1-re-harden-final-frente-31.md",
+      "role": "reharden_record",
+      "sha256": "CECF95FFAE3F685A3E133AC1E0C990E0C34B97E66CD93539D331625829E9CA85"
+    },
+    {
+      "path": "docs/migration/31.release-final.2-validacao-oficial-frente-31.md",
+      "role": "final_governance_validation",
+      "sha256": "2239417DDAA9DBBF61C02D11938BDEFDC155ACB94BAD397077D91D05BDA00436"
+    },
+    {
+      "path": "docs/migration/31.release-final.2.b-ratificacao-final-frente-31.md",
+      "role": "final_governance_ratification",
+      "sha256": "DB435F4D5B02F87560B17699E41D42B00386D532FDAAF860A0ACF59DD85CED1E"
+    },
+    {
+      "path": "docs/migration/README.md",
+      "role": "migration_index",
+      "sha256": "DFBE644E720CE1C5B44C85AAEBF7FF2807C7B885F53E648C48672F562BD220A7"
+    },
+    {
+      "path": "docs/governance/removal-backlog.md",
+      "role": "governance_backlog_touched_by_front_31",
+      "sha256": "63A797F4428CCCA6BA2C7F1A37096EA65CC52345C463670C046D08D55761DED4"
+    },
+    {
+      "path": "docs/governance/tmp-classification.md",
+      "role": "tmp_governance_touched_by_front_31",
+      "sha256": "83965DD14F9FED87B5B22A1C4B0EC65B22418771D66544CA61C9DD0C417A56F2"
+    },
+    {
+      "path": "scripts/README.md",
+      "role": "scripts_compat_index_touched_by_front_31",
+      "sha256": "D55F53B6DCEF5911FC6AD4392EBB7D18FC1162EFB048EC504629D61E705C23C8"
+    },
+    {
+      "path": "archive/MANIFEST.md",
+      "role": "archive_manifest_touched_by_front_31",
+      "sha256": "CA312959A10DF7FAE1E13B51399B9AC18F37970C21B0E939BE0FB13D3DC8084A"
+    },
+    {
+      "path": "legacy/LIVE_LEGACY.md",
+      "role": "legacy_inventory_touched_by_front_31",
+      "sha256": "B785E80A3C54800A88CB1BC733AF511B016F91995E22DA8A17A537DAE87F4A14"
+    },
+    {
+      "path": "docs/operations/canonical-commands.md",
+      "role": "canonical_commands_reference",
+      "sha256": "604C3301B0BB41E5CE043353D6D3C57DF5F7AC133C9FB61F020CB341C216A55B"
+    },
+    {
+      "path": "docs/governance/repo-topology.md",
+      "role": "repo_topology_reference",
+      "sha256": "A651753ECDD89085006B2244DEB7DFD6D75A2777F5B4CF0EE8A8F8C25249AC00"
+    },
+    {
+      "path": "docs/architecture/FRONTEND_ARCHITECTURE.md",
+      "role": "frontend_architecture_reference",
+      "sha256": "289FA2A2F14EA426DE7F113D46662D4F1ABCA26B326F8C7F10DE880671C4383B"
+    }
+  ],
+  "block_status": {
+    "31.2.1": "closed_baseline_recorded",
+    "31.A": "closed_closure_contract_corrected",
+    "31.3.1": "closed_high_risk_wrappers_kept_blocked",
+    "31.3.2": "closed_auxiliary_wrappers_frozen",
+    "31.4.1": "closed_archive_frozen_classified",
+    "31.4.2": "closed_local_artifacts_removed_hygiene_green",
+    "31.5.1": "closed_local_build_generated_exceptions_ratified",
+    "31.6.1": "closed_legacy_live_ratified",
+    "31.release-final.1": "closed_final_reharden_governance",
+    "31.release-final.2": "closed_final_governance_validation_pass",
+    "31.release-final.2.b": "closed_final_governance_ratification_pass",
+    "31.6.c": "closed_formal_governance_go",
+    "31.7.1": "closed_backlog_refined",
+    "31.final": "closed_governance_go"
+  },
+  "known_non_pass_items": [
+    {
+      "item": "tests/architecture/test_architecture_boundaries.py::test_critical_blueprints_are_split_to_smaller_modules",
+      "status": "known_red_baseline_not_front31_blocker",
+      "evidence": "docs/migration/31.2.1-baseline-gates-estruturais.md",
+      "detail": "backend/src/controle_treinamentos/blueprints/admin/routes.py:748>725"
+    },
+    {
+      "item": "ops/scripts/release/run_release_strict.py",
+      "status": "non_applicable_as_general_front31_acceptance_after_31A",
+      "evidence": "docs/migration/31.a-auditoria-contrato-fechamento.md"
+    }
+  ],
+  "verification": {
+    "manifest_package_validation": {
+      "result": "OK",
+      "command": "manifest-package-validation sobre docs/migration/31.release-final.manifest.json",
+      "missing_artifacts": 0,
+      "hash_mismatches": 0,
+      "readme_index_ok": true,
+      "stale_pointer_check": "OK",
+      "hidden_no_go_check": "OK",
+      "fake_pass_check": "OK"
+    },
+    "final_ratification": {
+      "result": "PASS_DE_GOVERNANCA_REPRODUZIDO",
+      "command": "rerun dos checks oficiais da regua de governanca",
+      "governance_validation_reproduced": true,
+      "manifest_package_validation": "OK",
+      "manifest_hash_policy": "manifest SHA256 is calculated externally after final write and is not embedded in this manifest",
+      "release_gate_operational_fail_recast_as_pass": false,
+      "known_architecture_baseline_masked": false
+    },
+    "formal_closure": {
+      "result": "GO_DE_GOVERNANCA",
+      "not_release_operational_go": true,
+      "deploy_authorized": false,
+      "manifest_checklist_decision_consistent": true,
+      "hidden_no_go_residual": false,
+      "readme_aligned": true
+    },
+    "repo_hygiene": {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; .\\.venv\\Scripts\\python.exe -B ops\\scripts\\repo\\validate_repo_hygiene.py --root .",
+      "result": "PASS",
+      "success": true,
+      "violations": []
+    },
+    "compat_and_hygiene_tests": {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\test_legacy_windows_compat.py tests\\ops\\test_repo_hygiene_validation.py -q -p no:cacheprovider",
+      "result": "PASS",
+      "summary": "12 passed"
+    },
+    "architecture_baseline_check": {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\architecture\\test_architecture_boundaries.py -q -p no:cacheprovider",
+      "result": "KNOWN_FAIL",
+      "summary": "1 failed, 1 passed",
+      "known_failure": "admin/routes.py:748>725"
+    },
+    "local_cleanup": {
+      "initial_removed_count": 44,
+      "post_validation_pycache_cleanup_count": 32,
+      "tmp_exists": false,
+      "archive_local_ds_store_exists": false,
+      "pycache_outside_venv_or_archive_count": 0
+    }
+  },
+  "stale_policy": {
+    "fake_pass_absent": true,
+    "release_gate_failure_not_recast_as_pass": true,
+    "superseded_release_gate_records_retained_as_audit_history": true,
+    "closed_blocks_not_reopened": true
+  },
+  "final_decision": {
+    "front_closed": true,
+    "decision": "GO_DE_GOVERNANCA",
+    "not_product_release_go": true,
+    "no_front31_p0_without_decision": true,
+    "no_residual_no_go_under_correct_governance_scope": true,
+    "remaining_debt_is_non_blocking_for_front31": true
+  }
+}

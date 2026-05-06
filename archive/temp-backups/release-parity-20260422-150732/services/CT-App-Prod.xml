@@ -1,0 +1,18 @@
+﻿<service>
+  <id>CT-App-Prod</id>
+  <name>Controle Treinamentos - App Prod</name>
+  <description>Aplicacao Flask/Waitress de producao.</description>
+  <executable>powershell.exe</executable>
+  <arguments>-NoProfile -ExecutionPolicy Bypass -File "C:\apps\controle-treinamentos\scripts\windows\Invoke-AppService.ps1" -EnvironmentName prod -EnvFile "C:\srv\controle-treinamentos\env\prod.env" -PythonExe "C:\apps\controle-treinamentos\.venv\Scripts\python.exe" -RepoRoot "C:\apps\controle-treinamentos"</arguments>
+  <workingdirectory>C:\apps\controle-treinamentos</workingdirectory>
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>true</delayedAutoStart>
+  <logpath>C:\srv\controle-treinamentos\logs\services\prod</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>8</keepFiles>
+  </log>
+  <stoptimeout>15000</stoptimeout>
+  <onfailure action="restart" delay="10 sec" />
+  <onfailure action="restart" delay="30 sec" />
+</service>

@@ -1,0 +1,80 @@
+{
+  "schema": "internal_dns_split_horizon_apply_attempt_v1",
+  "target": "controle.brasilvida.app.br",
+  "executed_at": "2026-04-29",
+  "frontend_repository_touched": false,
+  "public_dns_touched": false,
+  "hosts_file_touched": false,
+  "change_applied": false,
+  "desired_change": {
+    "method": "internal split-horizon DNS",
+    "zone": "controle.brasilvida.app.br",
+    "record": {
+      "name": "@",
+      "type": "A",
+      "value": "192.168.25.33",
+      "ttl": "00:05:00"
+    },
+    "scope": "internal DNS only"
+  },
+  "preconditions_observed": {
+    "current_identity": "brasilvida\\fabrizzio.araujo",
+    "dns_server": {
+      "ip": "192.168.25.112",
+      "hostname": "DNS-BRVIDA.brasilvida.local",
+      "dns_port_53": "open",
+      "winrm_5985": "open"
+    },
+    "current_internal_answer": {
+      "name": "controle.brasilvida.app.br",
+      "type": "A",
+      "value": "201.16.254.25",
+      "ttl_seconds_observed": 2290,
+      "section": "Answer"
+    },
+    "current_authority": {
+      "zone": "brasilvida.app.br",
+      "soa": "b.sec.dns.br",
+      "administrator": "hostmaster.registro.br",
+      "meaning": "DNS interno ainda recursa para a zona publica; nao ha zona estreita interna ativa para controle.brasilvida.app.br"
+    },
+    "conflicts": {
+      "controle_cname": "none observed",
+      "app_brasilvida_app_br": "NXDOMAIN"
+    }
+  },
+  "admin_access_attempts": {
+    "local_dns_tools": {
+      "DnsServer_module": "not available",
+      "dnscmd": "not available"
+    },
+    "winrm_dns_brvida_fqdn": "access denied",
+    "winrm_dns_brvida_netbios": "access denied/security error",
+    "winrm_dns_brvida_ip": "blocked without TrustedHosts/explicit credentials",
+    "admin_share_dns_brvida": "access denied",
+    "token_elevation_observed": {
+      "integrity": "medium",
+      "builtin_administrators": "deny-only",
+      "dns_admin_effective": false
+    }
+  },
+  "safe_apply_commands_for_dns_admin": [
+    "Add-DnsServerPrimaryZone -Name \"controle.brasilvida.app.br\" -ReplicationScope \"Domain\" -DynamicUpdate None",
+    "Add-DnsServerResourceRecordA -ZoneName \"controle.brasilvida.app.br\" -Name \"@\" -IPv4Address \"192.168.25.33\" -TimeToLive 00:05:00",
+    "Clear-DnsServerCache -Force"
+  ],
+  "rollback_commands_for_dns_admin": [
+    "Remove-DnsServerZone -Name \"controle.brasilvida.app.br\" -Force",
+    "Clear-DnsServerCache -Force"
+  ],
+  "post_change_validation": [
+    "Resolve-DnsName controle.brasilvida.app.br -Server 192.168.25.112 -Type A returns 192.168.25.33",
+    "Resolve-DnsName controle.brasilvida.app.br -Type A from LAN client returns 192.168.25.33 after cache flush/TTL",
+    "GET http://controle.brasilvida.app.br/ returns Server: Caddy and title Treinamentos Brasil Vida",
+    "GET http://controle.brasilvida.app.br/index.html returns 200 Server: Caddy",
+    "GET http://controle.brasilvida.app.br/asset-manifest.json returns 200 Server: Caddy",
+    "response body does not contain fw - Login or gateway csrf-magic.js"
+  ],
+  "closure": "bloqueado",
+  "blocker": "no administrative access to DNS-BRVIDA / 192.168.25.112 from the current session"
+}

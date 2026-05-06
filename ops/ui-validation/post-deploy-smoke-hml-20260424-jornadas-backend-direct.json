@@ -1,0 +1,243 @@
+{
+  "failed": false,
+  "generated_at": "2026-04-24T20:26:14.213722Z",
+  "environment": "homolog",
+  "base_url": "http://127.0.0.1:8102",
+  "metrics_url": "http://127.0.0.1:8102/api/internal/metrics",
+  "release_id": "release_20260420_2932_210420-2935a-A",
+  "commit_sha": "",
+  "evidence_manifest": "",
+  "runtime_release_id": "release_20260420_2932_210420-2935a-A",
+  "runtime_release_instance_id": "release_20260420_2932_210420-2935a-A",
+  "results": [
+    {
+      "url": "http://127.0.0.1:8102/healthz",
+      "status": 200,
+      "duration_ms": 9.15,
+      "headers": {
+        "Content-Type": "application/json",
+        "X-Release-ID": "release_20260420_2932_210420-2935a-A",
+        "X-Release-Instance-ID": "release_20260420_2932_210420-2935a-A",
+        "X-Request-ID": "3be48b9cc77f4c08b05c083e15add377",
+        "X-Correlation-ID": "3be48b9cc77f4c08b05c083e15add377"
+      },
+      "release_headers": {
+        "X-Release-ID": "release_20260420_2932_210420-2935a-A",
+        "X-Release-Instance-ID": "release_20260420_2932_210420-2935a-A",
+        "X-Request-ID": "3be48b9cc77f4c08b05c083e15add377",
+        "X-Correlation-ID": "3be48b9cc77f4c08b05c083e15add377"
+      },
+      "body_sample": "{\"checks\":{\"database\":\"ok\"},\"status\":\"ok\"}\n",
+      "check": "healthz",
+      "expected": [
+        200
+      ],
+      "ok": true,
+      "runtime_identity": {
+        "release_id": "release_20260420_2932_210420-2935a-A",
+        "release_instance_id": "release_20260420_2932_210420-2935a-A",
+        "request_id": "3be48b9cc77f4c08b05c083e15add377",
+        "correlation_id": "3be48b9cc77f4c08b05c083e15add377"
+      },
+      "runtime_identity_ok": true,
+      "contract": "status=ok and checks.database=ok",
+      "body_json": {
+        "checks": {
+          "database": "ok"
+        },
+        "status": "ok"
+      }
+    },
+    {
+      "url": "http://127.0.0.1:8102/login",
+      "status": 302,
+      "duration_ms": 3.29,
+      "headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Location": "http://192.168.25.33:8082/#/dashboard",
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "X-Release-ID": "release_20260420_2932_210420-2935a-A",
+        "X-Release-Instance-ID": "release_20260420_2932_210420-2935a-A",
+        "X-Request-ID": "2396559238c04d769421d5e06fb5a43f",
+        "X-Correlation-ID": "2396559238c04d769421d5e06fb5a43f"
+      },
+      "release_headers": {
+        "X-Release-ID": "release_20260420_2932_210420-2935a-A",
+        "X-Release-Instance-ID": "release_20260420_2932_210420-2935a-A",
+        "X-Request-ID": "2396559238c04d769421d5e06fb5a43f",
+        "X-Correlation-ID": "2396559238c04d769421d5e06fb5a43f"
+      },
+      "body_sample": "<!doctype html>\n<html lang=en>\n<title>Redirecting...</title>\n<h1>Redirecting...</h1>\n<p>You should be redirected automatically to the target URL: <a href=\"http://192.168.25.33:8082/#/dashboard\">http://192.168.25.33:8082/#/dashboard</a>. If not, click the link.\n",
+      "check": "login_page",
+      "expected": [
+        200,
+        302,
+        303
+      ],
+      "ok": true,
+      "runtime_identity": {
+        "release_id": "release_20260420_2932_210420-2935a-A",
+        "release_instance_id": "release_20260420_2932_210420-2935a-A",
+        "request_id": "2396559238c04d769421d5e06fb5a43f",
+        "correlation_id": "2396559238c04d769421d5e06fb5a43f"
+      },
+      "runtime_identity_ok": true,
+      "contract": "route is alive and responds with the expected unauthenticated page or redirect"
+    },
+    {
+      "url": "http://127.0.0.1:8102/dashboard",
+      "status": 302,
+      "duration_ms": 3.08,
+      "headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Location": "/login?next=/dashboard?",
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "X-Release-ID": "release_20260420_2932_210420-2935a-A",
+        "X-Release-Instance-ID": "release_20260420_2932_210420-2935a-A",
+        "X-Request-ID": "01f1ab4a09594f1d9c282d7a6bd77cf9",
+        "X-Correlation-ID": "01f1ab4a09594f1d9c282d7a6bd77cf9"
+      },
+      "release_headers": {
+        "X-Release-ID": "release_20260420_2932_210420-2935a-A",
+        "X-Release-Instance-ID": "release_20260420_2932_210420-2935a-A",
+        "X-Request-ID": "01f1ab4a09594f1d9c282d7a6bd77cf9",
+        "X-Correlation-ID": "01f1ab4a09594f1d9c282d7a6bd77cf9"
+      },
+      "body_sample": "<!doctype html>\n<html lang=en>\n<title>Redirecting...</title>\n<h1>Redirecting...</h1>\n<p>You should be redirected automatically to the target URL: <a href=\"/login?next=/dashboard?\">/login?next=/dashboard?</a>. If not, click the link.\n",
+      "check": "dashboard_redirect",
+      "expected": [
+        302,
+        303
+      ],
+      "ok": true,
+      "runtime_identity": {
+        "release_id": "release_20260420_2932_210420-2935a-A",
+        "release_instance_id": "release_20260420_2932_210420-2935a-A",
+        "request_id": "01f1ab4a09594f1d9c282d7a6bd77cf9",
+        "correlation_id": "01f1ab4a09594f1d9c282d7a6bd77cf9"
+      },
+      "runtime_identity_ok": true,
+      "contract": "route is alive and responds with the expected unauthenticated page or redirect"
+    },
+    {
+      "url": "http://127.0.0.1:8102/notificacoes-email",
+      "status": 302,
+      "duration_ms": 2.54,
+      "headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Location": "/login?next=/notificacoes-email?",
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "X-Release-ID": "release_20260420_2932_210420-2935a-A",
+        "X-Release-Instance-ID": "release_20260420_2932_210420-2935a-A",
+        "X-Request-ID": "427387d31cc34529aa4aae137bb6d337",
+        "X-Correlation-ID": "427387d31cc34529aa4aae137bb6d337"
+      },
+      "release_headers": {
+        "X-Release-ID": "release_20260420_2932_210420-2935a-A",
+        "X-Release-Instance-ID": "release_20260420_2932_210420-2935a-A",
+        "X-Request-ID": "427387d31cc34529aa4aae137bb6d337",
+        "X-Correlation-ID": "427387d31cc34529aa4aae137bb6d337"
+      },
+      "body_sample": "<!doctype html>\n<html lang=en>\n<title>Redirecting...</title>\n<h1>Redirecting...</h1>\n<p>You should be redirected automatically to the target URL: <a href=\"/login?next=/notificacoes-email?\">/login?next=/notificacoes-email?</a>. If not, click the link.\n",
+      "check": "notificacoes_redirect",
+      "expected": [
+        302,
+        303
+      ],
+      "ok": true,
+      "runtime_identity": {
+        "release_id": "release_20260420_2932_210420-2935a-A",
+        "release_instance_id": "release_20260420_2932_210420-2935a-A",
+        "request_id": "427387d31cc34529aa4aae137bb6d337",
+        "correlation_id": "427387d31cc34529aa4aae137bb6d337"
+      },
+      "runtime_identity_ok": true,
+      "contract": "route is alive and responds with the expected unauthenticated page or redirect"
+    },
+    {
+      "url": "http://127.0.0.1:8102/api/internal/metrics",
+      "status": 200,
+      "duration_ms": 5.21,
+      "headers": {
+        "Content-Type": "text/plain; version=1.0.0; charset=utf-8; charset=utf-8",
+        "X-Release-ID": "release_20260420_2932_210420-2935a-A",
+        "X-Release-Instance-ID": "release_20260420_2932_210420-2935a-A",
+        "X-Request-ID": "d9ac3ffcb7534d399e250cd2399482d6",
+        "X-Correlation-ID": "d9ac3ffcb7534d399e250cd2399482d6"
+      },
+      "release_headers": {
+        "X-Release-ID": "release_20260420_2932_210420-2935a-A",
+        "X-Release-Instance-ID": "release_20260420_2932_210420-2935a-A",
+        "X-Request-ID": "d9ac3ffcb7534d399e250cd2399482d6",
+        "X-Correlation-ID": "d9ac3ffcb7534d399e250cd2399482d6"
+      },
+      "check": "internal_metrics",
+      "expected": [
+        200
+      ],
+      "ok": true,
+      "runtime_identity": {
+        "release_id": "release_20260420_2932_210420-2935a-A",
+        "release_instance_id": "release_20260420_2932_210420-2935a-A",
+        "request_id": "d9ac3ffcb7534d399e250cd2399482d6",
+        "correlation_id": "d9ac3ffcb7534d399e250cd2399482d6"
+      },
+      "runtime_identity_ok": true,
+      "contract": "valid X-Metrics-Token returns Prometheus metrics",
+      "metrics_sample": "# HELP python_gc_objects_collected_total Objects collected during gc\n# TYPE python_gc_objects_collected_total counter\npython_gc_objects_collected_total{generation=\"0\"} 556.0\npython_gc_objects_collected_total{generation=\"1\"} 140.0\npython_gc_objects_collected_total{generation=\"2\"} 7.0\n# HELP python_gc_objects_uncollectable_total Uncollectable objects found during GC\n# TYPE python_gc_objects_uncollectable_total counter\npython_gc_objects_uncollectable_total{generation=\"0\"} 0.0\npython_gc_objects_unco",
+      "metrics_contract_markers": {
+        "prometheus_content": true,
+        "runtime_resource_metric_present": true
+      }
+    },
+    {
+      "check": "runtime_headers",
+      "url": "http://127.0.0.1:8102",
+      "status": 200,
+      "expected": [
+        "X-Release-ID",
+        "X-Release-Instance-ID"
+      ],
+      "ok": true,
+      "runtime_ids": [
+        {
+          "release_id": "release_20260420_2932_210420-2935a-A",
+          "release_instance_id": "release_20260420_2932_210420-2935a-A",
+          "request_id": "3be48b9cc77f4c08b05c083e15add377",
+          "correlation_id": "3be48b9cc77f4c08b05c083e15add377"
+        },
+        {
+          "release_id": "release_20260420_2932_210420-2935a-A",
+          "release_instance_id": "release_20260420_2932_210420-2935a-A",
+          "request_id": "2396559238c04d769421d5e06fb5a43f",
+          "correlation_id": "2396559238c04d769421d5e06fb5a43f"
+        },
+        {
+          "release_id": "release_20260420_2932_210420-2935a-A",
+          "release_instance_id": "release_20260420_2932_210420-2935a-A",
+          "request_id": "01f1ab4a09594f1d9c282d7a6bd77cf9",
+          "correlation_id": "01f1ab4a09594f1d9c282d7a6bd77cf9"
+        },
+        {
+          "release_id": "release_20260420_2932_210420-2935a-A",
+          "release_instance_id": "release_20260420_2932_210420-2935a-A",
+          "request_id": "427387d31cc34529aa4aae137bb6d337",
+          "correlation_id": "427387d31cc34529aa4aae137bb6d337"
+        },
+        {
+          "release_id": "release_20260420_2932_210420-2935a-A",
+          "release_instance_id": "release_20260420_2932_210420-2935a-A",
+          "request_id": "d9ac3ffcb7534d399e250cd2399482d6",
+          "correlation_id": "d9ac3ffcb7534d399e250cd2399482d6"
+        }
+      ],
+      "contract": "runtime emits release headers on real HTTP responses"
+    }
+  ],
+  "runtime": {
+    "alive": true,
+    "headers_present": true,
+    "release_id": "release_20260420_2932_210420-2935a-A",
+    "release_instance_id": "release_20260420_2932_210420-2935a-A"
+  }
+}

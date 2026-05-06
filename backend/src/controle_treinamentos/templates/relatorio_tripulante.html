@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="report-page">
+    <div class="page-header print-hide">
+        <div>
+            <h1>Relatório Individual</h1>
+            <p class="page-subtitle">{{ tripulante.nome }}</p>
+        </div>
+        <div class="page-header-actions">
+            <a class="button-link secondary" href="/#/relatorios/individual" hx-boost="false" data-boundary="spa-selector-return">Voltar ao seletor</a>
+            <a class="button-link secondary" href="/#/tripulantes/{{ tripulante.id }}" hx-boost="false" data-boundary="spa-cadastro-tripulante">Abrir cadastro</a>
+            {% if whatsapp_url %}
+            <a class="button-link secondary" href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer">Enviar WhatsApp</a>
+            {% endif %}
+            <button type="button" class="button-link secondary" onclick="window.print()">Imprimir visualização</button>
+            <a class="button-link secondary" href="{{ url_for('cadastros.tripulante_report_export_pdf', tripulante_id=tripulante.id) }}" data-boundary="ssr_document_pdf">Baixar PDF</a>
+        </div>
+    </div>
+
+    <section class="report-sheet">
+        <header class="report-print-header">
+            <div class="report-brand-row">
+                <img class="report-logo" src="{{ url_for('static', filename='logo-brasilvida.svg') }}" alt="Brasilvida">
+                <div class="report-brand-meta">
+                    <div class="report-doc-title">Relatório Individual de Treinamentos</div>
+                    <div class="report-doc-subtitle">Resumo individual para consulta, acompanhamento e impressão</div>
+                </div>
+            </div>
+            <div class="report-issued-at">Emissão: {{ emitted_at }}</div>
+        </header>
+
+        <section class="report-info-block">
+            <div class="report-block-title">Dados do Tripulante</div>
+            <div class="report-tripulante-header">
+                <div class="avatar avatar-report">
+                    {% if tripulante_foto_url %}
+                    <img src="{{ tripulante_foto_url }}" alt="{{ tripulante.nome }}">
+                    {% else %}
+                    <span>{{ avatar_initials(tripulante.nome) }}</span>
+                    {% endif %}
+                </div>
+                <div class="report-tripulante-meta">
+                    <div class="report-tripulante-name">{{ tripulante.nome }}</div>
+                    <div class="report-tripulante-subtitle">Base {{ tripulante.base }} · Status {{ tripulante.status }}</div>
+                </div>
+            </div>
+            <div class="report-info-grid">
+                <div class="report-info-item report-info-item-wide"><strong>Nome</strong><span>{{ tripulante.nome }}</span></div>
+                <div class="report-info-item"><strong>CPF</strong><span>{{ tripulante.cpf }}</span></div>
+                <div class="report-info-item"><strong>Código ANAC</strong><span>{{ tripulante.licenca_anac }}</span></div>
+                <div class="report-info-item"><strong>E-mail</strong><span>{{ tripulante.email or "-" }}</span></div>
+                <div class="report-info-item"><strong>WhatsApp</strong><span>{{ tripulante.telefone or "-" }}</span></div>
+                <div class="report-info-item"><strong>Base</strong><span>{{ tripulante.base }}</span></div>
+                <div class="report-info-item"><strong>Status</strong><span>{{ tripulante.status }}</span></div>
+            </div>
+        </section>
+
+        <section class="report-summary-grid">
+            <div class="report-summary-card"><strong>Total</strong><span>{{ resumo.total }}</span></div>
+            <div class="report-summary-card"><strong>Vencidos</strong><span>{{ resumo.vencido }}</span></div>
+            <div class="report-summary-card"><strong>A vencer</strong><span>{{ resumo["a vencer"] }}</span></div>
+            <div class="report-summary-card"><strong>Regulares</strong><span>{{ resumo.regular }}</span></div>
+        </section>
+
+        <section class="report-table-block">
+            <div class="report-section-title">Treinamentos registrados</div>
+            <div class="table-wrap">
+                <table class="data-table report-table">
+                    <colgroup>
+                        <col class="col-equipamento">
+                        <col class="col-tipo">
+                        <col class="col-realizacao">
+                        <col class="col-vencimento">
+                        <col class="col-status">
+                        <col class="col-observacao">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>Equipamento</th>
+                            <th>Tipo de treinamento</th>
+                            <th>Data de realização</th>
+                            <th>Data de vencimento</th>
+                            <th>Status</th>
+                            <th>Observação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in treinamentos %}
+                        <tr>
+                            <td>{{ row.equipamento_nome or "-" }}</td>
+                            <td><div class="primary-cell">{{ row.tipo_treinamento_nome }}</div></td>
+                            <td>{{ row.data_realizacao|br_date }}</td>
+                            <td><span class="date-strong">{{ row.data_vencimento|br_date }}</span></td>
+                            <td><span class="status-pill {{ row.status_class }}">{{ row.status_calculado }}</span></td>
+                            <td>{{ row.observacao or "-" }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="empty">Este tripulante ainda não possui treinamentos registrados.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("auto_print") === "1") {
+        setTimeout(() => window.print(), 120);
+    }
+})();
+</script>
+{% endblock %}

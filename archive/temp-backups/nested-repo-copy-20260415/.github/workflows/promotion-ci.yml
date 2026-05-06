@@ -1,0 +1,49 @@
+name: promotion-ci
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  promote-via-strict-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      E2E_DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
+      E2E_LOGIN: ${{ secrets.E2E_LOGIN }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      RELEASE_EVIDENCE_SIGNING_KEY: ${{ secrets.RELEASE_EVIDENCE_SIGNING_KEY }}
+      METRICS_TOKEN: ${{ secrets.METRICS_TOKEN }}
+      BASE_URL: ${{ vars.RELEASE_BASE_URL }}
+      EVIDENCE_MANIFEST: ${{ vars.RELEASE_EVIDENCE_MANIFEST }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -r requirements.txt
+
+      - name: Run strict release gate (CI-only promotion signal)
+        run: |
+          if [ -z "$BASE_URL" ]; then
+            echo "RELEASE_BASE_URL (repo variable) is required for CI promotion gate."
+            exit 1
+          fi
+          if [ -z "$EVIDENCE_MANIFEST" ]; then
+            echo "RELEASE_EVIDENCE_MANIFEST (repo variable) is required for CI promotion gate."
+            exit 1
+          fi
+          .venv/bin/python ops/scripts/release/run_release_strict.py \
+            --base-url "$BASE_URL" \
+            --evidence-manifest "$EVIDENCE_MANIFEST" \
+            --regression-checklist "docs/operations/REGRESSION_AUDIT_CHECKLIST.md" \
+            --evidence-max-age-hours "24"

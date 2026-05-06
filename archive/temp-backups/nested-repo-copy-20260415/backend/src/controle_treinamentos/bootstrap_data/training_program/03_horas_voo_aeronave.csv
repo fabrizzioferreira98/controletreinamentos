@@ -1,0 +1,30 @@
+id;tipo_treinamento_id;aeronave_modelo;solo_horas;voo_pic_sic_horas;voo_crew_horas;observacao
+TREINAMENTO INICIAL (id=1);;;;;;
+1;1;King Air B200/200/C90A/C90GT;16.0;4.0;0.0;
+2;1;Citation 525/560;0.0;0.0;0.0;Conforme CTAC
+3;1;LR 31A/35A/LR45;0.0;0.0;0.0;Conforme CTAC
+4;1;ASTRA G100;0.0;0.0;0.0;Conforme CTAC
+5;1;WESTWIND 1124;40.0;20.0;0.0;
+TREINAMENTO PERIÓDICO (id=4);;;;;;
+6;4;King Air B200/200/C90A/C90GT;8.0;3.0;0.0;
+7;4;Citation 525/560;0.0;0.0;0.0;Conforme CTAC
+8;4;LR 31A/35A/LR45;0.0;0.0;0.0;Conforme CTAC
+9;4;ASTRA G100;0.0;0.0;0.0;Conforme CTAC
+10;4;WESTWIND 1124;24.0;4.0;0.0;
+TREINAMENTO DE TRANSIÇÃO (id=7);;;;;;
+11;7;King Air B200/200/C90A/C90GT;16.0;4.0;0.0;
+12;7;Citation 525/560;0.0;0.0;0.0;Conforme CTAC
+13;7;LR 31A/35A/LR45;0.0;0.0;0.0;Conforme CTAC
+14;7;ASTRA G100;0.0;0.0;0.0;Conforme CTAC
+15;7;WESTWIND 1124;40.0;20.0;0.0;
+TREINAMENTO DE ELEVAÇÃO DE NÍVEL (id=10);;;;;;
+16;10;King Air B200/200/C90A/C90GT;8.0;4.0;0.0;
+17;10;Citation 525/560;0.0;0.0;0.0;Conforme CTAC
+18;10;LR 31A/35A/LR45;0.0;0.0;0.0;Conforme CTAC
+19;10;ASTRA G100;0.0;0.0;0.0;Conforme CTAC
+20;10;WESTWIND 1124;24.0;4.5;0.0;
+TREINAMENTO DE DIFERENÇAS (id=12);;;;;;
+21;12;King Air B200/200/C90A/C90GT;0.0;0.0;0.0;Conforme CTAC - modelo mais complexo ANV
+22;12;LR 31A/35A;0.0;0.0;0.0;Conforme CTAC
+23;12;Cessna 525;0.0;0.0;0.0;Conforme CTAC
+24;12;Cessna 560;0.0;0.0;0.0;Conforme CTAC

@@ -1,0 +1,35 @@
+from pathlib import Path
+
+from ops.scripts.database.sync_tripulantes_snapshot import _load_env_file, _sanitize_database_target
+
+
+def test_load_env_file_ignores_comments_and_blank_lines(tmp_path: Path):
+    env_file = tmp_path / "sample.env"
+    env_file.write_text(
+        "\n".join(
+            [
+                "# comentario",
+                "",
+                "DATABASE_URL=postgresql://user:secret@127.0.0.1:5432/dbname",
+                "APP_ENV=homolog",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    env = _load_env_file(env_file)
+
+    assert env["DATABASE_URL"].startswith("postgresql://user:secret@127.0.0.1:5432/")
+    assert env["APP_ENV"] == "homolog"
+    assert len(env) == 2
+
+
+def test_sanitize_database_target_hides_password():
+    payload = _sanitize_database_target("postgresql://user:supersecret@127.0.0.1:5432/ct_hml")
+
+    assert payload == {
+        "host": "127.0.0.1",
+        "port": 5432,
+        "database": "ct_hml",
+        "user": "user",
+    }

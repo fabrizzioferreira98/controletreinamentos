@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h1>{{ "Atualizar dados do tripulante" if tripulante else "Cadastrar novo tripulante" }}</h1>
+</div>
+<form method="post" class="form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="foto_base64" id="foto_base64" value="">
+    <input type="hidden" name="remove_foto" id="remove_foto" value="0">
+    <label>Nome<input type="text" name="nome" value="{{ tripulante.nome if tripulante else '' }}" required></label>
+    <label>CPF<input type="text" name="cpf" value="{{ tripulante.cpf if tripulante else '' }}" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" required></label>
+    <label>Código ANAC<input type="text" name="licenca_anac" value="{{ tripulante.licenca_anac if tripulante else '' }}" inputmode="numeric" maxlength="6" placeholder="000000" required></label>
+    <label>E-mail<input type="email" name="email" value="{{ tripulante.email if tripulante else '' }}" maxlength="254" placeholder="tripulante@empresa.com"></label>
+    <label>Telefone / WhatsApp<input type="text" name="telefone" value="{{ tripulante.telefone if tripulante else '' }}" inputmode="tel" maxlength="16" placeholder="(91) 99999-9999"></label>
+    <label>
+        Base
+        <select name="base" required>
+            <option value="">Selecione</option>
+            {% for row in bases_options %}
+            <option value="{{ row.nome }}" {% if tripulante and tripulante.base == row.nome %}selected{% endif %}>{{ row.nome }}{% if row.uf and row.uf != '--' %} / {{ row.uf }}{% endif %}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>
+        Status
+        <select name="status" required>
+            <option value="">Selecione</option>
+            {% for item in status_options %}
+            <option value="{{ item }}" {% if tripulante and tripulante.status == item %}selected{% endif %}>{{ item }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>
+        Função operacional
+        <select name="funcao_operacional" required>
+            {% for item in funcoes_options %}
+            <option value="{{ item }}" {% if (tripulante and tripulante.funcao_operacional == item) or (not tripulante and item == 'outro') %}selected{% endif %}>{{ item|title }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>
+        Categoria operacional
+        <select name="categoria_operacional" required>
+            {% for item in categorias_options %}
+            <option value="{{ item }}" {% if (tripulante and tripulante.categoria_operacional == item) or (not tripulante and item == 'N/A') %}selected{% endif %}>{{ item }}</option>
+            {% endfor %}
+        </select>
+        <span class="field-help">
+            <strong>Legenda de porte:</strong><br>
+            A — C525 ou aeronave do mesmo porte.<br>
+            B — LRJ série 30, C560, LRJ45, WW, G100 ou aeronave do mesmo porte.
+        </span>
+    </label>
+    <section class="full-width flags-section">
+        <div class="flags-section-header">
+            <h2>Elegibilidade operacional</h2>
+            <p>Defina rapidamente os indicadores operacionais do tripulante.</p>
+        </div>
+        <div class="flags-grid">
+            <label class="checkbox-field">
+                <span class="checkbox-label-group">
+                    <span class="checkbox-title">Tripulante ativo</span>
+                    <span class="checkbox-description">Controla disponibilidade geral no sistema.</span>
+                </span>
+                <span class="toggle-switch">
+                    <input type="checkbox" name="ativo" {% if not tripulante or tripulante.ativo %}checked{% endif %}>
+                    <span class="toggle-slider" aria-hidden="true"></span>
+                    <span class="toggle-text">{% if not tripulante or tripulante.ativo %}Ativo{% else %}Inativo{% endif %}</span>
+                </span>
+            </label>
+            <label class="checkbox-field">
+                <span class="checkbox-label-group">
+                    <span class="checkbox-title">SDEA ativo</span>
+                    <span class="checkbox-description">Aplica adicional mensal de idioma quando habilitado.</span>
+                </span>
+                <span class="toggle-switch">
+                    <input type="checkbox" name="sdea_ativo" {% if tripulante and tripulante.sdea_ativo %}checked{% endif %}>
+                    <span class="toggle-slider" aria-hidden="true"></span>
+                    <span class="toggle-text">{% if tripulante and tripulante.sdea_ativo %}Ativo{% else %}Inativo{% endif %}</span>
+                </span>
+            </label>
+            <label class="checkbox-field">
+                <span class="checkbox-label-group">
+                    <span class="checkbox-title">Instrutor designado</span>
+                    <span class="checkbox-description">Considera adicional fixo de instrutoria na competência.</span>
+                </span>
+                <span class="toggle-switch">
+                    <input type="checkbox" name="instrutor_ativo" {% if tripulante and tripulante.instrutor_ativo %}checked{% endif %}>
+                    <span class="toggle-slider" aria-hidden="true"></span>
+                    <span class="toggle-text">{% if tripulante and tripulante.instrutor_ativo %}Ativo{% else %}Inativo{% endif %}</span>
+                </span>
+            </label>
+            <label class="checkbox-field">
+                <span class="checkbox-label-group">
+                    <span class="checkbox-title">Checador designado</span>
+                    <span class="checkbox-description">Considera adicional fixo de checagem na competência.</span>
+                </span>
+                <span class="toggle-switch">
+                    <input type="checkbox" name="checador_ativo" {% if tripulante and tripulante.checador_ativo %}checked{% endif %}>
+                    <span class="toggle-slider" aria-hidden="true"></span>
+                    <span class="toggle-text">{% if tripulante and tripulante.checador_ativo %}Ativo{% else %}Inativo{% endif %}</span>
+                </span>
+            </label>
+            <label class="checkbox-field">
+                <span class="checkbox-label-group">
+                    <span class="checkbox-title">Elegível para adicional excepcional</span>
+                    <span class="checkbox-description">Permite aplicar valor excepcional parametrizado/manual.</span>
+                </span>
+                <span class="toggle-switch">
+                    <input type="checkbox" name="elegivel_adicional_excepcional" {% if tripulante and tripulante.elegivel_adicional_excepcional %}checked{% endif %}>
+                    <span class="toggle-slider" aria-hidden="true"></span>
+                    <span class="toggle-text">{% if tripulante and tripulante.elegivel_adicional_excepcional %}Ativo{% else %}Inativo{% endif %}</span>
+                </span>
+            </label>
+        </div>
+    </section>
+    <div class="full-width tripulante-photo-field">
+        <div class="tripulante-photo-preview-card">
+            <div class="tripulante-photo-preview" id="tripulantePhotoPreview" data-current-url="{{ tripulante_foto_url or '' }}">
+                {% if tripulante_foto_url %}
+                <img src="{{ tripulante_foto_url }}" alt="{{ tripulante.nome }}">
+                {% else %}
+                <span>{{ avatar_initials(tripulante.nome if tripulante else '') }}</span>
+                {% endif %}
+            </div>
+            <div class="tripulante-photo-meta">
+                <div class="checkbox-title">Foto do tripulante</div>
+                <div class="checkbox-description">Envie JPG, PNG ou WEBP. A imagem será exibida no cadastro, relatório e gestão de bases.</div>
+            </div>
+        </div>
+        <div class="tripulante-photo-actions">
+            <input type="file" id="tripulantePhotoInput" accept="image/png,image/jpeg,image/webp" aria-label="Foto do tripulante">
+            <button type="button" class="button-link secondary" id="tripulantePhotoRemove">Remover foto</button>
+        </div>
+    </div>
+    <label class="full-width">Observações<textarea name="observacoes">{{ tripulante.observacoes if tripulante else '' }}</textarea></label>
+    <div class="form-actions full-width">
+        <button type="submit">Salvar alterações</button>
+        {% if tripulante and tripulante.id and can_access('tripulantes_file:view') %}
+        <a class="button-link secondary" href="{{ url_for('cadastros.tripulante_file_tab', tripulante_id=tripulante.id) }}">Abrir aba File</a>
+        {% endif %}
+        <a class="button-link secondary" href="{{ url_for('cadastros.tripulantes_list') }}">Voltar sem salvar</a>
+    </div>
+</form>
+<script>
+(() => {
+    const input = document.getElementById("tripulantePhotoInput");
+    const hidden = document.getElementById("foto_base64");
+    const removeField = document.getElementById("remove_foto");
+    const preview = document.getElementById("tripulantePhotoPreview");
+    const removeButton = document.getElementById("tripulantePhotoRemove");
+    let persistedPhotoUrl = preview?.dataset.currentUrl || "";
+    const nameInput = document.querySelector("input[name='nome']");
+    const cpfInput = document.querySelector("input[name='cpf']");
+    const anacInput = document.querySelector("input[name='licenca_anac']");
+    const phoneInput = document.querySelector("input[name='telefone']");
+    const toggleInputs = [...document.querySelectorAll(".toggle-switch input[type='checkbox']")];
+
+    function initialsForName(value) {
+        const parts = (value || "").trim().split(/\s+/).filter(Boolean);
+        if (!parts.length) return "?";
+        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+        return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    }
+
+    function renderPreview(value) {
+        preview.textContent = "";
+        if (value) {
+            const safeImagePrefix = ["data:image/jpeg;base64,", "data:image/jpg;base64,", "data:image/png;base64,", "data:image/webp;base64,"];
+            if (safeImagePrefix.some((prefix) => String(value).startsWith(prefix))) {
+                const img = document.createElement("img");
+                img.src = String(value);
+                img.alt = "Foto do tripulante";
+                preview.appendChild(img);
+                return;
+            }
+            const span = document.createElement("span");
+            span.textContent = initialsForName(nameInput ? nameInput.value : "");
+            preview.appendChild(span);
+        } else if (persistedPhotoUrl && removeField.value !== "1") {
+            const img = document.createElement("img");
+            img.src = persistedPhotoUrl;
+            img.alt = "Foto do tripulante";
+            preview.appendChild(img);
+        } else {
+            const span = document.createElement("span");
+            span.textContent = initialsForName(nameInput ? nameInput.value : "");
+            preview.appendChild(span);
+        }
+    }
+
+    input.addEventListener("change", (event) => {
+        const [file] = event.target.files || [];
+        if (!file) return;
+        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+            alert("Envie uma imagem JPG, PNG ou WEBP.");
+            input.value = "";
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            hidden.value = reader.result || "";
+            removeField.value = "0";
+            renderPreview(hidden.value);
+        };
+        reader.readAsDataURL(file);
+    });
+
+    removeButton.addEventListener("click", () => {
+        hidden.value = "";
+        removeField.value = "1";
+        persistedPhotoUrl = "";
+        input.value = "";
+        renderPreview("");
+    });
+
+    if (nameInput) {
+        nameInput.addEventListener("input", () => {
+            if (!hidden.value) {
+                renderPreview("");
+            }
+        });
+    }
+
+    function onlyDigits(value) {
+        return (value || "").replace(/\D/g, "");
+    }
+
+    function formatCpf(value) {
+        const digits = onlyDigits(value).slice(0, 11);
+        if (digits.length <= 3) return digits;
+        if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+        if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+        return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+    }
+
+    function formatPhone(value) {
+        const digits = onlyDigits(value).slice(0, 11);
+        if (digits.length <= 2) return digits ? `(${digits}` : "";
+        if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+        if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+        return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+    }
+
+    if (cpfInput) {
+        cpfInput.addEventListener("input", () => {
+            cpfInput.value = formatCpf(cpfInput.value);
+        });
+        cpfInput.value = formatCpf(cpfInput.value);
+    }
+
+    if (anacInput) {
+        anacInput.addEventListener("input", () => {
+            anacInput.value = onlyDigits(anacInput.value).slice(0, 6);
+        });
+        anacInput.value = onlyDigits(anacInput.value).slice(0, 6);
+    }
+
+    if (phoneInput) {
+        phoneInput.addEventListener("input", () => {
+            phoneInput.value = formatPhone(phoneInput.value);
+        });
+        phoneInput.value = formatPhone(phoneInput.value);
+    }
+
+    function updateToggleText(input) {
+        const textNode = input.closest(".toggle-switch")?.querySelector(".toggle-text");
+        if (!textNode) return;
+        textNode.textContent = input.checked ? "Ativo" : "Inativo";
+    }
+
+    toggleInputs.forEach((input) => {
+        input.addEventListener("change", () => updateToggleText(input));
+        updateToggleText(input);
+    });
+
+    renderPreview(hidden.value);
+})();
+</script>
+{% endblock %}
