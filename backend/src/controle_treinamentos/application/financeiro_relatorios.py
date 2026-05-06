@@ -1895,12 +1895,14 @@ def _final_summary_story(story: list, data: dict, styles: dict):
     totals = data["totals"]
     if data["tipo"] == "horaria":
         rows = [
-            [_cell("RESUMO DAS HORAS E VALORES", styles["body_center_inverse"]), "", "", "", "", "", "", ""],
+            [_cell("RESUMO DAS HORAS E VALORES", styles["body_center_inverse"]), "", "", "", "", "", "", "", "", ""],
             [
                 _cell("DIA NORMAL", styles["body_center"]),
                 "",
                 "",
+                "",
                 _cell("DOMINGO E FERIADOS", styles["body_center"]),
+                "",
                 "",
                 "",
                 "",
@@ -1909,42 +1911,46 @@ def _final_summary_story(story: list, data: dict, styles: dict):
             [
                 _cell("DIU", styles["body_center"]),
                 _cell("NOT", styles["body_center"]),
+                _cell("POS", styles["body_center"]),
                 _cell("VALOR", styles["body_center"]),
                 _cell("DIU", styles["body_center"]),
                 _cell("VALOR", styles["body_center"]),
                 _cell("NOT", styles["body_center"]),
+                _cell("POS", styles["body_center"]),
                 _cell("VALOR", styles["body_center"]),
                 "",
             ],
             [
                 _cell(_format_minutes_hhmm(totals["normal_minutos_diurnos"]), styles["body_center"]),
-                _cell(_format_minutes_hhmm(totals["normal_minutos_noturnos_remuneraveis_reduzidos"]), styles["body_center"]),
+                _cell(_format_minutes_hhmm(totals["normal_minutos_noturnos_reduzidos"]), styles["body_center"]),
+                _cell(_format_minutes_hhmm(totals["normal_minutos_pos_reduzidos"]), styles["body_center"]),
                 _cell(_format_money(totals["normal_total"]), styles["body_center"]),
                 _cell(_format_minutes_hhmm(totals["holiday_minutos_diurnos"]), styles["body_center"]),
                 _cell(_format_money(totals["holiday_valor_diurno"]), styles["body_center"]),
-                _cell(_format_minutes_hhmm(totals["holiday_minutos_noturnos_remuneraveis_reduzidos"]), styles["body_center"]),
+                _cell(_format_minutes_hhmm(totals["holiday_minutos_noturnos_reduzidos"]), styles["body_center"]),
+                _cell(_format_minutes_hhmm(totals["holiday_minutos_pos_reduzidos"]), styles["body_center"]),
                 _cell(_format_money(totals["holiday_valor_noturno"]), styles["body_center"]),
                 _cell(_format_money(totals["total"]), styles["body_center"]),
             ],
         ]
         table = _individual_summary_table(
             rows,
-            [31 * mm, 31 * mm, 39 * mm, 31 * mm, 39 * mm, 31 * mm, 39 * mm, 38 * mm],
+            [24 * mm, 24 * mm, 24 * mm, 33 * mm, 24 * mm, 33 * mm, 24 * mm, 24 * mm, 33 * mm, 36 * mm],
             spans=[
                 ((0, 0), (-1, 0)),
-                ((0, 1), (2, 1)),
-                ((3, 1), (6, 1)),
-                ((7, 1), (7, 2)),
+                ((0, 1), (3, 1)),
+                ((4, 1), (8, 1)),
+                ((9, 1), (9, 2)),
             ],
         )
         table.setStyle(
             TableStyle(
                 [
-                    ("BACKGROUND", (0, 1), (2, 1), colors.HexColor("#fff2cc")),
-                    ("BACKGROUND", (3, 1), (6, 1), colors.HexColor("#d9ead3")),
-                    ("BACKGROUND", (7, 1), (7, 3), colors.HexColor("#f4cccc")),
-                    ("BACKGROUND", (0, 2), (6, 2), colors.white),
-                    ("BACKGROUND", (0, 3), (6, 3), colors.white),
+                    ("BACKGROUND", (0, 1), (3, 1), colors.HexColor("#fff2cc")),
+                    ("BACKGROUND", (4, 1), (8, 1), colors.HexColor("#d9ead3")),
+                    ("BACKGROUND", (9, 1), (9, 3), colors.HexColor("#f4cccc")),
+                    ("BACKGROUND", (0, 2), (8, 2), colors.white),
+                    ("BACKGROUND", (0, 3), (8, 3), colors.white),
                 ]
             )
         )

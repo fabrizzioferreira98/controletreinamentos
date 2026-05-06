@@ -378,7 +378,7 @@ def test_relatorio_individual_horaria_filtra_vigentes_org_scope_e_audita(monkeyp
     assert db.committed is True
 
 
-def test_relatorio_individual_horaria_resumo_exibe_noturno_reduzido(monkeypatch):
+def test_relatorio_individual_horaria_resumo_separa_noturno_reduzido_e_pos(monkeypatch):
     rows = [
         {
             "id": 41,
@@ -393,14 +393,15 @@ def test_relatorio_individual_horaria_resumo_exibe_noturno_reduzido(monkeypatch)
             "jornada_total_minutos": 180,
             "minutos_diurnos": 110,
             "minutos_noturnos": 70,
-            "horas_noturnas_convertidas": "1.3333",
+            "horas_noturnas_convertidas": "3.3333",
+            "minutos_pos": 105,
             "domingo_feriado": False,
             "valor_adicional_noturno": "61.57",
             "valor_domingo_feriado_diurno": "0.00",
             "valor_domingo_feriado_noturno": "0.00",
             "valor_pre": "0.00",
-            "valor_pos": "0.00",
-            "total": "61.57",
+            "valor_pos": "92.36",
+            "total": "153.93",
             "status": "calculado",
             "parametros_usados": [{"tipo": "duracao_hora_noturna_minutos", "valor": "52.5000"}],
             "memoria_calculo": {
@@ -408,6 +409,15 @@ def test_relatorio_individual_horaria_resumo_exibe_noturno_reduzido(monkeypatch)
                     "normal_minutos_noturnos": 70,
                     "especial_minutos_noturnos": 0,
                 },
+                "steps": [
+                    {
+                        "rule_key": "pre_pos_jornada",
+                        "resultado_intermediario": {
+                            "normal_minutos_pos": 105,
+                            "especial_minutos_pos": 0,
+                        },
+                    }
+                ],
                 "parameters": [{"tipo": "duracao_hora_noturna_minutos", "valor": "52.5000"}],
             },
         },
@@ -458,8 +468,12 @@ def test_relatorio_individual_horaria_resumo_exibe_noturno_reduzido(monkeypatch)
 
     assert data["totals"]["normal_minutos_noturnos"] == 70
     assert data["totals"]["normal_minutos_noturnos_reduzidos"] == 80
+    assert data["totals"]["normal_minutos_pos"] == 105
+    assert data["totals"]["normal_minutos_pos_reduzidos"] == 120
+    assert data["totals"]["normal_minutos_noturnos_remuneraveis_reduzidos"] == 200
     assert data["totals"]["holiday_minutos_noturnos"] == 105
     assert data["totals"]["holiday_minutos_noturnos_reduzidos"] == 120
+    assert data["totals"]["holiday_minutos_noturnos_remuneraveis_reduzidos"] == 120
 
     story = []
     financeiro_relatorios._final_summary_story(story, data, financeiro_relatorios._individual_styles())
@@ -468,8 +482,10 @@ def test_relatorio_individual_horaria_resumo_exibe_noturno_reduzido(monkeypatch)
         for row in story[1]._cellvalues
         for cell in row
     )
+    assert "POS" in summary_text
     assert "01:20" in summary_text
     assert "02:00" in summary_text
+    assert "03:20" not in summary_text
     assert "01:10" not in summary_text
     assert "01:45" not in summary_text
 
