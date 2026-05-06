@@ -378,6 +378,102 @@ def test_relatorio_individual_horaria_filtra_vigentes_org_scope_e_audita(monkeyp
     assert db.committed is True
 
 
+def test_relatorio_individual_horaria_resumo_exibe_noturno_reduzido(monkeypatch):
+    rows = [
+        {
+            "id": 41,
+            "org_id": FINANCE_ORG_SCOPE_DEFAULT,
+            "competencia": "2026-04",
+            "missao_operacional_id": 10,
+            "tripulante_id": 135,
+            "tripulante_nome": "Comandante QA",
+            "funcao": "copiloto",
+            "data_missao": "2026-04-10",
+            "missao_status": "ativa",
+            "jornada_total_minutos": 180,
+            "minutos_diurnos": 110,
+            "minutos_noturnos": 70,
+            "horas_noturnas_convertidas": "1.3333",
+            "domingo_feriado": False,
+            "valor_adicional_noturno": "61.57",
+            "valor_domingo_feriado_diurno": "0.00",
+            "valor_domingo_feriado_noturno": "0.00",
+            "valor_pre": "0.00",
+            "valor_pos": "0.00",
+            "total": "61.57",
+            "status": "calculado",
+            "parametros_usados": [{"tipo": "duracao_hora_noturna_minutos", "valor": "52.5000"}],
+            "memoria_calculo": {
+                "totals": {
+                    "normal_minutos_noturnos": 70,
+                    "especial_minutos_noturnos": 0,
+                },
+                "parameters": [{"tipo": "duracao_hora_noturna_minutos", "valor": "52.5000"}],
+            },
+        },
+        {
+            "id": 42,
+            "org_id": FINANCE_ORG_SCOPE_DEFAULT,
+            "competencia": "2026-04",
+            "missao_operacional_id": 11,
+            "tripulante_id": 135,
+            "tripulante_nome": "Comandante QA",
+            "funcao": "copiloto",
+            "data_missao": "2026-04-11",
+            "missao_status": "ativa",
+            "jornada_total_minutos": 225,
+            "minutos_diurnos": 120,
+            "minutos_noturnos": 105,
+            "horas_noturnas_convertidas": "2.0000",
+            "domingo_feriado": True,
+            "valor_adicional_noturno": "0.00",
+            "valor_domingo_feriado_diurno": "92.36",
+            "valor_domingo_feriado_noturno": "184.72",
+            "valor_pre": "0.00",
+            "valor_pos": "0.00",
+            "total": "277.08",
+            "status": "calculado",
+            "parametros_usados": [{"tipo": "duracao_hora_noturna_minutos", "valor": "52.5000"}],
+            "memoria_calculo": {
+                "totals": {
+                    "normal_minutos_noturnos": 0,
+                    "especial_minutos_noturnos": 105,
+                },
+                "parameters": [{"tipo": "duracao_hora_noturna_minutos", "valor": "52.5000"}],
+            },
+        },
+    ]
+    monkeypatch.setattr(financeiro_relatorios, "fetch_tripulante_detail", lambda *_args, **_kwargs: _tripulante_payload())
+    monkeypatch.setattr(financeiro_relatorios, "listar_calculos_horarios", lambda *args, **kwargs: rows)
+
+    data = financeiro_relatorios._hourly_report_data(
+        object(),
+        competencia="2026-04",
+        tripulante_id=135,
+        funcao="copiloto",
+        status=None,
+        incluir_obsoletos=False,
+        org_id=FINANCE_ORG_SCOPE_DEFAULT,
+    )
+
+    assert data["totals"]["normal_minutos_noturnos"] == 70
+    assert data["totals"]["normal_minutos_noturnos_reduzidos"] == 80
+    assert data["totals"]["holiday_minutos_noturnos"] == 105
+    assert data["totals"]["holiday_minutos_noturnos_reduzidos"] == 120
+
+    story = []
+    financeiro_relatorios._final_summary_story(story, data, financeiro_relatorios._individual_styles())
+    summary_text = " ".join(
+        getattr(cell, "text", str(cell))
+        for row in story[1]._cellvalues
+        for cell in row
+    )
+    assert "01:20" in summary_text
+    assert "02:00" in summary_text
+    assert "01:10" not in summary_text
+    assert "01:45" not in summary_text
+
+
 def test_relatorio_individual_horaria_bloqueia_linha_sem_calculo_persistido(monkeypatch):
     db = _FakeDB()
     rows = [

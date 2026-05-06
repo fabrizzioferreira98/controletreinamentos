@@ -1034,6 +1034,66 @@ def _hourly_memory_minutes(row: dict, key: str, fallback: int = 0) -> int:
     return fallback
 
 
+def _hourly_night_duration_minutes(row: dict) -> Decimal | None:
+    memory = row.get("memoria_calculo") or {}
+    parameters = []
+    if isinstance(memory, dict):
+        parameters.extend(memory.get("parameters") or [])
+    parameters.extend(row.get("parametros_usados") or [])
+    for item in parameters:
+        if not isinstance(item, dict) or _text(item.get("tipo")) != "duracao_hora_noturna_minutos":
+            continue
+        try:
+            duration = Decimal(str(item.get("valor") or "0"))
+        except Exception:
+            duration = Decimal("0")
+        if duration > 0:
+            return duration
+    return None
+
+
+def _hourly_reduced_minutes_from_raw(row: dict, raw_minutes: int) -> int:
+    raw_minutes = _minutes(raw_minutes)
+    if raw_minutes <= 0:
+        return 0
+    duration = _hourly_night_duration_minutes(row)
+    if duration:
+        reduced_hours = Decimal(raw_minutes) / duration
+        return int((reduced_hours * Decimal("60")).quantize(Decimal("1")))
+    return 0
+
+
+def _hourly_reduced_minutes(row: dict, key: str, fallback: int = 0) -> int:
+    raw_minutes = _hourly_memory_minutes(row, key, fallback)
+    reduced = _hourly_reduced_minutes_from_raw(row, raw_minutes)
+    if reduced > 0:
+        return reduced
+    return _minutes(row.get("horas_noturnas_convertidas"))
+
+
+def _hourly_step_intermediate(row: dict, rule_key: str) -> dict:
+    memory = row.get("memoria_calculo") or {}
+    steps = memory.get("steps") if isinstance(memory, dict) else []
+    for step in steps or []:
+        if not isinstance(step, dict) or _text(step.get("rule_key")) != rule_key:
+            continue
+        result = step.get("resultado_intermediario")
+        return result if isinstance(result, dict) else {}
+    return {}
+
+
+def _hourly_pos_minutes(row: dict, key: str) -> int:
+    intermediate = _hourly_step_intermediate(row, "pre_pos_jornada")
+    if key in intermediate:
+        return _minutes(intermediate.get(key))
+    pos_minutes = _minutes(row.get("minutos_pos"))
+    if key == "normal_minutos_pos" and not bool(row.get("domingo_feriado")):
+        return pos_minutes
+    if key == "especial_minutos_pos" and bool(row.get("domingo_feriado")):
+        return pos_minutes
+    return 0
+
+
 def _alert_text(row: dict) -> str:
     alerts = []
     if _is_obsolete(row):
@@ -1168,6 +1228,32 @@ def _hourly_report_data(
         )
         for row in payable_rows
     )
+    normal_minutos_noturnos_reduzidos = sum(
+        _hourly_reduced_minutes(
+            row,
+            "normal_minutos_noturnos",
+            _minutes(row.get("minutos_noturnos")) if not bool(row.get("domingo_feriado")) else 0,
+        )
+        for row in payable_rows
+    )
+    holiday_minutos_noturnos_reduzidos = sum(
+        _hourly_reduced_minutes(
+            row,
+            "especial_minutos_noturnos",
+            _minutes(row.get("minutos_noturnos")) if bool(row.get("domingo_feriado")) else 0,
+        )
+        for row in payable_rows
+    )
+    normal_minutos_pos = sum((_hourly_pos_minutes(row, "normal_minutos_pos") for row in payable_rows), 0)
+    holiday_minutos_pos = sum((_hourly_pos_minutes(row, "especial_minutos_pos") for row in payable_rows), 0)
+    normal_minutos_pos_reduzidos = sum(
+        (_hourly_reduced_minutes_from_raw(row, _hourly_pos_minutes(row, "normal_minutos_pos")) for row in payable_rows),
+        0,
+    )
+    holiday_minutos_pos_reduzidos = sum(
+        (_hourly_reduced_minutes_from_raw(row, _hourly_pos_minutes(row, "especial_minutos_pos")) for row in payable_rows),
+        0,
+    )
     valor_adicional_noturno = sum((_money(row.get("valor_adicional_noturno")) for row in payable_rows), Decimal("0"))
     valor_pre = sum((_money(row.get("valor_pre")) for row in payable_rows), Decimal("0"))
     valor_pos = sum((_money(row.get("valor_pos")) for row in payable_rows), Decimal("0"))
@@ -1186,9 +1272,17 @@ def _hourly_report_data(
         "hora_reduzida_decimal": sum((Decimal(str(row.get("horas_noturnas_convertidas") or "0")) for row in payable_rows), Decimal("0")),
         "normal_minutos_diurnos": normal_minutos_diurnos,
         "normal_minutos_noturnos": normal_minutos_noturnos,
+        "normal_minutos_noturnos_reduzidos": normal_minutos_noturnos_reduzidos,
+        "normal_minutos_pos": normal_minutos_pos,
+        "normal_minutos_pos_reduzidos": normal_minutos_pos_reduzidos,
+        "normal_minutos_noturnos_remuneraveis_reduzidos": normal_minutos_noturnos_reduzidos + normal_minutos_pos_reduzidos,
         "normal_total": valor_adicional_noturno + valor_pre + valor_pos,
         "holiday_minutos_diurnos": holiday_minutos_diurnos,
         "holiday_minutos_noturnos": holiday_minutos_noturnos,
+        "holiday_minutos_noturnos_reduzidos": holiday_minutos_noturnos_reduzidos,
+        "holiday_minutos_pos": holiday_minutos_pos,
+        "holiday_minutos_pos_reduzidos": holiday_minutos_pos_reduzidos,
+        "holiday_minutos_noturnos_remuneraveis_reduzidos": holiday_minutos_noturnos_reduzidos + holiday_minutos_pos_reduzidos,
         "holiday_valor_diurno": holiday_valor_diurno,
         "holiday_valor_noturno": holiday_valor_noturno,
         "valor_adicional_noturno": valor_adicional_noturno,
@@ -1824,11 +1918,11 @@ def _final_summary_story(story: list, data: dict, styles: dict):
             ],
             [
                 _cell(_format_minutes_hhmm(totals["normal_minutos_diurnos"]), styles["body_center"]),
-                _cell(_format_minutes_hhmm(totals["normal_minutos_noturnos"]), styles["body_center"]),
+                _cell(_format_minutes_hhmm(totals["normal_minutos_noturnos_remuneraveis_reduzidos"]), styles["body_center"]),
                 _cell(_format_money(totals["normal_total"]), styles["body_center"]),
                 _cell(_format_minutes_hhmm(totals["holiday_minutos_diurnos"]), styles["body_center"]),
                 _cell(_format_money(totals["holiday_valor_diurno"]), styles["body_center"]),
-                _cell(_format_minutes_hhmm(totals["holiday_minutos_noturnos"]), styles["body_center"]),
+                _cell(_format_minutes_hhmm(totals["holiday_minutos_noturnos_remuneraveis_reduzidos"]), styles["body_center"]),
                 _cell(_format_money(totals["holiday_valor_noturno"]), styles["body_center"]),
                 _cell(_format_money(totals["total"]), styles["body_center"]),
             ],
