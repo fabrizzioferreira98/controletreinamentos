@@ -121,6 +121,20 @@ def test_financeiro_jornada_preview_states_use_backend_and_guard_races():
         assert expected in page
 
 
+def test_financeiro_jornada_preview_does_not_block_empty_operational_times():
+    page = _read(JORNADA_PAGE)
+    missing_preview_body = page.split("function missingPreviewFields(payload)", 1)[1].split(
+        "function crewValidationMessages(payload)",
+        1,
+    )[0]
+
+    assert "return missingSaveFields(payload)" in missing_preview_body
+    assert "horario_apresentacao" not in missing_preview_body
+    assert "horario_abandono" not in missing_preview_body
+    assert "const persistedPreview = seedPreviewFromPersistedRow(row)" in page
+    assert 'persistedPreview.status === "available"' in page
+
+
 def test_financeiro_jornada_surfaces_required_operational_states_and_errors():
     page = _read(JORNADA_PAGE)
 

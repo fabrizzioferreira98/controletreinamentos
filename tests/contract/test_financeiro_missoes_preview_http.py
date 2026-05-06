@@ -249,6 +249,32 @@ def test_preview_use_case_does_not_persist_or_call_recalculation_repositories(mo
     assert db.commits == []
 
 
+def test_preview_use_case_returns_zero_when_operational_times_are_missing(monkeypatch):
+    db = _PreviewDB()
+    payload = {
+        **_valid_preview_payload(),
+        "horario_apresentacao": "",
+        "horario_abandono": "",
+    }
+
+    def _unexpected_dependency(*_args, **_kwargs):
+        raise AssertionError("preview zerado nao deve consultar parametros, feriados ou motor horario")
+
+    monkeypatch.setattr(financeiro_missoes_app, "_feriados_nacionais_da_missao", _unexpected_dependency)
+    monkeypatch.setattr(financeiro_missoes_app, "_buscar_parametros_vigentes", _unexpected_dependency)
+    monkeypatch.setattr(financeiro_missoes_app, "calcular_bonificacao_horaria", _unexpected_dependency)
+
+    preview = financeiro_missoes_app.preview_missao_operacional(payload, db=db)
+
+    assert preview["status"] == "disponivel"
+    assert preview["estado_calculo"] == "estimado"
+    assert preview["valor_estimado"] == "0.00"
+    assert preview["warnings"][0]["code"] == "finance_hourly_missing_times_zeroed"
+    assert {item["total"] for item in preview["calculations"]} == {"0.00"}
+    assert preview["campos_faltantes"] == []
+    assert db.commits == []
+
+
 def test_preview_use_case_returns_blocked_state_for_backend_inconsistency(monkeypatch):
     db = _PreviewDB()
 

@@ -1337,6 +1337,11 @@ function setGridRowPreview(row, preview) {
 
 async function runGridRowPreview(row, requestSeq) {
   if (!row?.key || jornadaState.editingRowKey === row.key) return;
+  const persistedPreview = seedPreviewFromPersistedRow(row);
+  if (persistedPreview.status === "available") {
+    setGridRowPreview(row, persistedPreview);
+    return;
+  }
   const payload = previewPayloadFromDraft(buildRowDraft(row));
   const validationMessages = payloadValidationMessages(payload, { forPreview: true });
   if (validationMessages.length) {
@@ -1877,11 +1882,7 @@ function missingSaveFields(payload) {
 }
 
 function missingPreviewFields(payload) {
-  const previewOnlyFields = [
-    ["horario_apresentacao", "apresentação"],
-    ["horario_abandono", "abandono"],
-  ].filter(([key]) => !normalizeText(payload[key])).map(([, label]) => label);
-  return [...missingSaveFields(payload), ...previewOnlyFields];
+  return missingSaveFields(payload);
 }
 
 function crewValidationMessages(payload) {

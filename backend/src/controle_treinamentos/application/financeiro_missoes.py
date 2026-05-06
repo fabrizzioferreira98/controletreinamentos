@@ -105,8 +105,6 @@ _PREVIEW_REQUIRED_FIELDS = (
     ("categoria_financeira_aeronave", "categoria operacional"),
     ("comandante_tripulante_id", "comandante"),
     ("copiloto_tripulante_id", "copiloto"),
-    ("horario_apresentacao", "horario de apresentacao"),
-    ("horario_abandono", "horario de abandono"),
 )
 
 
@@ -1020,9 +1018,50 @@ def preview_missao_operacional(payload: dict, *, org_id: str | None = None, db=N
         return _preview_pending_payload(payload, missing_fields)
 
     try:
-        data = _mission_payload(payload, org_id=resolved_org_id, actor_user_id=None)
+        data = _mission_payload(payload, org_id=resolved_org_id, actor_user_id=None, require_times=False)
         data["id"] = _optional_int(payload.get("id"), label="Missao") if payload.get("id") not in (None, "") else None
         participantes = _required_participants(data)
+        if _mission_missing_operational_times(data):
+            raw_calculations = [
+                _zero_hourly_calculation_for_missing_times(
+                    data,
+                    participante,
+                    org_id=resolved_org_id,
+                )
+                for participante in participantes
+            ]
+            calculations = [
+                _preview_calculation_row(calculation, data=data, org_id=resolved_org_id)
+                for calculation in raw_calculations
+            ]
+            warning = _missing_times_zero_warning()
+            return {
+                "status": "disponivel",
+                "estado_calculo": "estimado",
+                "base_calculo": "Bonificacao horaria operacional",
+                "campos_faltantes": [],
+                "pendencias": [],
+                "inconsistencias": [],
+                "warnings": [warning],
+                "horas_consideradas": _preview_hours_summary(raw_calculations),
+                "tripulantes_considerados": [
+                    {"tripulante_id": item["tripulante_id"], "funcao": item["funcao"]}
+                    for item in participantes
+                ],
+                "valor_estimado": "0.00",
+                "calculations": calculations,
+                "observacoes": [
+                    "Estimativa operacional zerada porque apresentacao ou abandono nao foram informados.",
+                    "O backend continua sendo a fonte de verdade ao salvar ou recalcular.",
+                ],
+                "generated_at": _preview_now(),
+                "input_ref": {
+                    "competencia": data.get("competencia"),
+                    "data_missao": data.get("data_missao"),
+                    "status": data.get("status"),
+                    "categoria_financeira_aeronave": data.get("categoria_financeira_aeronave"),
+                },
+            }
         feriados = _feriados_nacionais_da_missao(resolved_db, mission=data, org_id=resolved_org_id)
         calculations = []
         raw_calculations = []
