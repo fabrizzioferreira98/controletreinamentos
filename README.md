@@ -166,6 +166,7 @@ Registro da abertura real do contrato de leitura API de Operacoes/Pernoites com 
 Registro do saneamento global de hygiene entre fonte viva, output local e historico operacional: `docs\migration\99.repository-hygiene-boundary-governance.md`.
 Registro da publicacao do contrato backend do relatorio geral de horas totais voadas: `docs\migration\100.financeiro-horas-totais-voadas-backend-contract.md`.
 Registro da exposicao frontend HML do relatorio geral de horas totais voadas: `docs\migration\101.financeiro-horas-totais-voadas-frontend-hml-exposure.md`.
+Registro da correcao forense de persistencia do status operacional de tripulantes: `docs\migration\102.tripulante-status-operacional-save-consistency.md`.
 
 Leia primeiro, nesta ordem:
 

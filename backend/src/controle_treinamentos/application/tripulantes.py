@@ -112,7 +112,7 @@ def sync_linked_pilot_from_tripulante(
     current_pilot_status = canonical_pilot_status(linked_pilot["status"] if linked_pilot else None)
     submitted_pilot_status = _normalize_pilot_status(status_text)
     if is_active:
-        next_status = current_pilot_status or submitted_pilot_status or "ativo"
+        next_status = submitted_pilot_status or current_pilot_status or "ativo"
     else:
         next_status = "afastado"
     snapshot_status_compat = tripulante_status_snapshot_from_pilot_status(next_status)

@@ -100,7 +100,7 @@ def test_backend_queries_do_not_promote_tripulante_snapshots_as_primary_source()
     assert offenders == []
 
 
-def test_sync_linked_pilot_from_tripulante_preserves_existing_linked_pilot_status_and_base_owner(monkeypatch):
+def test_sync_linked_pilot_from_tripulante_applies_submitted_status_and_preserves_base_owner(monkeypatch):
     db = _SyncDB(
         linked_pilot={"id": 31, "base_id": 4, "status": "folga"},
         active_base={"id": 4, "nome": "Sao Paulo", "uf": "SP"},
@@ -124,9 +124,37 @@ def test_sync_linked_pilot_from_tripulante_preserves_existing_linked_pilot_statu
 
     _query, pilot_params = _find_call(db.calls, "UPDATE pilotos SET nome = %s, matricula = %s, base_id = %s, status = %s")
     assert pilot_params[2] == 4
-    assert pilot_params[3] == "folga"
+    assert pilot_params[3] == "ativo"
     _query, snapshot_params = _find_call(db.calls, "UPDATE tripulantes SET base = %s, status = %s WHERE id = %s")
-    assert snapshot_params == ("Sao Paulo", "Folga", 7)
+    assert snapshot_params == ("Sao Paulo", "Ativo", 7)
+
+
+def test_sync_linked_pilot_from_tripulante_regression_training_to_active_with_exceptional_flag(monkeypatch):
+    db = _SyncDB(
+        linked_pilot={"id": 33, "base_id": 4, "status": "treinamento"},
+        active_base={"id": 4, "nome": "Sao Paulo", "uf": "SP"},
+    )
+    monkeypatch.setattr(
+        tripulantes_app,
+        "ensure_base_exists",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("linked pilot should not ensure snapshot base")),
+    )
+    monkeypatch.setattr(tripulantes_app, "resolve_tripulante_pilot_matricula", lambda *_args, **_kwargs: "MAT-000033")
+
+    tripulantes_app.sync_linked_pilot_from_tripulante(
+        db,
+        tripulante_id=33,
+        nome="Tripulante Excepcional",
+        licenca_anac="333333",
+        base_nome="Sao Paulo",
+        status_text="Ativo",
+        is_active=True,
+    )
+
+    _query, pilot_params = _find_call(db.calls, "UPDATE pilotos SET nome = %s, matricula = %s, base_id = %s, status = %s")
+    assert pilot_params[3] == "ativo"
+    _query, snapshot_params = _find_call(db.calls, "UPDATE tripulantes SET base = %s, status = %s WHERE id = %s")
+    assert snapshot_params == ("Sao Paulo", "Ativo", 33)
 
 
 def test_sync_linked_pilot_from_tripulante_inactivation_forces_afastado(monkeypatch):
