@@ -195,6 +195,44 @@ def test_api_tripulante_get_returns_404_for_missing_record(monkeypatch):
     assert payload["code"] == "tripulante_not_found"
 
 
+def test_api_tripulante_operational_periods_list_keeps_edit_form_compat(monkeypatch):
+    app = create_app()
+    client = app.test_client()
+    _authenticate_client(client, monkeypatch)
+
+    captured = {}
+
+    def fake_get_tripulante_detail_read_model(**kwargs):
+        captured.update(kwargs)
+        return _sample_tripulante(tripulante_id=11)
+
+    monkeypatch.setattr(tripulantes_api, "get_tripulante_detail_read_model", fake_get_tripulante_detail_read_model)
+
+    response = client.get("/api/v1/tripulantes/11/periodos-operacionais")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert captured["tripulante_id"] == 11
+    assert payload["success"] is True
+    assert payload["code"] == "tripulante_periodos_operacionais_ok"
+    assert payload["items"] == []
+
+
+def test_api_tripulante_operational_periods_list_preserves_missing_tripulante_404(monkeypatch):
+    app = create_app()
+    client = app.test_client()
+    _authenticate_client(client, monkeypatch)
+
+    monkeypatch.setattr(tripulantes_api, "get_tripulante_detail_read_model", lambda **_kwargs: None)
+
+    response = client.get("/api/v1/tripulantes/999/periodos-operacionais")
+
+    assert response.status_code == 404
+    payload = response.get_json()
+    assert payload["success"] is False
+    assert payload["code"] == "tripulante_not_found"
+
+
 def test_api_tripulante_create_returns_created_contract(monkeypatch):
     app = create_app()
     client = app.test_client()

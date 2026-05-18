@@ -183,6 +183,46 @@ def api_tripulante_get(tripulante_id: int):
     }, 200
 
 
+@cadastros_bp.route("/api/v1/tripulantes/<int:tripulante_id>/periodos-operacionais", methods=["GET"])
+@permission_required("tripulantes:view", "relatorio_individual:view")
+def api_tripulante_operational_periods_list(tripulante_id: int):
+    row = get_tripulante_detail_read_model(tripulante_id=tripulante_id)
+    if not row:
+        return error_payload("Tripulante nÃ£o encontrado.", status=404, code="tripulante_not_found")
+    return {
+        "success": True,
+        "status": 200,
+        "code": "tripulante_periodos_operacionais_ok",
+        "items": [],
+    }, 200
+
+
+@cadastros_bp.route("/api/v1/tripulantes/<int:tripulante_id>/periodos-operacionais", methods=["POST"])
+@permission_required("tripulantes:edit")
+def api_tripulante_operational_periods_create(tripulante_id: int):
+    row = get_tripulante_detail_read_model(tripulante_id=tripulante_id)
+    if not row:
+        return error_payload("Tripulante nÃ£o encontrado.", status=404, code="tripulante_not_found")
+    return error_payload(
+        "Cadastro de perÃ­odos operacionais ainda nÃ£o estÃ¡ habilitado neste backend.",
+        status=501,
+        code="tripulante_periodos_operacionais_not_implemented",
+    )
+
+
+@cadastros_bp.route("/api/v1/tripulantes/<int:tripulante_id>/periodos-operacionais/<int:periodo_id>", methods=["DELETE"])
+@permission_required("tripulantes:edit")
+def api_tripulante_operational_periods_delete(tripulante_id: int, periodo_id: int):
+    row = get_tripulante_detail_read_model(tripulante_id=tripulante_id)
+    if not row:
+        return error_payload("Tripulante nÃ£o encontrado.", status=404, code="tripulante_not_found")
+    return error_payload(
+        "Cadastro de perÃ­odos operacionais ainda nÃ£o estÃ¡ habilitado neste backend.",
+        status=501,
+        code="tripulante_periodos_operacionais_not_implemented",
+    )
+
+
 @cadastros_bp.route("/api/v1/tripulantes", methods=["POST"])
 @permission_required("tripulantes:create")
 def api_tripulante_create():
