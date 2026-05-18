@@ -173,7 +173,20 @@ def _display_category(row: dict) -> str:
 
 
 def _is_default_report_eligible(row: dict) -> bool:
-    return bool(_display_category(row) or _bool(row.get("tripulante_elegivel_adicional_excepcional")))
+    return bool(
+        _display_category(row)
+        or _bool(row.get("tripulante_elegivel_adicional_excepcional"))
+        or _is_palmas_exceptional(row)
+    )
+
+
+def _is_exceptional_without_ab_category(row: dict) -> bool:
+    return (_bool(row.get("tripulante_elegivel_adicional_excepcional")) or _is_palmas_exceptional(row)) and not _display_category(row)
+
+
+def _is_palmas_exceptional(row: dict) -> bool:
+    categoria = _normalize_category(row.get("categoria_aplicavel"))
+    return categoria in {"TURBOHELICE_PALMAS", "PALMAS_TURBOHELICE"} or _money(row.get("valor_excecao_palmas")) > ZERO_MONEY
 
 
 def _validate_categoria(categoria: str | None) -> str | None:
@@ -206,7 +219,7 @@ def _competencia_label(competencia: str) -> str:
 def _is_excluded_row(row: dict, *, funcao: str, categoria: str | None) -> bool:
     if _text(row.get("funcao")).lower() != funcao:
         return True
-    if categoria and _display_category(row) != categoria:
+    if categoria and _display_category(row) != categoria and not _is_exceptional_without_ab_category(row):
         return True
     if not categoria and not _is_default_report_eligible(row):
         return True

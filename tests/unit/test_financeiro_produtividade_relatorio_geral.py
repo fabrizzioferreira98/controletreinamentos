@@ -190,6 +190,88 @@ def test_filtra_categoria_quando_parametro_seguro(monkeypatch):
     assert result["filters"]["categoria"] == "A"
 
 
+def test_filtro_categoria_mantem_adicional_excepcional_sem_categoria_ab(monkeypatch):
+    rows = [
+        _row(categoria_aplicavel="A", tripulante_id=101),
+        _row(
+            id=11,
+            categoria_aplicavel="B",
+            tripulante_categoria_operacional="B",
+            tripulante_id=102,
+            total_devido="999.00",
+        ),
+        _row(
+            id=12,
+            tripulante_id=103,
+            tripulante_nome="Caio Excepcional",
+            tripulante_categoria_operacional="N/A",
+            categoria_aplicavel="nao_aplicavel",
+            tripulante_elegivel_adicional_excepcional=1,
+            valor_missoes_categoria_a="0.00",
+            valor_missoes_categoria_b="0.00",
+            valor_excecao_palmas="5000.00",
+            produtividade_calculada="5000.00",
+            garantia_minima="0.00",
+            total_devido="5000.00",
+            memoria_calculo={"totals": {"total_devido": "5000.00"}},
+        ),
+        _row(
+            id=13,
+            tripulante_id=104,
+            tripulante_nome="Dora Fora Recorte",
+            tripulante_categoria_operacional="N/A",
+            categoria_aplicavel="nao_aplicavel",
+            tripulante_elegivel_adicional_excepcional=0,
+            valor_missoes_categoria_a="0.00",
+            valor_missoes_categoria_b="0.00",
+            valor_excecao_palmas="0.00",
+            produtividade_calculada="999.00",
+            total_devido="999.00",
+            memoria_calculo={"totals": {"total_devido": "999.00"}},
+        ),
+    ]
+
+    result, _calls = _consolidar(monkeypatch, rows, categoria="A")
+
+    assert [item["tripulante_id"] for item in result["items"]] == [101, 103]
+    assert result["filters"]["categoria"] == "A"
+
+
+def test_filtro_categoria_mantem_excepcional_de_palmas(monkeypatch):
+    rows = [
+        _row(categoria_aplicavel="A", tripulante_id=101),
+        _row(
+            id=11,
+            tripulante_id=102,
+            tripulante_nome="Bia Categoria B",
+            tripulante_categoria_operacional="B",
+            categoria_aplicavel="B",
+            valor_excecao_palmas="0.00",
+            total_devido="999.00",
+        ),
+        _row(
+            id=12,
+            tripulante_id=103,
+            tripulante_nome="Caio Palmas",
+            tripulante_categoria_operacional="N/A",
+            categoria_aplicavel="turbohelice_palmas",
+            tripulante_elegivel_adicional_excepcional=0,
+            valor_missoes_categoria_a="0.00",
+            valor_missoes_categoria_b="0.00",
+            valor_excecao_palmas="5000.00",
+            produtividade_calculada="5000.00",
+            garantia_minima="0.00",
+            total_devido="5000.00",
+            memoria_calculo={"totals": {"total_devido": "5000.00"}},
+        ),
+    ]
+
+    result, _calls = _consolidar(monkeypatch, rows, categoria="A")
+
+    assert [item["tripulante_id"] for item in result["items"]] == [101, 103]
+    assert result["items"][1]["condicao_especial"] == "5000.00"
+
+
 def test_relatorio_geral_padrao_limita_a_categoria_ab_ou_adicional_excepcional(monkeypatch):
     rows = [
         _row(tripulante_id=101, tripulante_categoria_operacional="A", categoria_aplicavel="A"),
