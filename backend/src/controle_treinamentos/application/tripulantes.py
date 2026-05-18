@@ -365,7 +365,15 @@ def delete_tripulante(*, tripulante_id: int) -> dict:
     dependency_counts = fetch_tripulante_dependencies(db, tripulante_id=tripulante_id)
     has_business_dependencies = any(
         int(dependency_counts.get(key) or 0) > 0
-        for key in ("treinamentos", "pernoites", "arquivos_file")
+        for key in (
+            "treinamentos",
+            "pernoites",
+            "arquivos_file",
+            "financeiro_missoes",
+            "financeiro_missao_tripulantes",
+            "financeiro_calculos_horarios",
+            "financeiro_calculos_produtividade",
+        )
     )
 
     try:

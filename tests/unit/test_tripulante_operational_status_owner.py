@@ -74,10 +74,14 @@ class _SyncDB:
 class _CaptureDB:
     def __init__(self):
         self.calls: list[tuple[str, tuple]] = []
+        self.committed = False
 
     def execute(self, query, params=()):
         self.calls.append((" ".join(query.split()), params))
         return _Cursor()
+
+    def commit(self):
+        self.committed = True
 
 
 def _find_call(calls, fragment: str) -> tuple[str, tuple]:
@@ -206,6 +210,75 @@ def test_sync_linked_pilot_from_tripulante_bootstraps_missing_pilot_from_snapsho
     _query, insert_params = _find_call(db.calls, "INSERT INTO pilotos (nome, matricula, tripulante_id, base_id, status)")
     assert insert_params[3] == 8
     assert insert_params[4] == "ativo"
+
+
+def test_delete_tripulante_financeiro_mission_dependency_inactivates_instead_of_physical_delete(monkeypatch):
+    db = _CaptureDB()
+    target = {
+        "id": 39,
+        "nome": "Tripulante Financeiro",
+        "licenca_anac": "390039",
+        "base": "Palmas",
+        "ativo": 1,
+    }
+    inactivated = {}
+    synced = {}
+    deleted = []
+
+    monkeypatch.setattr(tripulantes_app, "get_db", lambda: db)
+    monkeypatch.setattr(tripulantes_app, "fetch_tripulante_delete_target", lambda _db, *, tripulante_id: target)
+    monkeypatch.setattr(
+        tripulantes_app,
+        "fetch_tripulante_dependencies",
+        lambda _db, *, tripulante_id: {
+            "treinamentos": 0,
+            "pernoites": 0,
+            "arquivos_file": 0,
+            "financeiro_missoes": 1,
+            "financeiro_missao_tripulantes": 0,
+            "financeiro_calculos_horarios": 0,
+            "financeiro_calculos_produtividade": 0,
+        },
+    )
+    monkeypatch.setattr(
+        tripulantes_app,
+        "inactivate_tripulante",
+        lambda _db, *, tripulante_id, status_snapshot_compat: inactivated.update(
+            {"tripulante_id": tripulante_id, "status_snapshot_compat": status_snapshot_compat}
+        ),
+    )
+    monkeypatch.setattr(
+        tripulantes_app,
+        "sync_linked_pilot_from_tripulante",
+        lambda _db, **kwargs: synced.update(kwargs),
+    )
+    monkeypatch.setattr(
+        tripulantes_app,
+        "fetch_tripulante_detail",
+        lambda _db, *, tripulante_id: {**target, "ativo": 0, "status": "Afastado"},
+    )
+    monkeypatch.setattr(tripulantes_app, "audit_event", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(tripulantes_app, "clear_panel_cache", lambda: None)
+    monkeypatch.setattr(tripulantes_app, "delete_tripulante_row", lambda *_args, **_kwargs: deleted.append(True))
+
+    result = tripulantes_app.delete_tripulante(tripulante_id=39)
+
+    assert result["operation"] == "inactivated"
+    assert inactivated == {"tripulante_id": 39, "status_snapshot_compat": "Afastado"}
+    assert synced["status_text"] == "Afastado"
+    assert synced["is_active"] is False
+    assert deleted == []
+    assert db.committed is True
+
+
+def test_tripulante_dependency_query_counts_financeiro_references():
+    source = (BACKEND_SRC / "controle_treinamentos" / "repositories" / "tripulantes.py").read_text(encoding="utf-8")
+
+    assert "financeiro_missoes_operacionais" in source
+    assert "comandante_tripulante_id = %s OR copiloto_tripulante_id = %s" in source
+    assert "financeiro_missao_tripulantes" in source
+    assert "financeiro_calculos_horarios" in source
+    assert "financeiro_calculos_produtividade" in source
 
 
 def test_owner_decision_is_unique_and_snapshot_sources_are_residual():

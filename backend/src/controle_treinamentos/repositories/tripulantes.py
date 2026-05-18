@@ -227,9 +227,26 @@ def fetch_tripulante_dependencies(db, *, tripulante_id: int):
         SELECT
             (SELECT COUNT(*) FROM treinamentos WHERE tripulante_id = %s) AS treinamentos,
             (SELECT COUNT(*) FROM pernoites_operacionais WHERE tripulante_id = %s) AS pernoites,
-            (SELECT COUNT(*) FROM tripulante_arquivos_pdf WHERE tripulante_id = %s) AS arquivos_file
+            (SELECT COUNT(*) FROM tripulante_arquivos_pdf WHERE tripulante_id = %s) AS arquivos_file,
+            (
+                SELECT COUNT(*)
+                FROM financeiro_missoes_operacionais
+                WHERE comandante_tripulante_id = %s OR copiloto_tripulante_id = %s
+            ) AS financeiro_missoes,
+            (SELECT COUNT(*) FROM financeiro_missao_tripulantes WHERE tripulante_id = %s) AS financeiro_missao_tripulantes,
+            (SELECT COUNT(*) FROM financeiro_calculos_horarios WHERE tripulante_id = %s) AS financeiro_calculos_horarios,
+            (SELECT COUNT(*) FROM financeiro_calculos_produtividade WHERE tripulante_id = %s) AS financeiro_calculos_produtividade
         """,
-        (tripulante_id, tripulante_id, tripulante_id),
+        (
+            tripulante_id,
+            tripulante_id,
+            tripulante_id,
+            tripulante_id,
+            tripulante_id,
+            tripulante_id,
+            tripulante_id,
+            tripulante_id,
+        ),
     ).fetchone()
     return dict(row) if row else {}
 
