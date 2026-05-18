@@ -172,6 +172,10 @@ def _display_category(row: dict) -> str:
     )
 
 
+def _is_default_report_eligible(row: dict) -> bool:
+    return bool(_display_category(row) or _bool(row.get("tripulante_elegivel_adicional_excepcional")))
+
+
 def _validate_categoria(categoria: str | None) -> str | None:
     normalized = _normalize_category(categoria)
     if normalized in (None, ""):
@@ -203,6 +207,8 @@ def _is_excluded_row(row: dict, *, funcao: str, categoria: str | None) -> bool:
     if _text(row.get("funcao")).lower() != funcao:
         return True
     if categoria and _display_category(row) != categoria:
+        return True
+    if not categoria and not _is_default_report_eligible(row):
         return True
     status = _text(row.get("status"), "calculado").lower()
     if status in _EXCLUDED_STATUSES:
