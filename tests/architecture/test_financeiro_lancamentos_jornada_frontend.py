@@ -227,6 +227,8 @@ def test_jornada_crew_pair_is_explicit_and_sent_in_preview_and_save_payloads():
     assert "Copiloto" in page_source
     assert 'data-jornada-field="comandanteTripulanteId"' in page_source
     assert 'data-jornada-field="copilotoTripulanteId"' in page_source
+    assert 'data-jornada-field="terceiroTripulanteId"' in page_source
+    assert 'data-jornada-field="terceiroTripulanteFuncao"' in page_source
     assert 'data-jornada-crew="comandante"' in page_source
     assert 'data-jornada-crew="copiloto"' in page_source
     assert "function effectiveCrewFuncaoForId" in page_source
@@ -238,6 +240,8 @@ def test_jornada_crew_pair_is_explicit_and_sent_in_preview_and_save_payloads():
     assert "Comandante e segundo tripulante não podem ser o mesmo tripulante." in page_source
     assert "comandante_tripulante_id: comandanteTripulanteId" in page_source
     assert "copiloto_tripulante_id: copilotoTripulanteId" in page_source
+    assert "terceiro_tripulante_id: terceiroTripulanteId" in page_source
+    assert "terceiro_tripulante_funcao: terceiroTripulanteFuncao" in page_source
     assert "const counterpartTripulanteId = lineTripulanteId === comandanteTripulanteId ? copilotoTripulanteId : comandanteTripulanteId" in page_source
     assert "counterpart_tripulante_id" in page_source
     assert "payloadValidationMessages(payload)" in page_source
@@ -259,7 +263,7 @@ def test_jornada_grid_shows_persisted_calculation_total_and_status():
     page_source = read(JORNADA_PAGE)
     service_source = read(JORNADA_SERVICE)
 
-    assert "const JORNADA_TABLE_COLSPAN = 28" in page_source
+    assert "const JORNADA_TABLE_COLSPAN = 29" in page_source
     assert "<th>Total</th>" in page_source
     assert "<th>Status</th>" in page_source
     assert 'data-label="Total">${renderPreviewCell(row)}' in page_source
@@ -309,6 +313,7 @@ def test_jornada_individual_report_uses_full_crew_and_infers_funcao():
     assert "function reportFuncaoForTripulante" in page_source
     assert "row.comandanteTripulanteId || row.comandante_tripulante_id" in page_source
     assert "row.copilotoTripulanteId || row.copiloto_tripulante_id" in page_source
+    assert "row.terceiroTripulanteId || row.terceiro_tripulante_id" in page_source
     assert 'document.getElementById("jornadaIndividualTripulante")?.addEventListener("change"' in page_source
     assert "reportFuncaoForTripulante(tripulanteId, explicitFuncao)" in page_source
     assert "Filtrar por tripulante" in page_source
@@ -323,6 +328,7 @@ def test_jornada_does_not_expose_manual_tripulante_funcao_fields_when_crew_pair_
 
     assert 'data-jornada-field="comandanteTripulanteId"' in body
     assert 'data-jornada-field="copilotoTripulanteId"' in body
+    assert 'data-jornada-field="terceiroTripulanteId"' in body
     assert 'data-jornada-field="tripulanteId"' not in body
     assert 'data-jornada-field="funcao"' not in body
     assert 'data-jornada-derived="tripulante"' in body

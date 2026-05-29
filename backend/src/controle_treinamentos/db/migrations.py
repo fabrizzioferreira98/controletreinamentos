@@ -104,6 +104,8 @@ def execute_migrations(db):
         db.execute("ALTER TABLE financeiro_missoes_operacionais ADD COLUMN IF NOT EXISTS data_final DATE")
         db.execute("ALTER TABLE financeiro_missoes_operacionais ADD COLUMN IF NOT EXISTS pos_exec_min INTEGER NOT NULL DEFAULT 0")
         db.execute("ALTER TABLE financeiro_missoes_operacionais ADD COLUMN IF NOT EXISTS justificativa TEXT")
+        db.execute("ALTER TABLE financeiro_missoes_operacionais ADD COLUMN IF NOT EXISTS terceiro_tripulante_id INTEGER REFERENCES tripulantes (id)")
+        db.execute("ALTER TABLE financeiro_missoes_operacionais ADD COLUMN IF NOT EXISTS terceiro_tripulante_funcao TEXT")
         db.execute("ALTER TABLE financeiro_missoes_operacionais ALTER COLUMN horario_apresentacao DROP NOT NULL")
         db.execute("ALTER TABLE financeiro_missoes_operacionais ALTER COLUMN horario_abandono DROP NOT NULL")
         db.execute(
@@ -144,6 +146,45 @@ def execute_migrations(db):
                     ADD CONSTRAINT financeiro_missoes_operacionais_pos_exec_min_check
                     CHECK (pos_exec_min >= 0);
                 END IF;
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'financeiro_missoes_operacionais_terceiro_funcao_valida'
+                ) THEN
+                    ALTER TABLE financeiro_missoes_operacionais
+                    ADD CONSTRAINT financeiro_missoes_operacionais_terceiro_funcao_valida
+                    CHECK (
+                        terceiro_tripulante_funcao IS NULL
+                        OR terceiro_tripulante_funcao IN ('comandante', 'copiloto')
+                    );
+                END IF;
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'financeiro_missoes_operacionais_terceiro_consistente'
+                ) THEN
+                    ALTER TABLE financeiro_missoes_operacionais
+                    ADD CONSTRAINT financeiro_missoes_operacionais_terceiro_consistente
+                    CHECK (
+                        (terceiro_tripulante_id IS NULL AND terceiro_tripulante_funcao IS NULL)
+                        OR (terceiro_tripulante_id IS NOT NULL AND terceiro_tripulante_funcao IS NOT NULL)
+                    );
+                END IF;
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'financeiro_missoes_operacionais_terceiro_distinto'
+                ) THEN
+                    ALTER TABLE financeiro_missoes_operacionais
+                    ADD CONSTRAINT financeiro_missoes_operacionais_terceiro_distinto
+                    CHECK (
+                        terceiro_tripulante_id IS NULL
+                        OR (
+                            terceiro_tripulante_id <> comandante_tripulante_id
+                            AND terceiro_tripulante_id <> copiloto_tripulante_id
+                        )
+                    );
+                END IF;
                 ALTER TABLE financeiro_missoes_operacionais
                 DROP CONSTRAINT IF EXISTS financeiro_missoes_operacionais_horarios_validos;
                 ALTER TABLE financeiro_missoes_operacionais
@@ -155,6 +196,13 @@ def execute_migrations(db):
                 );
             END
             $$;
+            """
+        )
+        db.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_financeiro_missoes_operacionais_terceiro
+            ON financeiro_missoes_operacionais (org_id, terceiro_tripulante_id, competencia)
+            WHERE terceiro_tripulante_id IS NOT NULL
             """
         )
         db.commit()

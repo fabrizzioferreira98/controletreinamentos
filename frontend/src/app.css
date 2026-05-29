@@ -14515,9 +14515,10 @@ span.nav-icon::before {
 .financeiro-jornada-page .jornada-table tbody tr:not(.jornada-edit-row) > td:nth-child(4),
 .financeiro-jornada-page .jornada-table tbody tr:not(.jornada-edit-row) > td:nth-child(5),
 .financeiro-jornada-page .jornada-table tbody tr:not(.jornada-edit-row) > td:nth-child(6),
-.financeiro-jornada-page .jornada-table tbody tr:not(.jornada-edit-row) > td:nth-child(8),
-.financeiro-jornada-page .jornada-table tbody tr:not(.jornada-edit-row) > td:nth-child(11),
-.financeiro-jornada-page .jornada-table tbody tr:not(.jornada-edit-row) > td:nth-child(20) {
+.financeiro-jornada-page .jornada-table tbody tr:not(.jornada-edit-row) > td:nth-child(7),
+.financeiro-jornada-page .jornada-table tbody tr:not(.jornada-edit-row) > td:nth-child(9),
+.financeiro-jornada-page .jornada-table tbody tr:not(.jornada-edit-row) > td:nth-child(12),
+.financeiro-jornada-page .jornada-table tbody tr:not(.jornada-edit-row) > td:nth-child(21) {
   min-width: 220px;
 }
 
@@ -14570,13 +14571,21 @@ span.nav-icon::before {
 .financeiro-jornada-page .jornada-edit-row td:nth-child(6),
 .financeiro-jornada-page .jornada-edit-row td:nth-child(7),
 .financeiro-jornada-page .jornada-edit-row td:nth-child(8),
-.financeiro-jornada-page .jornada-edit-row td:nth-child(19) {
+.financeiro-jornada-page .jornada-edit-row td:nth-child(9),
+.financeiro-jornada-page .jornada-edit-row td:nth-child(20) {
   min-width: 190px;
 }
 
 .financeiro-jornada-page .jornada-edit-row td:nth-child(4),
 .financeiro-jornada-page .jornada-edit-row td:nth-child(5),
-.financeiro-jornada-page .jornada-edit-row td:nth-child(6) {
+.financeiro-jornada-page .jornada-edit-row td:nth-child(6),
+.financeiro-jornada-page .jornada-edit-row td:nth-child(7) {
+  min-width: 220px;
+}
+
+.financeiro-jornada-page .jornada-inline-fields {
+  display: grid;
+  gap: 6px;
   min-width: 220px;
 }
 

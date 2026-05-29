@@ -143,6 +143,22 @@ def _required_int(payload: dict, key: str, label: str) -> int:
     return value
 
 
+def _optional_funcao(value, *, label: str) -> str | None:
+    cleaned = _clean_text(value).lower()
+    if not cleaned:
+        return None
+    aliases = {
+        "cmt": "comandante",
+        "comandante": "comandante",
+        "cop": "copiloto",
+        "copiloto": "copiloto",
+    }
+    normalized = aliases.get(cleaned, cleaned)
+    if normalized not in {"comandante", "copiloto"}:
+        raise FinanceiroDominioErro(f"{label} invalida.", code="financeiro_campo_invalido")
+    return normalized
+
+
 def _bool_value(value) -> bool:
     if isinstance(value, bool):
         return value
@@ -209,6 +225,23 @@ def _mission_payload(payload: dict, *, org_id: str, actor_user_id: int | None = 
             "Comandante e segundo tripulante devem ser distintos.",
             code="missao_operacional_tripulantes_iguais",
         )
+    terceiro_id = _optional_int(payload.get("terceiro_tripulante_id"), label="Terceiro tripulante")
+    terceiro_funcao = _optional_funcao(payload.get("terceiro_tripulante_funcao"), label="Funcao do terceiro tripulante")
+    if terceiro_id is not None and terceiro_funcao is None:
+        raise FinanceiroDominioErro(
+            "Funcao do terceiro tripulante e obrigatoria.",
+            code="missao_operacional_terceiro_funcao_obrigatoria",
+        )
+    if terceiro_id is None and terceiro_funcao is not None:
+        raise FinanceiroDominioErro(
+            "Terceiro tripulante e obrigatorio quando a funcao adicional foi informada.",
+            code="missao_operacional_terceiro_tripulante_obrigatorio",
+        )
+    if terceiro_id is not None and terceiro_id in {comandante_id, copiloto_id}:
+        raise FinanceiroDominioErro(
+            "Terceiro tripulante deve ser distinto do comandante e do segundo tripulante.",
+            code="missao_operacional_terceiro_tripulante_duplicado",
+        )
 
     data_missao = _required_text(payload, "data_missao", "Data da missao operacional")
     data_final = _clean_text(payload.get("data_final")) or data_missao
@@ -252,6 +285,8 @@ def _mission_payload(payload: dict, *, org_id: str, actor_user_id: int | None = 
         "categoria_financeira_aeronave": _clean_text(payload.get("categoria_financeira_aeronave")) or None,
         "comandante_tripulante_id": comandante_id,
         "copiloto_tripulante_id": copiloto_id,
+        "terceiro_tripulante_id": terceiro_id,
+        "terceiro_tripulante_funcao": terceiro_funcao,
         "horario_apresentacao": horario_apresentacao.isoformat(timespec="minutes") if horario_apresentacao else None,
         "horario_abandono": horario_abandono.isoformat(timespec="minutes") if horario_abandono else None,
         "pos_exec_min": pos_exec_min,
@@ -422,6 +457,8 @@ _MISSION_CALCULATION_IMPACT_FIELDS = {
     "categoria_financeira_aeronave",
     "comandante_tripulante_id",
     "copiloto_tripulante_id",
+    "terceiro_tripulante_id",
+    "terceiro_tripulante_funcao",
     "horario_apresentacao",
     "horario_abandono",
     "pos_exec_min",
@@ -1194,14 +1231,48 @@ def atualizar_missao_operacional(
         data["justificativa"] = _clean_text(data.get("justificativa")) or None
     if "observacoes" in data:
         data["observacoes"] = _clean_text(data.get("observacoes")) or None
-    if "comandante_tripulante_id" in data or "copiloto_tripulante_id" in data:
+    if (
+        "comandante_tripulante_id" in data
+        or "copiloto_tripulante_id" in data
+        or "terceiro_tripulante_id" in data
+        or "terceiro_tripulante_funcao" in data
+    ):
         comandante_id = int(data.get("comandante_tripulante_id") or before_row["comandante_tripulante_id"])
         copiloto_id = int(data.get("copiloto_tripulante_id") or before_row["copiloto_tripulante_id"])
+        terceiro_id = (
+            _optional_int(data.get("terceiro_tripulante_id"), label="Terceiro tripulante")
+            if "terceiro_tripulante_id" in data
+            else _optional_int(before_row.get("terceiro_tripulante_id"), label="Terceiro tripulante")
+        )
+        terceiro_funcao = (
+            _optional_funcao(data.get("terceiro_tripulante_funcao"), label="Funcao do terceiro tripulante")
+            if "terceiro_tripulante_funcao" in data
+            else _optional_funcao(before_row.get("terceiro_tripulante_funcao"), label="Funcao do terceiro tripulante")
+        )
         if comandante_id == copiloto_id:
             raise FinanceiroDominioErro(
                 "Comandante e segundo tripulante devem ser distintos.",
                 code="missao_operacional_tripulantes_iguais",
             )
+        if terceiro_id is not None and terceiro_funcao is None:
+            raise FinanceiroDominioErro(
+                "Funcao do terceiro tripulante e obrigatoria.",
+                code="missao_operacional_terceiro_funcao_obrigatoria",
+            )
+        if terceiro_id is None and terceiro_funcao is not None:
+            raise FinanceiroDominioErro(
+                "Terceiro tripulante e obrigatorio quando a funcao adicional foi informada.",
+                code="missao_operacional_terceiro_tripulante_obrigatorio",
+            )
+        if terceiro_id is not None and terceiro_id in {comandante_id, copiloto_id}:
+            raise FinanceiroDominioErro(
+                "Terceiro tripulante deve ser distinto do comandante e do segundo tripulante.",
+                code="missao_operacional_terceiro_tripulante_duplicado",
+            )
+        if "terceiro_tripulante_id" in data:
+            data["terceiro_tripulante_id"] = terceiro_id
+        if "terceiro_tripulante_funcao" in data:
+            data["terceiro_tripulante_funcao"] = terceiro_funcao
 
     target_competencia = _clean_text(data.get("competencia")) or before_row["competencia"]
     data["updated_by"] = actor_user_id

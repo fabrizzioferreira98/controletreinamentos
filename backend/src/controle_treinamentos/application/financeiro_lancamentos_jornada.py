@@ -402,6 +402,9 @@ def _serialize_line(row: dict, *, competencia_fechada: bool = False) -> dict:
         "aeronave_id": _int(row.get("aeronave_id")),
         "comandante_tripulante_id": _int(row.get("comandante_tripulante_id")),
         "copiloto_tripulante_id": _int(row.get("copiloto_tripulante_id")),
+        "terceiro_tripulante_id": _int(row.get("terceiro_tripulante_id")),
+        "terceiro_tripulante_funcao": _text(row.get("terceiro_tripulante_funcao")),
+        "terceiro_tripulante_nome": _text(row.get("terceiro_tripulante_nome")),
         "aeronave": {
             "id": _int(row.get("aeronave_id")),
             "nome": _text(row.get("aeronave_nome")),
@@ -1132,6 +1135,17 @@ def _mission_payload_from_journey(
     tripulante, equipamento = _validate_write_references(resolved_db, tripulante_id=tripulante_id, aeronave_id=aeronave_id)
     comandante_id = _int(payload.get("comandante_tripulante_id") or (existing or {}).get("comandante_tripulante_id"))
     copiloto_id = _int(payload.get("copiloto_tripulante_id") or (existing or {}).get("copiloto_tripulante_id"))
+    terceiro_id = _int(
+        payload.get("terceiro_tripulante_id")
+        if "terceiro_tripulante_id" in payload
+        else (existing or {}).get("terceiro_tripulante_id")
+    )
+    terceiro_funcao_raw = (
+        payload.get("terceiro_tripulante_funcao")
+        if "terceiro_tripulante_funcao" in payload
+        else (existing or {}).get("terceiro_tripulante_funcao")
+    )
+    terceiro_funcao = _normalize_funcao(terceiro_funcao_raw) if _text(terceiro_funcao_raw) else None
     if funcao == "comandante":
         comandante_id = tripulante_id
         copiloto_id = copiloto_id or _int(payload.get("counterpart_tripulante_id"))
@@ -1162,6 +1176,30 @@ def _mission_payload_from_journey(
             field="copiloto_tripulante_id",
         )
     )
+    if terceiro_id and not terceiro_funcao:
+        raise DomainValidationError(
+            "Informe a funcao do terceiro tripulante.",
+            code="finance_journey_third_crew_function_required",
+            details={"field": "terceiro_tripulante_funcao"},
+        )
+    if terceiro_funcao and not terceiro_id:
+        raise DomainValidationError(
+            "Informe o terceiro tripulante ou limpe a funcao adicional.",
+            code="finance_journey_third_crew_required",
+            details={"field": "terceiro_tripulante_id"},
+        )
+    if terceiro_id and terceiro_id in {comandante_id, copiloto_id}:
+        raise DomainValidationError(
+            "O terceiro tripulante deve ser diferente do comandante e do segundo tripulante.",
+            code="finance_journey_third_crew_distinct",
+            details={"field": "terceiro_tripulante_id"},
+        )
+    if terceiro_id:
+        _validate_tripulante_reference(
+            resolved_db,
+            tripulante_id=terceiro_id,
+            field="terceiro_tripulante_id",
+        )
     pos_exec_min = _int(payload.get("pos_exec_min") if "pos_exec_min" in payload else (existing or {}).get("pos_exec_min"))
     if pos_exec_min < 0:
         raise DomainValidationError(
@@ -1212,6 +1250,8 @@ def _mission_payload_from_journey(
         "categoria_financeira_aeronave": _category_from_payload(payload, equipamento, existing),
         "comandante_tripulante_id": comandante_id,
         "copiloto_tripulante_id": copiloto_id,
+        "terceiro_tripulante_id": terceiro_id or None,
+        "terceiro_tripulante_funcao": terceiro_funcao,
         "horario_apresentacao": _optional_payload_text(
             payload,
             ("hora_apresentacao", "apresentacao", "horario_apresentacao"),

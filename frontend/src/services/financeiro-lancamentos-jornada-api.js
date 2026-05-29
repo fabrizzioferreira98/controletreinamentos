@@ -165,6 +165,8 @@ function rowFromNativeLine(item = {}, index = 0) {
   const funcao = normalizeText(item.funcao || "operacional");
   const comandanteTripulanteId = Number(item.comandante_tripulante_id || 0) || 0;
   const copilotoTripulanteId = Number(item.copiloto_tripulante_id || 0) || 0;
+  const terceiroTripulanteId = Number(item.terceiro_tripulante_id || 0) || 0;
+  const terceiroTripulanteFuncao = normalizeText(item.terceiro_tripulante_funcao);
   return {
     key: lineId ? `line-${lineId}` : lineKey({ missionId, tripulanteId, funcao, index }),
     id: lineId,
@@ -183,6 +185,9 @@ function rowFromNativeLine(item = {}, index = 0) {
     comandanteTripulanteNome: normalizeText(item.comandante_nome || item.comandante_tripulante_nome || item.comandante_tripulante),
     copilotoTripulanteId,
     copilotoTripulanteNome: normalizeText(item.copiloto_nome || item.copiloto_tripulante_nome || item.copiloto_tripulante),
+    terceiroTripulanteId,
+    terceiroTripulanteFuncao,
+    terceiroTripulanteNome: normalizeText(item.terceiro_tripulante_nome || item.terceiro_nome || item.terceiro_tripulante),
     aeronaveId: Number(item.aeronave_id || item.aeronave?.id || 0) || 0,
     aeronave: normalizeText(item.aeronave?.nome || item.aeronave_nome),
     relVoo: normalizeText(item.relatorio_voo || item.cavok_numero_voo),
@@ -226,6 +231,9 @@ function rowFromNativeLine(item = {}, index = 0) {
       comandante_nome: item.comandante_nome || item.comandante_tripulante_nome || item.comandante_tripulante,
       copiloto_tripulante_id: copilotoTripulanteId,
       copiloto_nome: item.copiloto_nome || item.copiloto_tripulante_nome || item.copiloto_tripulante,
+      terceiro_tripulante_id: terceiroTripulanteId,
+      terceiro_tripulante_funcao: terceiroTripulanteFuncao,
+      terceiro_tripulante_nome: item.terceiro_tripulante_nome || item.terceiro_nome || item.terceiro_tripulante,
       horario_apresentacao: item.hora_apresentacao,
       horario_abandono: item.hora_abandono,
       pos_exec_min: item.pos_exec_min,
@@ -330,6 +338,8 @@ function rowFromMissionAndCalculation({
   const resolvedTripulanteId = Number(tripulanteId || tripulanteIdFromCalculation(calculation) || 0) || 0;
   const comandanteTripulanteId = Number(mission?.comandante_tripulante_id || calculation?.comandante_tripulante_id || 0) || 0;
   const copilotoTripulanteId = Number(mission?.copiloto_tripulante_id || calculation?.copiloto_tripulante_id || 0) || 0;
+  const terceiroTripulanteId = Number(mission?.terceiro_tripulante_id || calculation?.terceiro_tripulante_id || 0) || 0;
+  const terceiroTripulanteFuncao = normalizeText(mission?.terceiro_tripulante_funcao || calculation?.terceiro_tripulante_funcao);
   return {
     key: lineKey({ missionId, tripulanteId: resolvedTripulanteId, funcao: resolvedFuncao, index }),
     id: missionId ? `mission-${missionId}-${resolvedTripulanteId || index}-${normalizeLower(resolvedFuncao)}` : `calc-${index}`,
@@ -346,6 +356,9 @@ function rowFromMissionAndCalculation({
     comandanteTripulanteNome: missionParticipantExplicitName(mission || calculation || {}, "comandante"),
     copilotoTripulanteId,
     copilotoTripulanteNome: missionParticipantExplicitName(mission || calculation || {}, "copiloto"),
+    terceiroTripulanteId,
+    terceiroTripulanteFuncao,
+    terceiroTripulanteNome: normalizeText(mission?.terceiro_tripulante_nome || calculation?.terceiro_tripulante_nome),
     aeronaveId: Number(mission?.aeronave_id || calculation?.aeronave_id || 0) || 0,
     aeronave: missionEquipmentLabel(mission || calculation || {}, equipamentosById),
     relVoo: normalizeText(mission?.cavok_numero_voo || calculation?.cavok_numero_voo || calculation?.relatorio_voo),
@@ -417,6 +430,7 @@ function rowsFromMissions({ missions, hourlyItems, tripulantesById, equipamentos
     [
       ["comandante", mission?.comandante_tripulante_id],
       ["copiloto", mission?.copiloto_tripulante_id],
+      [mission?.terceiro_tripulante_funcao, mission?.terceiro_tripulante_id],
     ].forEach(([funcao, tripulanteId], crewIndex) => {
       if (!tripulanteId) return;
       rows.push(rowFromMissionAndCalculation({
@@ -424,7 +438,9 @@ function rowsFromMissions({ missions, hourlyItems, tripulantesById, equipamentos
         calculation: null,
         funcao,
         tripulanteId,
-        tripulanteNome: missionParticipantName(mission, funcao, tripulantesById),
+        tripulanteNome: Number(tripulanteId || 0) === Number(mission?.terceiro_tripulante_id || 0)
+          ? normalizeText(mission?.terceiro_tripulante_nome)
+          : missionParticipantName(mission, funcao, tripulantesById),
         index: rows.length + crewIndex + missionIndex,
         equipamentosById,
       }));

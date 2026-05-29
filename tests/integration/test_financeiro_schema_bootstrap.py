@@ -245,6 +245,11 @@ def test_finance_bootstrap_creates_fks_constraints_and_indexes(bootstrapped_db):
         "copiloto_tripulante_id",
         "tripulantes",
     ) in foreign_keys
+    assert (
+        "financeiro_missoes_operacionais",
+        "terceiro_tripulante_id",
+        "tripulantes",
+    ) in foreign_keys
     assert ("financeiro_missoes_operacionais", "aeronave_id", "equipamentos") in foreign_keys
     assert (
         "financeiro_missao_tripulantes",
@@ -265,6 +270,14 @@ def test_finance_bootstrap_creates_fks_constraints_and_indexes(bootstrapped_db):
         "financeiro_missoes_operacionais",
     )
     assert "financeiro_missoes_operacionais_horarios_validos" in _constraint_names(
+        bootstrapped_db,
+        "financeiro_missoes_operacionais",
+    )
+    assert "financeiro_missoes_operacionais_terceiro_consistente" in _constraint_names(
+        bootstrapped_db,
+        "financeiro_missoes_operacionais",
+    )
+    assert "financeiro_missoes_operacionais_terceiro_distinto" in _constraint_names(
         bootstrapped_db,
         "financeiro_missoes_operacionais",
     )

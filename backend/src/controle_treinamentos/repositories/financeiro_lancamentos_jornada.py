@@ -40,6 +40,9 @@ def _line_select_sql(extra_where: str = "") -> str:
             mo.categoria_financeira_aeronave,
             mo.comandante_tripulante_id,
             mo.copiloto_tripulante_id,
+            mo.terceiro_tripulante_id,
+            mo.terceiro_tripulante_funcao,
+            tt.nome AS terceiro_tripulante_nome,
             mo.horario_apresentacao,
             mo.horario_abandono,
             mo.pos_exec_min,
@@ -84,6 +87,8 @@ def _line_select_sql(extra_where: str = "") -> str:
          AND mo.org_id = mt.org_id
         JOIN tripulantes t
           ON t.id = mt.tripulante_id
+        LEFT JOIN tripulantes tt
+          ON tt.id = mo.terceiro_tripulante_id
         LEFT JOIN equipamentos e
           ON e.id = mo.aeronave_id
         LEFT JOIN financeiro_calculos_horarios ch

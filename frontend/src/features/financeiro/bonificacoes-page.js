@@ -44,7 +44,7 @@ const PERIOD_RECALCULATE_PERMISSION = "finance:periods:recalculate";
 const MISSION_UPDATE_PERMISSION = "finance:missions:update";
 const MISSION_CREATE_PERMISSION = "finance:missions:create";
 const PREVIEW_DEBOUNCE_MS = 520;
-const JORNADA_TABLE_COLSPAN = 28;
+const JORNADA_TABLE_COLSPAN = 29;
 const PDF_OBJECT_URL_REVOKE_MS = 120000;
 const GENERAL_HOURS_PENDING_MESSAGE = "Existem lançamentos sem cálculo persistido. Recalcule a grade antes de exportar o relatório financeiro.";
 const GENERAL_PRODUCTIVITY_PENDING_MESSAGE = "Existem inconsistências na memória de produtividade persistida. Recalcule a grade antes de exportar o relatório financeiro.";
@@ -279,6 +279,18 @@ function buildRowDraft(row) {
       sourceMission.copiloto_tripulante_id ||
       (funcao === "copiloto" ? rowTripulanteId || filterTripulanteId : ""),
   );
+  const terceiroTripulanteId = normalizeText(
+    row.terceiroTripulanteId ||
+      row.terceiro_tripulante_id ||
+      sourceMission.terceiro_tripulante_id ||
+      "",
+  );
+  const terceiroTripulanteFuncao = normalizeLower(
+    row.terceiroTripulanteFuncao ||
+      row.terceiro_tripulante_funcao ||
+      sourceMission.terceiro_tripulante_funcao ||
+      "",
+  );
   return syncCrewSelectionOnLine({
     key: row.key || "new",
     isNew: Boolean(row.isNew),
@@ -294,6 +306,9 @@ function buildRowDraft(row) {
     comandanteTripulanteNome: row.comandanteTripulanteNome || tripulanteNameById(comandanteTripulanteId),
     copilotoTripulanteId,
     copilotoTripulanteNome: row.copilotoTripulanteNome || tripulanteNameById(copilotoTripulanteId),
+    terceiroTripulanteId,
+    terceiroTripulanteFuncao,
+    terceiroTripulanteNome: row.terceiroTripulanteNome || row.terceiro_tripulante_nome || sourceMission.terceiro_tripulante_nome || tripulanteNameById(terceiroTripulanteId),
     aeronaveId: row.aeronaveId || "",
     aeronave: row.aeronave || "",
     categoriaFinanceiraAeronave: row.categoriaFinanceiraAeronave || row.sourceMission?.categoria_financeira_aeronave || row.tipo || "",
@@ -445,6 +460,16 @@ function functionOptionsMarkup(selectedValue, includeEmpty = false) {
     .map((value) => `<option value="${escapeAttr(value)}" ${selected === value ? "selected" : ""}>${escapeHtml(functionLabel(value))}</option>`)
     .join("");
   return `${includeEmpty ? '<option value="">Todos</option>' : '<option value="">Selecione</option>'}${options}`;
+}
+
+function thirdCrewFunctionOptionsMarkup(selectedValue) {
+  const selected = normalizeLower(selectedValue);
+  return [
+    '<option value="">Função</option>',
+    ...["comandante", "copiloto"].map((value) => (
+      `<option value="${escapeAttr(value)}" ${selected === value ? "selected" : ""}>${escapeHtml(functionLabel(value))}</option>`
+    )),
+  ].join("");
 }
 
 function functionLabel(value) {
@@ -626,12 +651,18 @@ function reportTripulanteOptionsMarkup(selectedValue = "") {
       row.copilotoTripulanteId || row.copiloto_tripulante_id || sourceMission.copiloto_tripulante_id,
       row.copilotoTripulanteNome || sourceMission.copiloto_nome
     );
+    addReportTripulanteEntry(
+      entries,
+      row.terceiroTripulanteId || row.terceiro_tripulante_id || sourceMission.terceiro_tripulante_id,
+      row.terceiroTripulanteNome || sourceMission.terceiro_tripulante_nome
+    );
   });
   if (!entries.size) {
     jornadaState.options.tripulantes.forEach((item) => {
       addReportTripulanteEntry(entries, item?.id, item?.nome || item?.label || item?.name);
     });
   }
+  addReportTripulanteEntry(entries, selected, tripulanteNameById(selected));
   const options = Array.from(entries.entries())
     .sort((a, b) => a[1].localeCompare(b[1], "pt-BR"))
     .map(([id, label]) => `<option value="${escapeAttr(id)}" ${selected === id ? "selected" : ""}>${escapeHtml(label)}</option>`)
@@ -652,8 +683,12 @@ function reportFuncaoForTripulante(tripulanteId, fallback = "") {
     if (selected === normalizeText(row.copilotoTripulanteId || row.copiloto_tripulante_id || sourceMission.copiloto_tripulante_id)) {
       return "copiloto";
     }
+    if (selected === normalizeText(row.terceiroTripulanteId || row.terceiro_tripulante_id || sourceMission.terceiro_tripulante_id)) {
+      return normalizeLower(row.terceiroTripulanteFuncao || row.terceiro_tripulante_funcao || sourceMission.terceiro_tripulante_funcao || fallbackFuncao);
+    }
   }
-  return fallbackFuncao;
+  const option = jornadaState.options.tripulantes.find((item) => selected === normalizeText(item?.id));
+  return normalizeLower(option?.funcao_operacional || option?.funcao || option?.function || fallbackFuncao);
 }
 
 function renderHeader() {
@@ -1406,6 +1441,15 @@ function refreshPreviewForGradeRows(rows = jornadaState.rows) {
     });
 }
 
+function thirdCrewSummary(row) {
+  const sourceMission = row.sourceMission || {};
+  const tripulanteId = row.terceiroTripulanteId || row.terceiro_tripulante_id || sourceMission.terceiro_tripulante_id;
+  if (!normalizeText(tripulanteId)) return "";
+  const name = row.terceiroTripulanteNome || row.terceiro_tripulante_nome || sourceMission.terceiro_tripulante_nome || tripulanteNameById(tripulanteId);
+  const funcao = row.terceiroTripulanteFuncao || row.terceiro_tripulante_funcao || sourceMission.terceiro_tripulante_funcao;
+  return `${formatAny(name || `ID ${tripulanteId}`)} (${functionLabel(funcao)})`;
+}
+
 function renderReadOnlyRow(row, index) {
   return `
     <tr data-jornada-row="${escapeAttr(row.key)}">
@@ -1414,6 +1458,7 @@ function renderReadOnlyRow(row, index) {
       <td data-label="Data final">${escapeHtml(formatDateBr(row.dataFinal || row.data))}</td>
       <td data-label="Comandante">${escapeHtml(formatAny(row.comandanteTripulanteNome || tripulanteNameById(row.comandanteTripulanteId || row.sourceMission?.comandante_tripulante_id)))}</td>
       <td data-label="Segundo tripulante">${escapeHtml(formatAny(row.copilotoTripulanteNome || tripulanteNameById(row.copilotoTripulanteId || row.sourceMission?.copiloto_tripulante_id)))}</td>
+      <td data-label="3º tripulante">${escapeHtml(formatAny(thirdCrewSummary(row)))}</td>
       <td data-label="Tripulante"><strong>${escapeHtml(formatAny(row.tripulanteNome))}</strong></td>
       <td data-label="Função">${escapeHtml(functionLabel(row.funcao))}</td>
       <td data-label="Aeronave">${escapeHtml(formatAny(row.aeronave))}</td>
@@ -1458,6 +1503,12 @@ function renderEditableRow(row, index) {
       <td data-label="Data final"><input type="date" data-jornada-field="dataFinal" value="${escapeAttr(draft.dataFinal || draft.data)}"></td>
       <td data-label="Comandante"><select data-jornada-field="comandanteTripulanteId" data-jornada-crew="comandante" aria-label="Comandante">${tripulanteOptionsMarkup(draft.comandanteTripulanteId)}</select></td>
       <td data-label="Segundo tripulante"><select data-jornada-field="copilotoTripulanteId" data-jornada-crew="copiloto" aria-label="Segundo tripulante">${tripulanteOptionsMarkup(draft.copilotoTripulanteId)}</select></td>
+      <td data-label="3º tripulante">
+        <div class="jornada-inline-fields">
+          <select data-jornada-field="terceiroTripulanteId" aria-label="Terceiro tripulante">${tripulanteOptionsMarkup(draft.terceiroTripulanteId)}</select>
+          <select data-jornada-field="terceiroTripulanteFuncao" aria-label="Função do terceiro tripulante">${thirdCrewFunctionOptionsMarkup(draft.terceiroTripulanteFuncao)}</select>
+        </div>
+      </td>
       <td data-label="Tripulante da linha">
         <span data-jornada-derived="tripulante">${escapeHtml(formatAny(derivedDraft.tripulanteNome || tripulanteNameById(derivedDraft.tripulanteId)))}</span>
       </td>
@@ -1547,6 +1598,7 @@ function renderGrid() {
               <th>Data final</th>
               <th>Comandante</th>
               <th>Segundo tripulante</th>
+              <th>3º tripulante</th>
               <th>Tripulante da linha</th>
               <th>Função da linha</th>
               <th>Aeronave</th>
@@ -1757,6 +1809,8 @@ function collectDraftFromElement(rowElement) {
 function syncCrewSelectionOnLine(line) {
   line.comandanteTripulanteId = normalizeText(line.comandanteTripulanteId);
   line.copilotoTripulanteId = normalizeText(line.copilotoTripulanteId);
+  line.terceiroTripulanteId = normalizeText(line.terceiroTripulanteId);
+  line.terceiroTripulanteFuncao = normalizeLower(line.terceiroTripulanteFuncao);
   const filterFuncao = normalizeLower(jornadaState.filters.funcao);
   const requestedTripulanteId = normalizeText(line.tripulanteId || jornadaState.filters.tripulanteId);
   const matchesComandante = requestedTripulanteId && requestedTripulanteId === line.comandanteTripulanteId;
@@ -1787,6 +1841,7 @@ function syncCrewSelectionOnLine(line) {
   }
   line.comandanteTripulanteNome = tripulanteNameById(line.comandanteTripulanteId);
   line.copilotoTripulanteNome = tripulanteNameById(line.copilotoTripulanteId);
+  line.terceiroTripulanteNome = tripulanteNameById(line.terceiroTripulanteId);
   return line;
 }
 
@@ -1866,6 +1921,8 @@ function previewPayloadFromDraft(draft) {
     : (draft.categoriaFinanceiraAeronave || draft.tipo || sourceMission.categoria_financeira_aeronave || "");
   const comandanteTripulanteId = normalizeText(normalizedDraft.comandanteTripulanteId);
   const copilotoTripulanteId = normalizeText(normalizedDraft.copilotoTripulanteId);
+  const terceiroTripulanteId = normalizeText(normalizedDraft.terceiroTripulanteId);
+  const terceiroTripulanteFuncao = normalizeLower(normalizedDraft.terceiroTripulanteFuncao);
   const lineTripulanteId = normalizeText(normalizedDraft.tripulanteId);
   const counterpartTripulanteId = lineTripulanteId === comandanteTripulanteId ? copilotoTripulanteId : comandanteTripulanteId;
   return {
@@ -1884,6 +1941,8 @@ function previewPayloadFromDraft(draft) {
     tipo: aircraftCategory,
     comandante_tripulante_id: comandanteTripulanteId,
     copiloto_tripulante_id: copilotoTripulanteId,
+    terceiro_tripulante_id: terceiroTripulanteId,
+    terceiro_tripulante_funcao: terceiroTripulanteFuncao,
     counterpart_tripulante_id: counterpartTripulanteId,
     horario_apresentacao: draft.apresentacao,
     hora_apresentacao: draft.apresentacao,
@@ -1921,10 +1980,24 @@ function crewValidationMessages(payload) {
   const messages = [];
   const comandanteId = normalizeText(payload.comandante_tripulante_id);
   const copilotoId = normalizeText(payload.copiloto_tripulante_id);
+  const terceiroId = normalizeText(payload.terceiro_tripulante_id);
+  const terceiroFuncao = normalizeLower(payload.terceiro_tripulante_funcao);
   if (!comandanteId) messages.push("Informe o comandante da missão.");
   if (!copilotoId) messages.push("Informe o segundo tripulante da missão; pode ser copiloto ou outro comandante.");
   if (comandanteId && copilotoId && comandanteId === copilotoId) {
     messages.push("Comandante e segundo tripulante não podem ser o mesmo tripulante.");
+  }
+  if (terceiroId && !terceiroFuncao) {
+    messages.push("Informe a função do terceiro tripulante.");
+  }
+  if (!terceiroId && terceiroFuncao) {
+    messages.push("Informe o terceiro tripulante ou limpe a função adicional.");
+  }
+  if (terceiroId && (terceiroId === comandanteId || terceiroId === copilotoId)) {
+    messages.push("O terceiro tripulante deve ser diferente do comandante e do segundo tripulante.");
+  }
+  if (terceiroFuncao && !["comandante", "copiloto"].includes(terceiroFuncao)) {
+    messages.push("A função do terceiro tripulante deve ser Comandante ou Copiloto.");
   }
   return messages;
 }
@@ -2010,6 +2083,8 @@ function updatePayloadFromDraft(draft) {
   const aircraftCategory = aircraftCleared ? "" : (draft.categoriaFinanceiraAeronave || draft.tipo || "");
   const comandanteTripulanteId = normalizeText(normalizedDraft.comandanteTripulanteId);
   const copilotoTripulanteId = normalizeText(normalizedDraft.copilotoTripulanteId);
+  const terceiroTripulanteId = normalizeText(normalizedDraft.terceiroTripulanteId);
+  const terceiroTripulanteFuncao = normalizeLower(normalizedDraft.terceiroTripulanteFuncao);
   const lineTripulanteId = normalizeText(normalizedDraft.tripulanteId);
   const counterpartTripulanteId = lineTripulanteId === comandanteTripulanteId ? copilotoTripulanteId : comandanteTripulanteId;
   return {
@@ -2029,6 +2104,8 @@ function updatePayloadFromDraft(draft) {
     tipo: aircraftCategory,
     comandante_tripulante_id: comandanteTripulanteId,
     copiloto_tripulante_id: copilotoTripulanteId,
+    terceiro_tripulante_id: terceiroTripulanteId,
+    terceiro_tripulante_funcao: terceiroTripulanteFuncao,
     counterpart_tripulante_id: counterpartTripulanteId,
     hora_apresentacao: draft.apresentacao,
     horario_apresentacao: draft.apresentacao,

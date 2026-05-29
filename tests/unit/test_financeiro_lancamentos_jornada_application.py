@@ -55,6 +55,35 @@ def test_mission_payload_from_journey_preserves_two_effective_commanders(monkeyp
     assert [item["funcao_missao"] for item in data["participantes"]] == ["comandante", "copiloto"]
 
 
+def test_mission_payload_from_journey_preserves_optional_third_crew(monkeypatch):
+    tripulantes = {
+        101: {"id": 101, "ativo": 1, "funcao_operacional": "comandante"},
+        202: {"id": 202, "ativo": 1, "funcao_operacional": "copiloto"},
+        303: {"id": 303, "ativo": 1, "funcao_operacional": "comandante"},
+    }
+
+    monkeypatch.setattr(
+        usecases,
+        "fetch_tripulante_basico",
+        lambda _db, *, tripulante_id: tripulantes.get(int(tripulante_id)),
+    )
+    monkeypatch.setattr(
+        usecases,
+        "fetch_equipamento_basico",
+        lambda _db, *, aeronave_id: {"id": int(aeronave_id), "ativo": 1, "categoria_financeira": "A"},
+    )
+
+    data = usecases._mission_payload_from_journey(
+        _payload(terceiro_tripulante_id=303, terceiro_tripulante_funcao="comandante"),
+        org_id=FINANCE_ORG_SCOPE_DEFAULT,
+        actor_user_id=55,
+        db=object(),
+    )
+
+    assert data["terceiro_tripulante_id"] == 303
+    assert data["terceiro_tripulante_funcao"] == "comandante"
+
+
 def test_criar_linha_jornada_resolves_second_effective_commander(monkeypatch):
     class FakeDB:
         def __init__(self):

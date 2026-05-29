@@ -302,6 +302,11 @@ CREATE TABLE IF NOT EXISTS financeiro_missoes_operacionais (
     categoria_financeira_aeronave TEXT,
     comandante_tripulante_id INTEGER NOT NULL REFERENCES tripulantes (id),
     copiloto_tripulante_id INTEGER NOT NULL REFERENCES tripulantes (id),
+    terceiro_tripulante_id INTEGER REFERENCES tripulantes (id),
+    terceiro_tripulante_funcao TEXT CHECK (
+        terceiro_tripulante_funcao IS NULL
+        OR terceiro_tripulante_funcao IN ('comandante', 'copiloto')
+    ),
     horario_apresentacao TIMESTAMP,
     horario_abandono TIMESTAMP,
     pos_exec_min INTEGER NOT NULL DEFAULT 0 CHECK (pos_exec_min >= 0),
@@ -322,6 +327,19 @@ CREATE TABLE IF NOT EXISTS financeiro_missoes_operacionais (
     delete_reason TEXT,
     CONSTRAINT financeiro_missoes_operacionais_tripulantes_distintos
         CHECK (comandante_tripulante_id <> copiloto_tripulante_id),
+    CONSTRAINT financeiro_missoes_operacionais_terceiro_consistente
+        CHECK (
+            (terceiro_tripulante_id IS NULL AND terceiro_tripulante_funcao IS NULL)
+            OR (terceiro_tripulante_id IS NOT NULL AND terceiro_tripulante_funcao IS NOT NULL)
+        ),
+    CONSTRAINT financeiro_missoes_operacionais_terceiro_distinto
+        CHECK (
+            terceiro_tripulante_id IS NULL
+            OR (
+                terceiro_tripulante_id <> comandante_tripulante_id
+                AND terceiro_tripulante_id <> copiloto_tripulante_id
+            )
+        ),
     CONSTRAINT financeiro_missoes_operacionais_periodo_valido
         CHECK (data_final IS NULL OR data_final >= data_missao),
     CONSTRAINT financeiro_missoes_operacionais_horarios_validos
@@ -534,6 +552,9 @@ CREATE INDEX IF NOT EXISTS idx_financeiro_missoes_operacionais_comandante
 ON financeiro_missoes_operacionais (org_id, comandante_tripulante_id, competencia);
 CREATE INDEX IF NOT EXISTS idx_financeiro_missoes_operacionais_copiloto
 ON financeiro_missoes_operacionais (org_id, copiloto_tripulante_id, competencia);
+CREATE INDEX IF NOT EXISTS idx_financeiro_missoes_operacionais_terceiro
+ON financeiro_missoes_operacionais (org_id, terceiro_tripulante_id, competencia)
+WHERE terceiro_tripulante_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_financeiro_missao_tripulantes_org_missao
 ON financeiro_missao_tripulantes (org_id, missao_operacional_id);
 CREATE INDEX IF NOT EXISTS idx_financeiro_missao_tripulantes_org_tripulante
@@ -763,6 +784,8 @@ _REQUIRED_COLUMNS_BY_TABLE = {
         "categoria_financeira_aeronave",
         "comandante_tripulante_id",
         "copiloto_tripulante_id",
+        "terceiro_tripulante_id",
+        "terceiro_tripulante_funcao",
         "horario_apresentacao",
         "horario_abandono",
         "pos_exec_min",
