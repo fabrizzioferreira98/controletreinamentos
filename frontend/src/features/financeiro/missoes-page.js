@@ -49,7 +49,7 @@ const PREVIEW_REQUIRED_FIELDS = [
   { key: "aeronave_id", label: "aeronave" },
   { key: "categoria_financeira_aeronave", label: "categoria operacional" },
   { key: "comandante_tripulante_id", label: "comandante" },
-  { key: "copiloto_tripulante_id", label: "copiloto" },
+  { key: "copiloto_tripulante_id", label: "segundo tripulante" },
   { key: "horario_apresentacao", label: "horário de apresentação" },
   { key: "horario_abandono", label: "horário de abandono" },
 ];
@@ -780,7 +780,7 @@ function renderMissionRows(items, filters, capabilities, optionState, runtimeMap
           </td>
           <td data-label="Tripulação">
             <div class="primary-cell">CMT: ${renderParticipantLabel(mission, "comandante_tripulante_id", optionState.tripulantes)}</div>
-            <div class="secondary-cell">COP: ${renderParticipantLabel(mission, "copiloto_tripulante_id", optionState.tripulantes)}</div>
+            <div class="secondary-cell">2o tripulante: ${renderParticipantLabel(mission, "copiloto_tripulante_id", optionState.tripulantes)}</div>
           </td>
           <td data-label="Aeronave e operação">
             <div class="primary-cell">${renderEquipmentLabel(mission, optionState.equipamentos)}</div>
@@ -888,7 +888,7 @@ function renderMissionDetail(mission, capabilities, optionState, runtime = null,
         <div><dt>Apresentação</dt><dd>${formatDateTimeBr(mission.horario_apresentacao)}</dd></div>
         <div><dt>Abandono</dt><dd>${formatDateTimeBr(mission.horario_abandono)}</dd></div>
         <div><dt>Comandante</dt><dd>${renderParticipantLabel(mission, "comandante_tripulante_id", optionState.tripulantes)}</dd></div>
-        <div><dt>Copiloto</dt><dd>${renderParticipantLabel(mission, "copiloto_tripulante_id", optionState.tripulantes)}</dd></div>
+        <div><dt>Segundo tripulante</dt><dd>${renderParticipantLabel(mission, "copiloto_tripulante_id", optionState.tripulantes)}</dd></div>
         <div><dt>Pernoite</dt><dd>${booleanLabel(mission.houve_pernoite)} (${escapeHtml(mission.quantidade_pernoites || 0)})</dd></div>
         <div><dt>Cobertura de base</dt><dd>${booleanLabel(mission.cobertura_base)}</dd></div>
       </dl>
@@ -1314,8 +1314,8 @@ function renderMissionForm({ mission, capabilities, optionState, runtime = null 
             })}
             ${renderTripulanteSelect({
               name: "copiloto_tripulante_id",
-              label: "Copiloto",
-              fallbackLabel: "Copiloto tripulante ID",
+              label: "Segundo tripulante",
+              fallbackLabel: "Segundo tripulante ID",
               mission,
               optionsState: optionState.tripulantes,
               disabled: editing,
@@ -1356,7 +1356,7 @@ function renderMissionForm({ mission, capabilities, optionState, runtime = null 
           </div>
         </fieldset>
       </div>
-      ${editing ? '<div class="hint">Troca de comandante/copiloto sera feita em etapa posterior com controle de participantes.</div>' : ""}
+      ${editing ? '<div class="hint">Troca de comandante/segundo tripulante sera feita em etapa posterior com controle de participantes.</div>' : ""}
       <div class="form-actions ui-form-actions financeiro-missoes-form-actions">
         ${canSubmit ? `<button type="submit" data-finance-operation="save" data-finance-form-submit>${editing ? "Salvar alterações" : "Salvar missão"}</button>` : '<div class="hint">Seu perfil nao possui permissao para salvar missoes operacionais.</div>'}
         <a class="button-link secondary" href="${escapeAttr(buildHashHref(FINANCEIRO_MISSOES_ROUTE, { competencia: mission.competencia || currentCompetencia() }))}">${editing ? "Cancelar edição" : "Cancelar"}</a>
@@ -1486,12 +1486,12 @@ function validateMissionCrew(form, { editing = false } = {}) {
   const feedback = document.getElementById("financeMissionFormFeedback");
   markCrewFields(form, false);
   if (!comandanteId || !copilotoId) {
-    renderInlineFeedback(feedback, "Informe comandante e copiloto a partir do cadastro de tripulantes ou pelo ID.", "warning");
+    renderInlineFeedback(feedback, "Informe comandante e segundo tripulante a partir do cadastro de tripulantes ou pelo ID.", "warning");
     return false;
   }
   if (comandanteId === copilotoId) {
     markCrewFields(form, true);
-    renderInlineFeedback(feedback, "Comandante e copiloto devem ser tripulantes distintos.", "warning");
+    renderInlineFeedback(feedback, "Comandante e segundo tripulante devem ser distintos.", "warning");
     return false;
   }
   return true;

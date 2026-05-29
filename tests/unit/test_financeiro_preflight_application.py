@@ -177,6 +177,21 @@ def test_preflight_missao_calculavel(monkeypatch):
     assert db.commit_called == 0
 
 
+def test_preflight_missao_calculavel_com_dois_comandantes(monkeypatch):
+    db = _FakeDB()
+    mission = _mission()
+    mission["participantes"] = [
+        {"tripulante_id": 101, "funcao": "comandante", "status": "ativo"},
+        {"tripulante_id": 202, "funcao": "comandante", "status": "ativo", "funcao_missao": "copiloto"},
+    ]
+    _patch_mission_dependencies(monkeypatch, mission=mission, parameters=_hourly_parameters())
+
+    result = usecases.preflight_calculo_missao(10, db=db)
+
+    assert result["calculavel"] is True
+    assert result["bloqueios"] == []
+
+
 def test_preflight_missao_cancelada(monkeypatch):
     _patch_mission_dependencies(monkeypatch, mission=_mission(status="cancelada"), parameters=_hourly_parameters())
 

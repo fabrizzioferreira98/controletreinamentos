@@ -379,6 +379,28 @@ function tripulanteNameById(tripulanteId) {
   return optionName(item) || `ID ${selected}`;
 }
 
+function normalizeCrewFuncao(value, fallback = "") {
+  const normalized = normalizeLower(value);
+  return normalized === "comandante" || normalized === "copiloto" ? normalized : fallback;
+}
+
+function tripulanteFuncaoById(tripulanteId, fallback = "") {
+  const selected = Number(tripulanteId || 0) || 0;
+  if (!selected) return fallback;
+  const item = jornadaState.options.tripulantes.find((option) => Number(option?.id || 0) === selected);
+  return normalizeCrewFuncao(item?.funcao_operacional, fallback);
+}
+
+function effectiveCrewFuncaoForId(tripulanteId, fallback, line = {}) {
+  const selected = normalizeText(tripulanteId);
+  if (!selected) return fallback;
+  if (selected === normalizeText(line.tripulanteId)) {
+    const lineFuncao = normalizeCrewFuncao(line.tripulanteFuncaoOperacional);
+    if (lineFuncao) return lineFuncao;
+  }
+  return tripulanteFuncaoById(selected, fallback);
+}
+
 function equipamentoOptionsMarkup(selectedId) {
   const selected = Number(selectedId || 0) || 0;
   const known = new Set();
@@ -1391,7 +1413,7 @@ function renderReadOnlyRow(row, index) {
       <td data-label="Data inicial">${escapeHtml(formatDateBr(row.data))}</td>
       <td data-label="Data final">${escapeHtml(formatDateBr(row.dataFinal || row.data))}</td>
       <td data-label="Comandante">${escapeHtml(formatAny(row.comandanteTripulanteNome || tripulanteNameById(row.comandanteTripulanteId || row.sourceMission?.comandante_tripulante_id)))}</td>
-      <td data-label="Copiloto">${escapeHtml(formatAny(row.copilotoTripulanteNome || tripulanteNameById(row.copilotoTripulanteId || row.sourceMission?.copiloto_tripulante_id)))}</td>
+      <td data-label="Segundo tripulante">${escapeHtml(formatAny(row.copilotoTripulanteNome || tripulanteNameById(row.copilotoTripulanteId || row.sourceMission?.copiloto_tripulante_id)))}</td>
       <td data-label="Tripulante"><strong>${escapeHtml(formatAny(row.tripulanteNome))}</strong></td>
       <td data-label="Função">${escapeHtml(functionLabel(row.funcao))}</td>
       <td data-label="Aeronave">${escapeHtml(formatAny(row.aeronave))}</td>
@@ -1435,7 +1457,7 @@ function renderEditableRow(row, index) {
       <td data-label="Data inicial"><input type="date" data-jornada-field="data" value="${escapeAttr(draft.data)}"></td>
       <td data-label="Data final"><input type="date" data-jornada-field="dataFinal" value="${escapeAttr(draft.dataFinal || draft.data)}"></td>
       <td data-label="Comandante"><select data-jornada-field="comandanteTripulanteId" data-jornada-crew="comandante" aria-label="Comandante">${tripulanteOptionsMarkup(draft.comandanteTripulanteId)}</select></td>
-      <td data-label="Copiloto"><select data-jornada-field="copilotoTripulanteId" data-jornada-crew="copiloto" aria-label="Copiloto">${tripulanteOptionsMarkup(draft.copilotoTripulanteId)}</select></td>
+      <td data-label="Segundo tripulante"><select data-jornada-field="copilotoTripulanteId" data-jornada-crew="copiloto" aria-label="Segundo tripulante">${tripulanteOptionsMarkup(draft.copilotoTripulanteId)}</select></td>
       <td data-label="Tripulante da linha">
         <span data-jornada-derived="tripulante">${escapeHtml(formatAny(derivedDraft.tripulanteNome || tripulanteNameById(derivedDraft.tripulanteId)))}</span>
       </td>
@@ -1524,7 +1546,7 @@ function renderGrid() {
               <th>Data inicial</th>
               <th>Data final</th>
               <th>Comandante</th>
-              <th>Copiloto</th>
+              <th>Segundo tripulante</th>
               <th>Tripulante da linha</th>
               <th>Função da linha</th>
               <th>Aeronave</th>
@@ -1737,21 +1759,29 @@ function syncCrewSelectionOnLine(line) {
   line.copilotoTripulanteId = normalizeText(line.copilotoTripulanteId);
   const filterFuncao = normalizeLower(jornadaState.filters.funcao);
   const requestedTripulanteId = normalizeText(line.tripulanteId || jornadaState.filters.tripulanteId);
-  let funcao = normalizeLower(line.funcao || filterFuncao);
-  if (!funcao && requestedTripulanteId) {
-    if (requestedTripulanteId === line.copilotoTripulanteId) funcao = "copiloto";
-    if (requestedTripulanteId === line.comandanteTripulanteId) funcao = "comandante";
-  }
-  if (!funcao) {
-    funcao = line.comandanteTripulanteId ? "comandante" : line.copilotoTripulanteId ? "copiloto" : "";
-  }
+  const matchesComandante = requestedTripulanteId && requestedTripulanteId === line.comandanteTripulanteId;
+  const matchesCopiloto = requestedTripulanteId && requestedTripulanteId === line.copilotoTripulanteId;
+  const comandanteFuncao = effectiveCrewFuncaoForId(line.comandanteTripulanteId, "comandante", line);
+  const copilotoFuncao = effectiveCrewFuncaoForId(line.copilotoTripulanteId, "copiloto", line);
+  let funcao = normalizeCrewFuncao(line.funcao || filterFuncao);
+  if (!funcao && matchesComandante) funcao = comandanteFuncao;
+  if (!funcao && matchesCopiloto) funcao = copilotoFuncao;
+  if (!funcao) funcao = line.comandanteTripulanteId ? comandanteFuncao : line.copilotoTripulanteId ? copilotoFuncao : "";
   line.funcao = funcao;
-  if (funcao === "comandante") {
-    if (!line.comandanteTripulanteId && line.tripulanteId) line.comandanteTripulanteId = normalizeText(line.tripulanteId);
-    line.tripulanteId = line.comandanteTripulanteId || normalizeText(line.tripulanteId);
+  if (requestedTripulanteId && (matchesComandante || matchesCopiloto)) {
+    line.tripulanteId = requestedTripulanteId;
+  } else if (requestedTripulanteId && !line.comandanteTripulanteId && !line.copilotoTripulanteId) {
+    if (funcao === "copiloto") line.copilotoTripulanteId = requestedTripulanteId;
+    if (funcao === "comandante") line.comandanteTripulanteId = requestedTripulanteId;
+    line.tripulanteId = requestedTripulanteId;
+  } else if (funcao === "comandante") {
+    line.tripulanteId = (comandanteFuncao === "comandante" ? line.comandanteTripulanteId : "")
+      || (copilotoFuncao === "comandante" ? line.copilotoTripulanteId : "")
+      || normalizeText(line.tripulanteId);
   } else if (funcao === "copiloto") {
-    if (!line.copilotoTripulanteId && line.tripulanteId) line.copilotoTripulanteId = normalizeText(line.tripulanteId);
-    line.tripulanteId = line.copilotoTripulanteId || normalizeText(line.tripulanteId);
+    line.tripulanteId = (copilotoFuncao === "copiloto" ? line.copilotoTripulanteId : "")
+      || (comandanteFuncao === "copiloto" ? line.comandanteTripulanteId : "")
+      || normalizeText(line.tripulanteId);
   } else {
     line.tripulanteId = normalizeText(line.tripulanteId);
   }
@@ -1836,10 +1866,12 @@ function previewPayloadFromDraft(draft) {
     : (draft.categoriaFinanceiraAeronave || draft.tipo || sourceMission.categoria_financeira_aeronave || "");
   const comandanteTripulanteId = normalizeText(normalizedDraft.comandanteTripulanteId);
   const copilotoTripulanteId = normalizeText(normalizedDraft.copilotoTripulanteId);
+  const lineTripulanteId = normalizeText(normalizedDraft.tripulanteId);
+  const counterpartTripulanteId = lineTripulanteId === comandanteTripulanteId ? copilotoTripulanteId : comandanteTripulanteId;
   return {
     ...sourceMission,
     competencia: draft.competencia || jornadaState.filters.competencia,
-    tripulante_id: normalizedDraft.tripulanteId,
+    tripulante_id: lineTripulanteId,
     funcao: normalizedDraft.funcao,
     data_missao: draft.data,
     data_final: draft.dataFinal || draft.data,
@@ -1852,7 +1884,7 @@ function previewPayloadFromDraft(draft) {
     tipo: aircraftCategory,
     comandante_tripulante_id: comandanteTripulanteId,
     copiloto_tripulante_id: copilotoTripulanteId,
-    counterpart_tripulante_id: normalizeLower(normalizedDraft.funcao) === "comandante" ? copilotoTripulanteId : comandanteTripulanteId,
+    counterpart_tripulante_id: counterpartTripulanteId,
     horario_apresentacao: draft.apresentacao,
     hora_apresentacao: draft.apresentacao,
     horario_abandono: draft.abandono,
@@ -1890,9 +1922,9 @@ function crewValidationMessages(payload) {
   const comandanteId = normalizeText(payload.comandante_tripulante_id);
   const copilotoId = normalizeText(payload.copiloto_tripulante_id);
   if (!comandanteId) messages.push("Informe o comandante da missão.");
-  if (!copilotoId) messages.push("Informe o copiloto da missão.");
+  if (!copilotoId) messages.push("Informe o segundo tripulante da missão; pode ser copiloto ou outro comandante.");
   if (comandanteId && copilotoId && comandanteId === copilotoId) {
-    messages.push("Comandante e copiloto não podem ser o mesmo tripulante.");
+    messages.push("Comandante e segundo tripulante não podem ser o mesmo tripulante.");
   }
   return messages;
 }
@@ -1978,12 +2010,14 @@ function updatePayloadFromDraft(draft) {
   const aircraftCategory = aircraftCleared ? "" : (draft.categoriaFinanceiraAeronave || draft.tipo || "");
   const comandanteTripulanteId = normalizeText(normalizedDraft.comandanteTripulanteId);
   const copilotoTripulanteId = normalizeText(normalizedDraft.copilotoTripulanteId);
+  const lineTripulanteId = normalizeText(normalizedDraft.tripulanteId);
+  const counterpartTripulanteId = lineTripulanteId === comandanteTripulanteId ? copilotoTripulanteId : comandanteTripulanteId;
   return {
     competencia: draft.competencia || jornadaState.filters.competencia,
     data: draft.data,
     data_missao: draft.data,
     data_final: draft.dataFinal || draft.data,
-    tripulante_id: normalizedDraft.tripulanteId,
+    tripulante_id: lineTripulanteId,
     funcao: normalizedDraft.funcao,
     relatorio_voo: draft.relVoo,
     cavok_numero_voo: draft.relVoo,
@@ -1995,7 +2029,7 @@ function updatePayloadFromDraft(draft) {
     tipo: aircraftCategory,
     comandante_tripulante_id: comandanteTripulanteId,
     copiloto_tripulante_id: copilotoTripulanteId,
-    counterpart_tripulante_id: normalizeLower(normalizedDraft.funcao) === "comandante" ? copilotoTripulanteId : comandanteTripulanteId,
+    counterpart_tripulante_id: counterpartTripulanteId,
     hora_apresentacao: draft.apresentacao,
     horario_apresentacao: draft.apresentacao,
     hora_abandono: draft.abandono,

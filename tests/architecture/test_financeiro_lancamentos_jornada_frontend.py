@@ -221,6 +221,7 @@ def test_jornada_aircraft_selector_uses_registered_equipment_options():
 
 def test_jornada_crew_pair_is_explicit_and_sent_in_preview_and_save_payloads():
     page_source = read(JORNADA_PAGE)
+    service_source = read(JORNADA_SERVICE)
 
     assert "Comandante" in page_source
     assert "Copiloto" in page_source
@@ -228,15 +229,19 @@ def test_jornada_crew_pair_is_explicit_and_sent_in_preview_and_save_payloads():
     assert 'data-jornada-field="copilotoTripulanteId"' in page_source
     assert 'data-jornada-crew="comandante"' in page_source
     assert 'data-jornada-crew="copiloto"' in page_source
+    assert "function effectiveCrewFuncaoForId" in page_source
     assert "function syncCrewSelectionOnLine" in page_source
+    assert "const matchesCopiloto = requestedTripulanteId && requestedTripulanteId === line.copilotoTripulanteId" in page_source
     assert "function crewValidationMessages" in page_source
     assert "Informe o comandante da missão." in page_source
-    assert "Informe o copiloto da missão." in page_source
-    assert "Comandante e copiloto não podem ser o mesmo tripulante." in page_source
+    assert "Informe o segundo tripulante da missão; pode ser copiloto ou outro comandante." in page_source
+    assert "Comandante e segundo tripulante não podem ser o mesmo tripulante." in page_source
     assert "comandante_tripulante_id: comandanteTripulanteId" in page_source
     assert "copiloto_tripulante_id: copilotoTripulanteId" in page_source
+    assert "const counterpartTripulanteId = lineTripulanteId === comandanteTripulanteId ? copilotoTripulanteId : comandanteTripulanteId" in page_source
     assert "counterpart_tripulante_id" in page_source
     assert "payloadValidationMessages(payload)" in page_source
+    assert "tripulanteFuncaoOperacional: normalizeText(item.tripulante?.funcao_operacional || item.tripulante_funcao_operacional)" in service_source
 
 
 def test_jornada_save_recalculates_backend_line_before_reports_are_used():

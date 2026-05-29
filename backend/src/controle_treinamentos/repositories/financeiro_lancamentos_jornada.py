@@ -2,6 +2,14 @@ from __future__ import annotations
 
 from ..contracts.financeiro import FINANCE_ORG_SCOPE_DEFAULT
 
+_EFFECTIVE_CREW_FUNCTION_SQL = """
+CASE
+    WHEN LOWER(TRIM(COALESCE(t.funcao_operacional, ''))) IN ('comandante', 'copiloto')
+        THEN LOWER(TRIM(t.funcao_operacional))
+    ELSE mt.funcao
+END
+"""
+
 
 def _resolve_org_id(org_id: str | None) -> str:
     return (org_id or "").strip() or FINANCE_ORG_SCOPE_DEFAULT
@@ -14,7 +22,8 @@ def _line_select_sql(extra_where: str = "") -> str:
             mt.id AS linha_id,
             mt.org_id AS linha_org_id,
             mt.status AS linha_status,
-            mt.funcao AS linha_funcao,
+            mt.funcao AS linha_funcao_missao,
+            {_EFFECTIVE_CREW_FUNCTION_SQL} AS linha_funcao,
             mt.tripulante_id AS linha_tripulante_id,
             mo.id AS missao_operacional_id,
             mo.org_id,
@@ -81,10 +90,10 @@ def _line_select_sql(extra_where: str = "") -> str:
           ON ch.org_id = mt.org_id
          AND ch.missao_operacional_id = mt.missao_operacional_id
          AND ch.tripulante_id = mt.tripulante_id
-         AND ch.funcao = mt.funcao
+         AND ch.funcao = {_EFFECTIVE_CREW_FUNCTION_SQL}
          AND ch.status <> 'obsoleto'
         {where}
-        ORDER BY mo.data_missao ASC, mo.id ASC, CASE mt.funcao WHEN 'comandante' THEN 1 ELSE 2 END, mt.id ASC
+        ORDER BY mo.data_missao ASC, mo.id ASC, CASE {_EFFECTIVE_CREW_FUNCTION_SQL} WHEN 'comandante' THEN 1 ELSE 2 END, mt.id ASC
     """
 
 
@@ -103,7 +112,7 @@ def listar_linhas_jornada(
     clauses = ["mt.org_id = %s", "mo.competencia = %s", "mo.deleted_at IS NULL"]
     params: list = [resolved_org_id, competencia]
     if funcao:
-        clauses.append("mt.funcao = %s")
+        clauses.append(f"{_EFFECTIVE_CREW_FUNCTION_SQL} = %s")
         params.append(funcao)
     if tripulante_id:
         clauses.append("mt.tripulante_id = %s")
@@ -135,7 +144,7 @@ def listar_linhas_horas_totais_voadas(
 ) -> list[dict]:
     resolved_org_id = _resolve_org_id(org_id)
     rows = db.execute(
-        """
+        f"""
         WITH calculos_vigentes AS (
             SELECT
                 ch.*,
@@ -154,7 +163,8 @@ def listar_linhas_horas_totais_voadas(
             mt.id AS linha_id,
             mt.org_id AS linha_org_id,
             mt.status AS linha_status,
-            mt.funcao AS linha_funcao,
+            mt.funcao AS linha_funcao_missao,
+            {_EFFECTIVE_CREW_FUNCTION_SQL} AS linha_funcao,
             mt.tripulante_id AS linha_tripulante_id,
             mo.id AS missao_operacional_id,
             mo.org_id,
@@ -201,11 +211,11 @@ def listar_linhas_horas_totais_voadas(
           ON ch.org_id = mt.org_id
          AND ch.missao_operacional_id = mt.missao_operacional_id
          AND ch.tripulante_id = mt.tripulante_id
-         AND ch.funcao = mt.funcao
+         AND ch.funcao = {_EFFECTIVE_CREW_FUNCTION_SQL}
          AND ch.rn = 1
         WHERE mt.org_id = %s
           AND mo.competencia = %s
-          AND mt.funcao = %s
+          AND {_EFFECTIVE_CREW_FUNCTION_SQL} = %s
           AND mt.status = 'ativo'
           AND mo.status <> 'cancelada'
           AND mo.deleted_at IS NULL
@@ -229,7 +239,7 @@ def contar_linhas_jornada(
     clauses = ["mt.org_id = %s", "mo.competencia = %s", "mo.deleted_at IS NULL"]
     params: list = [resolved_org_id, competencia]
     if funcao:
-        clauses.append("mt.funcao = %s")
+        clauses.append(f"{_EFFECTIVE_CREW_FUNCTION_SQL} = %s")
         params.append(funcao)
     if tripulante_id:
         clauses.append("mt.tripulante_id = %s")
@@ -254,11 +264,13 @@ def contar_linhas_jornada(
         JOIN financeiro_missoes_operacionais mo
           ON mo.id = mt.missao_operacional_id
          AND mo.org_id = mt.org_id
+        JOIN tripulantes t
+          ON t.id = mt.tripulante_id
         LEFT JOIN financeiro_calculos_horarios ch
           ON ch.org_id = mt.org_id
          AND ch.missao_operacional_id = mt.missao_operacional_id
          AND ch.tripulante_id = mt.tripulante_id
-         AND ch.funcao = mt.funcao
+         AND ch.funcao = {_EFFECTIVE_CREW_FUNCTION_SQL}
          AND ch.status <> 'obsoleto'
         WHERE {' AND '.join(clauses)}
         """,
@@ -288,7 +300,7 @@ def listar_linhas_jornada_periodo(
     ]
     params: list = [resolved_org_id, data_fim, data_inicio]
     if funcao:
-        clauses.append("mt.funcao = %s")
+        clauses.append(f"{_EFFECTIVE_CREW_FUNCTION_SQL} = %s")
         params.append(funcao)
     if tripulante_id:
         clauses.append("mt.tripulante_id = %s")
@@ -330,7 +342,7 @@ def contar_linhas_jornada_periodo(
     ]
     params: list = [resolved_org_id, data_fim, data_inicio]
     if funcao:
-        clauses.append("mt.funcao = %s")
+        clauses.append(f"{_EFFECTIVE_CREW_FUNCTION_SQL} = %s")
         params.append(funcao)
     if tripulante_id:
         clauses.append("mt.tripulante_id = %s")
@@ -355,11 +367,13 @@ def contar_linhas_jornada_periodo(
         JOIN financeiro_missoes_operacionais mo
           ON mo.id = mt.missao_operacional_id
          AND mo.org_id = mt.org_id
+        JOIN tripulantes t
+          ON t.id = mt.tripulante_id
         LEFT JOIN financeiro_calculos_horarios ch
           ON ch.org_id = mt.org_id
          AND ch.missao_operacional_id = mt.missao_operacional_id
          AND ch.tripulante_id = mt.tripulante_id
-         AND ch.funcao = mt.funcao
+         AND ch.funcao = {_EFFECTIVE_CREW_FUNCTION_SQL}
          AND ch.status <> 'obsoleto'
         WHERE {' AND '.join(clauses)}
         """,

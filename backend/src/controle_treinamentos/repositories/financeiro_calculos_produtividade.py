@@ -5,6 +5,14 @@ from decimal import Decimal
 
 from ..contracts.financeiro import FINANCE_ORG_SCOPE_DEFAULT
 
+_EFFECTIVE_CREW_FUNCTION_SQL = """
+CASE
+    WHEN LOWER(TRIM(COALESCE(t.funcao_operacional, ''))) IN ('comandante', 'copiloto')
+        THEN LOWER(TRIM(t.funcao_operacional))
+    ELSE mt.funcao
+END
+"""
+
 _PRODUCTIVITY_COLUMNS = (
     "org_id",
     "competencia",
@@ -274,11 +282,13 @@ def listar_participacoes_produtividade_por_competencia(
             mo.justificativa,
             mo.status AS missao_status,
             mt.tripulante_id,
-            mt.funcao,
+            mt.funcao AS funcao_missao,
+            {_EFFECTIVE_CREW_FUNCTION_SQL} AS funcao,
             mt.status AS participante_status,
             t.nome AS tripulante_nome,
             t.cpf AS tripulante_cpf,
             t.licenca_anac AS tripulante_licenca_anac,
+            t.funcao_operacional AS tripulante_funcao_operacional,
             t.categoria_operacional AS tripulante_categoria_operacional,
             t.sdea_ativo AS tripulante_sdea_ativo,
             t.sdea_icao_validade AS tripulante_sdea_icao_validade,
@@ -302,7 +312,7 @@ def listar_participacoes_produtividade_por_competencia(
           AND mt.status = 'ativo'
           AND mo.status <> 'cancelada'
           AND mo.deleted_at IS NULL
-        ORDER BY t.nome ASC, mt.funcao ASC, mo.data_missao ASC, mo.id ASC
+        ORDER BY t.nome ASC, {_EFFECTIVE_CREW_FUNCTION_SQL} ASC, mo.data_missao ASC, mo.id ASC
         """,
         (resolved_org_id, competencia),
     ).fetchall()

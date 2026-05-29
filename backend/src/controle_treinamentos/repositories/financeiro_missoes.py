@@ -54,6 +54,14 @@ _MISSION_UPDATE_COLUMNS = (
     "updated_by",
 )
 
+_EFFECTIVE_CREW_FUNCTION_SQL = """
+CASE
+    WHEN LOWER(TRIM(COALESCE(t.funcao_operacional, ''))) IN ('comandante', 'copiloto')
+        THEN LOWER(TRIM(t.funcao_operacional))
+    ELSE mt.funcao
+END
+"""
+
 
 def _resolve_org_id(org_id: str | None) -> str:
     return (org_id or "").strip() or FINANCE_ORG_SCOPE_DEFAULT
@@ -284,12 +292,14 @@ def list_missao_tripulantes(
             mt.org_id,
             mt.missao_operacional_id,
             mt.tripulante_id,
-            mt.funcao,
+            mt.funcao AS funcao_missao,
+            {_EFFECTIVE_CREW_FUNCTION_SQL} AS funcao,
             mt.status,
             mt.created_at,
             t.nome AS tripulante_nome,
             t.cpf AS tripulante_cpf,
-            t.licenca_anac AS tripulante_licenca_anac
+            t.licenca_anac AS tripulante_licenca_anac,
+            t.funcao_operacional AS tripulante_funcao_operacional
         FROM financeiro_missao_tripulantes mt
         JOIN financeiro_missoes_operacionais mo
           ON mo.id = mt.missao_operacional_id
@@ -299,7 +309,7 @@ def list_missao_tripulantes(
           AND mt.org_id = %s
           {deleted_clause}
         ORDER BY
-            CASE mt.funcao
+            CASE {_EFFECTIVE_CREW_FUNCTION_SQL}
                 WHEN 'comandante' THEN 1
                 WHEN 'copiloto' THEN 2
                 ELSE 3

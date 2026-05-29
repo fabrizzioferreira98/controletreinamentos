@@ -633,12 +633,13 @@ def preflight_calculo_missao(
             ),
         )
 
-    participants_by_role = {
-        _clean_text(item.get("funcao")).lower(): item
+    active_participants = [
+        item
         for item in (mission.get("participantes") or [])
-        if _clean_text(item.get("status")).lower() != "cancelado"
-    }
-    if not participants_by_role.get("comandante"):
+        if _clean_text(item.get("status")).lower() not in {"cancelado", "removido"}
+    ]
+    participant_functions = [_clean_text(item.get("funcao")).lower() for item in active_participants]
+    if "comandante" not in participant_functions:
         _append_unique(
             bloqueios,
             _block(
@@ -650,16 +651,16 @@ def preflight_calculo_missao(
                 next_action="Vincular comandante ativo na missao operacional.",
             ),
         )
-    if not participants_by_role.get("copiloto"):
+    if len(active_participants) < 2:
         _append_unique(
             bloqueios,
             _block(
-                code="finance_preflight_missing_copilot",
-                message="Copiloto da missao nao encontrado.",
+                code="finance_preflight_missing_second_crew",
+                message="Segundo tripulante da missao nao encontrado.",
                 entity_type="finance_mission",
                 entity_id=mission.get("id"),
                 field="copiloto_tripulante_id",
-                next_action="Vincular copiloto ativo na missao operacional.",
+                next_action="Vincular segundo tripulante ativo na missao operacional.",
             ),
         )
     if _to_int(mission.get("aeronave_id")) is None:

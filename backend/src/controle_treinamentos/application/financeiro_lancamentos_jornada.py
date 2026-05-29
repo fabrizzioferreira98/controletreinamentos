@@ -241,14 +241,19 @@ def _category_from_payload(payload: dict, equipamento: dict | None = None, exist
     )
 
 
-def _validate_write_references(db, *, tripulante_id: int, aeronave_id: int) -> tuple[dict, dict]:
+def _validate_tripulante_reference(db, *, tripulante_id: int, field: str = "tripulante_id") -> dict:
     tripulante = fetch_tripulante_basico(db, tripulante_id=tripulante_id)
     if not tripulante or not bool(tripulante.get("ativo")):
         raise DomainValidationError(
             "Tripulante inexistente ou inativo.",
             code="finance_journey_invalid_tripulante",
-            details={"field": "tripulante_id", "tripulante_id": tripulante_id},
+            details={"field": field, "tripulante_id": tripulante_id},
         )
+    return tripulante
+
+
+def _validate_write_references(db, *, tripulante_id: int, aeronave_id: int) -> tuple[dict, dict]:
+    tripulante = _validate_tripulante_reference(db, tripulante_id=tripulante_id)
     equipamento = fetch_equipamento_basico(db, aeronave_id=aeronave_id)
     if not equipamento or not bool(equipamento.get("ativo")):
         raise DomainValidationError(
@@ -257,6 +262,18 @@ def _validate_write_references(db, *, tripulante_id: int, aeronave_id: int) -> t
             details={"field": "aeronave_id", "aeronave_id": aeronave_id},
         )
     return tripulante, equipamento
+
+
+def _effective_financial_funcao(tripulante: dict | None, fallback: str) -> str:
+    raw = _text((tripulante or {}).get("funcao_operacional")).lower()
+    aliases = {
+        "cmt": "comandante",
+        "comandante": "comandante",
+        "cop": "copiloto",
+        "copiloto": "copiloto",
+    }
+    normalized = aliases.get(raw, raw)
+    return normalized if normalized in _VALID_FUNCOES else fallback
 
 
 def _row_status(row: dict) -> str:
@@ -1111,7 +1128,8 @@ def _mission_payload_from_journey(
     funcao = _normalize_funcao(payload.get("funcao") or (existing or {}).get("linha_funcao"))
     tripulante_id = _int(payload.get("tripulante_id") or (existing or {}).get("linha_tripulante_id"))
     aeronave_id = _int(payload.get("aeronave_id") or (existing or {}).get("aeronave_id"))
-    _, equipamento = _validate_write_references(_resolve_db(db), tripulante_id=tripulante_id, aeronave_id=aeronave_id)
+    resolved_db = _resolve_db(db)
+    tripulante, equipamento = _validate_write_references(resolved_db, tripulante_id=tripulante_id, aeronave_id=aeronave_id)
     comandante_id = _int(payload.get("comandante_tripulante_id") or (existing or {}).get("comandante_tripulante_id"))
     copiloto_id = _int(payload.get("copiloto_tripulante_id") or (existing or {}).get("copiloto_tripulante_id"))
     if funcao == "comandante":
@@ -1122,10 +1140,28 @@ def _mission_payload_from_journey(
         comandante_id = comandante_id or _int(payload.get("counterpart_tripulante_id"))
     if not comandante_id or not copiloto_id:
         raise DomainValidationError(
-            "A linha de jornada usa a missao operacional como base e exige comandante e copiloto para persistir.",
+            "A linha de jornada usa a missao operacional como base e exige comandante e segundo tripulante para persistir.",
             code="finance_journey_crew_pair_required",
-            details={"fields": ["comandante_tripulante_id", "copiloto_tripulante_id"]},
+            details={"fields": ["comandante_tripulante_id", "segundo_tripulante_id"]},
         )
+    comandante_tripulante = (
+        tripulante
+        if comandante_id == tripulante_id
+        else _validate_tripulante_reference(
+            resolved_db,
+            tripulante_id=comandante_id,
+            field="comandante_tripulante_id",
+        )
+    )
+    copiloto_tripulante = (
+        tripulante
+        if copiloto_id == tripulante_id
+        else _validate_tripulante_reference(
+            resolved_db,
+            tripulante_id=copiloto_id,
+            field="copiloto_tripulante_id",
+        )
+    )
     pos_exec_min = _int(payload.get("pos_exec_min") if "pos_exec_min" in payload else (existing or {}).get("pos_exec_min"))
     if pos_exec_min < 0:
         raise DomainValidationError(
@@ -1148,6 +1184,20 @@ def _mission_payload_from_journey(
         payload.get("cobertura_base"),
         default=_bool((existing or {}).get("cobertura_base")),
     )
+    participantes = [
+        {
+            "tripulante_id": comandante_id,
+            "funcao": _effective_financial_funcao(comandante_tripulante, "comandante"),
+            "funcao_missao": "comandante",
+            "status": "ativo",
+        },
+        {
+            "tripulante_id": copiloto_id,
+            "funcao": _effective_financial_funcao(copiloto_tripulante, "copiloto"),
+            "funcao_missao": "copiloto",
+            "status": "ativo",
+        },
+    ]
     return {
         "org_id": org_id,
         "competencia": competencia,
@@ -1197,6 +1247,7 @@ def _mission_payload_from_journey(
             if "observacoes" in payload
             else (existing or {}).get("observacoes")
         ),
+        "participantes": participantes,
         "created_by": actor_user_id,
         "updated_by": actor_user_id,
     }
@@ -1287,8 +1338,28 @@ def criar_linha_jornada(payload: dict, *, actor_user_id: int, org_id: str | None
         org_id=resolved_org_id,
         db=resolved_db,
     )
-    funcao = _normalize_funcao(payload.get("funcao")) or "comandante"
-    linha_tripulante_id = data["comandante_tripulante_id"] if funcao == "comandante" else data["copiloto_tripulante_id"]
+    requested_tripulante_id = _int(payload.get("tripulante_id"))
+    requested_funcao = _normalize_funcao(payload.get("funcao"))
+    participantes = data.get("participantes") or []
+    linha_participante = next(
+        (
+            item
+            for item in participantes
+            if requested_tripulante_id and _int(item.get("tripulante_id")) == requested_tripulante_id
+        ),
+        None,
+    )
+    if linha_participante is None and requested_funcao:
+        linha_participante = next(
+            (item for item in participantes if _normalize_funcao(item.get("funcao")) == requested_funcao),
+            None,
+        )
+    if linha_participante is None:
+        linha_participante = next(iter(participantes), None)
+    funcao = _normalize_funcao((linha_participante or {}).get("funcao")) or requested_funcao or "comandante"
+    linha_tripulante_id = _int((linha_participante or {}).get("tripulante_id")) or requested_tripulante_id
+    if not linha_tripulante_id:
+        linha_tripulante_id = data["comandante_tripulante_id"] if funcao == "comandante" else data["copiloto_tripulante_id"]
     rows = listar_linhas_jornada(
         resolved_db,
         competencia=data["competencia"],

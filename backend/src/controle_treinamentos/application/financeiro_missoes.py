@@ -203,10 +203,10 @@ def _normalize_non_negative_int(value, *, label: str, default: int = 0) -> int:
 
 def _mission_payload(payload: dict, *, org_id: str, actor_user_id: int | None = None, require_times: bool = True) -> dict:
     comandante_id = _required_int(payload, "comandante_tripulante_id", "Comandante")
-    copiloto_id = _required_int(payload, "copiloto_tripulante_id", "Copiloto")
+    copiloto_id = _required_int(payload, "copiloto_tripulante_id", "Segundo tripulante")
     if comandante_id == copiloto_id:
         raise FinanceiroDominioErro(
-            "Comandante e copiloto devem ser tripulantes distintos.",
+            "Comandante e segundo tripulante devem ser distintos.",
             code="missao_operacional_tripulantes_iguais",
         )
 
@@ -434,13 +434,20 @@ _MISSION_CALCULATION_IMPACT_FIELDS = {
 }
 
 
-def _participants_by_function(mission: dict) -> dict[str, dict]:
-    participants = {}
+def _effective_participants(mission: dict) -> list[dict]:
+    participants: list[dict] = []
+    seen: set[int] = set()
     for participant in mission.get("participantes", []):
         funcao = _clean_text(participant.get("funcao")).lower()
         if funcao not in {"comandante", "copiloto"}:
             continue
-        participants[funcao] = {**participant, "funcao": funcao}
+        tripulante_id = _optional_int(participant.get("tripulante_id"), label="Tripulante")
+        if tripulante_id is None:
+            continue
+        if tripulante_id in seen:
+            continue
+        seen.add(tripulante_id)
+        participants.append({**participant, "tripulante_id": tripulante_id, "funcao": funcao})
     return participants
 
 
@@ -458,24 +465,27 @@ def _participant_from_mission_field(mission: dict, *, funcao: str, field: str) -
 
 
 def _required_participants(mission: dict) -> list[dict]:
-    participants = _participants_by_function(mission)
+    participants = _effective_participants(mission)
     fallback_fields = {
         "comandante": "comandante_tripulante_id",
         "copiloto": "copiloto_tripulante_id",
     }
+    participant_ids = {item["tripulante_id"] for item in participants}
     for funcao, field in fallback_fields.items():
-        if participants.get(funcao):
-            continue
         fallback = _participant_from_mission_field(mission, funcao=funcao, field=field)
-        if fallback:
-            participants[funcao] = fallback
-    missing = [funcao for funcao in ("comandante", "copiloto") if not participants.get(funcao)]
-    if missing:
+        if fallback and fallback["tripulante_id"] not in participant_ids:
+            participants.append(fallback)
+            participant_ids.add(fallback["tripulante_id"])
+    has_commander = any(item["funcao"] == "comandante" for item in participants)
+    if len(participants) < 2 or not has_commander:
         raise FinanceiroDominioErro(
-            "Missao operacional deve possuir comandante e copiloto para recalc.",
+            "Missao operacional deve possuir ao menos um comandante e dois tripulantes distintos para recalc.",
             code="missao_operacional_tripulantes_obrigatorios",
         )
-    return [participants["comandante"], participants["copiloto"]]
+    return sorted(
+        participants,
+        key=lambda item: (0 if item["funcao"] == "comandante" else 1, int(item["tripulante_id"] or 0)),
+    )
 
 
 def _required_parameter_specs(funcao: str) -> tuple[tuple[str, str | None, str | None], ...]:
@@ -1020,6 +1030,8 @@ def preview_missao_operacional(payload: dict, *, org_id: str | None = None, db=N
     try:
         data = _mission_payload(payload, org_id=resolved_org_id, actor_user_id=None, require_times=False)
         data["id"] = _optional_int(payload.get("id"), label="Missao") if payload.get("id") not in (None, "") else None
+        if isinstance(payload.get("participantes"), list):
+            data["participantes"] = payload["participantes"]
         participantes = _required_participants(data)
         if _mission_missing_operational_times(data):
             raw_calculations = [
@@ -1187,7 +1199,7 @@ def atualizar_missao_operacional(
         copiloto_id = int(data.get("copiloto_tripulante_id") or before_row["copiloto_tripulante_id"])
         if comandante_id == copiloto_id:
             raise FinanceiroDominioErro(
-                "Comandante e copiloto devem ser tripulantes distintos.",
+                "Comandante e segundo tripulante devem ser distintos.",
                 code="missao_operacional_tripulantes_iguais",
             )
 

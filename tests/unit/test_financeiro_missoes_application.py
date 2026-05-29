@@ -263,6 +263,32 @@ def test_criar_missao_operacional_rejects_same_commander_and_copilot():
     assert db.commit_count == 0
 
 
+def test_required_participants_accepts_two_effective_commanders():
+    mission = _mission_detail()
+    mission["participantes"] = [
+        {"tripulante_id": 101, "funcao": "comandante", "status": "ativo"},
+        {"tripulante_id": 202, "funcao": "comandante", "status": "ativo", "funcao_missao": "copiloto"},
+    ]
+
+    participants = usecases._required_participants(mission)
+
+    assert [item["tripulante_id"] for item in participants] == [101, 202]
+    assert [item["funcao"] for item in participants] == ["comandante", "comandante"]
+
+
+def test_required_participants_rejects_repeated_tripulante():
+    mission = _mission_detail(comandante_tripulante_id=101, copiloto_tripulante_id=101)
+    mission["participantes"] = [
+        {"tripulante_id": 101, "funcao": "comandante", "status": "ativo"},
+        {"tripulante_id": 101, "funcao": "copiloto", "status": "ativo"},
+    ]
+
+    with pytest.raises(usecases.FinanceiroDominioErro) as exc_info:
+        usecases._required_participants(mission)
+
+    assert exc_info.value.code == "missao_operacional_tripulantes_obrigatorios"
+
+
 def test_criar_missao_operacional_rejects_duplicate_and_rolls_back(monkeypatch):
     db = _FakeDB()
     monkeypatch.setattr(usecases, "fetch_competencia_financeira", lambda *args, **kwargs: None)

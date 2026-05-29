@@ -177,6 +177,7 @@ function rowFromNativeLine(item = {}, index = 0) {
     dataFinal: normalizeText(item.data_final || item.data || item.data_missao),
     tripulanteId,
     tripulanteNome: normalizeText(item.tripulante?.nome || item.tripulante_nome),
+    tripulanteFuncaoOperacional: normalizeText(item.tripulante?.funcao_operacional || item.tripulante_funcao_operacional),
     funcao,
     comandanteTripulanteId,
     comandanteTripulanteNome: normalizeText(item.comandante_nome || item.comandante_tripulante_nome || item.comandante_tripulante),
