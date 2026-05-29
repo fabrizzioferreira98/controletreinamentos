@@ -1983,7 +1983,9 @@ function crewValidationMessages(payload) {
   const terceiroId = normalizeText(payload.terceiro_tripulante_id);
   const terceiroFuncao = normalizeLower(payload.terceiro_tripulante_funcao);
   if (!comandanteId) messages.push("Informe o comandante da missão.");
-  if (!copilotoId) messages.push("Informe o segundo tripulante da missão; pode ser copiloto ou outro comandante.");
+  if (!copilotoId && !terceiroId) {
+    messages.push("Informe o segundo tripulante ou o terceiro tripulante da missão.");
+  }
   if (comandanteId && copilotoId && comandanteId === copilotoId) {
     messages.push("Comandante e segundo tripulante não podem ser o mesmo tripulante.");
   }
@@ -1993,7 +1995,7 @@ function crewValidationMessages(payload) {
   if (!terceiroId && terceiroFuncao) {
     messages.push("Informe o terceiro tripulante ou limpe a função adicional.");
   }
-  if (terceiroId && (terceiroId === comandanteId || terceiroId === copilotoId)) {
+  if (terceiroId && (terceiroId === comandanteId || (copilotoId && terceiroId === copilotoId))) {
     messages.push("O terceiro tripulante deve ser diferente do comandante e do segundo tripulante.");
   }
   if (terceiroFuncao && !["comandante", "copiloto"].includes(terceiroFuncao)) {

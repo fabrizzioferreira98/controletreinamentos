@@ -1152,11 +1152,17 @@ def _mission_payload_from_journey(
     elif funcao == "copiloto":
         copiloto_id = tripulante_id
         comandante_id = comandante_id or _int(payload.get("counterpart_tripulante_id"))
-    if not comandante_id or not copiloto_id:
+    if not comandante_id:
         raise DomainValidationError(
-            "A linha de jornada usa a missao operacional como base e exige comandante e segundo tripulante para persistir.",
+            "Informe o comandante da missao para persistir a linha de jornada.",
             code="finance_journey_crew_pair_required",
-            details={"fields": ["comandante_tripulante_id", "segundo_tripulante_id"]},
+            details={"fields": ["comandante_tripulante_id"]},
+        )
+    if not copiloto_id and not terceiro_id:
+        raise DomainValidationError(
+            "Informe o segundo tripulante ou o terceiro tripulante da missao para persistir.",
+            code="finance_journey_crew_pair_required",
+            details={"fields": ["copiloto_tripulante_id", "terceiro_tripulante_id"]},
         )
     comandante_tripulante = (
         tripulante
@@ -1167,15 +1173,17 @@ def _mission_payload_from_journey(
             field="comandante_tripulante_id",
         )
     )
-    copiloto_tripulante = (
-        tripulante
-        if copiloto_id == tripulante_id
-        else _validate_tripulante_reference(
-            resolved_db,
-            tripulante_id=copiloto_id,
-            field="copiloto_tripulante_id",
+    copiloto_tripulante = None
+    if copiloto_id:
+        copiloto_tripulante = (
+            tripulante
+            if copiloto_id == tripulante_id
+            else _validate_tripulante_reference(
+                resolved_db,
+                tripulante_id=copiloto_id,
+                field="copiloto_tripulante_id",
+            )
         )
-    )
     if terceiro_id and not terceiro_funcao:
         raise DomainValidationError(
             "Informe a funcao do terceiro tripulante.",
@@ -1188,7 +1196,7 @@ def _mission_payload_from_journey(
             code="finance_journey_third_crew_required",
             details={"field": "terceiro_tripulante_id"},
         )
-    if terceiro_id and terceiro_id in {comandante_id, copiloto_id}:
+    if terceiro_id and (terceiro_id == comandante_id or (copiloto_id and terceiro_id == copiloto_id)):
         raise DomainValidationError(
             "O terceiro tripulante deve ser diferente do comandante e do segundo tripulante.",
             code="finance_journey_third_crew_distinct",
@@ -1229,14 +1237,17 @@ def _mission_payload_from_journey(
             "funcao": _effective_financial_funcao(comandante_tripulante, "comandante"),
             "funcao_missao": "comandante",
             "status": "ativo",
-        },
-        {
-            "tripulante_id": copiloto_id,
-            "funcao": _effective_financial_funcao(copiloto_tripulante, "copiloto"),
-            "funcao_missao": "copiloto",
-            "status": "ativo",
-        },
+        }
     ]
+    if copiloto_id and copiloto_tripulante:
+        participantes.append(
+            {
+                "tripulante_id": copiloto_id,
+                "funcao": _effective_financial_funcao(copiloto_tripulante, "copiloto"),
+                "funcao_missao": "copiloto",
+                "status": "ativo",
+            }
+        )
     if terceiro_id and terceiro_funcao:
         participantes.append(
             {
@@ -1259,7 +1270,7 @@ def _mission_payload_from_journey(
         "aeronave_id": aeronave_id,
         "categoria_financeira_aeronave": _category_from_payload(payload, equipamento, existing),
         "comandante_tripulante_id": comandante_id,
-        "copiloto_tripulante_id": copiloto_id,
+        "copiloto_tripulante_id": copiloto_id or None,
         "terceiro_tripulante_id": terceiro_id or None,
         "terceiro_tripulante_funcao": terceiro_funcao,
         "horario_apresentacao": _optional_payload_text(
@@ -1508,7 +1519,7 @@ def preview_linha_jornada(payload: dict, *, org_id: str | None = None, db=None) 
         }
     funcao = _normalize_funcao(payload.get("funcao"))
     counterpart_fields = (
-        ["copiloto_tripulante_id", "counterpart_tripulante_id"]
+        ["copiloto_tripulante_id", "terceiro_tripulante_id", "counterpart_tripulante_id"]
         if funcao == "comandante"
         else ["comandante_tripulante_id", "counterpart_tripulante_id"]
     )

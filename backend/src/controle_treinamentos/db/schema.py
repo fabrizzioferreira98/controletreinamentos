@@ -301,7 +301,7 @@ CREATE TABLE IF NOT EXISTS financeiro_missoes_operacionais (
     aeronave_id INTEGER REFERENCES equipamentos (id),
     categoria_financeira_aeronave TEXT,
     comandante_tripulante_id INTEGER NOT NULL REFERENCES tripulantes (id),
-    copiloto_tripulante_id INTEGER NOT NULL REFERENCES tripulantes (id),
+    copiloto_tripulante_id INTEGER REFERENCES tripulantes (id),
     terceiro_tripulante_id INTEGER REFERENCES tripulantes (id),
     terceiro_tripulante_funcao TEXT CHECK (
         terceiro_tripulante_funcao IS NULL
@@ -325,8 +325,10 @@ CREATE TABLE IF NOT EXISTS financeiro_missoes_operacionais (
     deleted_by INTEGER REFERENCES usuarios (id),
     deleted_at TIMESTAMP,
     delete_reason TEXT,
+    CONSTRAINT financeiro_missoes_operacionais_tripulacao_minima
+        CHECK (copiloto_tripulante_id IS NOT NULL OR terceiro_tripulante_id IS NOT NULL),
     CONSTRAINT financeiro_missoes_operacionais_tripulantes_distintos
-        CHECK (comandante_tripulante_id <> copiloto_tripulante_id),
+        CHECK (copiloto_tripulante_id IS NULL OR comandante_tripulante_id <> copiloto_tripulante_id),
     CONSTRAINT financeiro_missoes_operacionais_terceiro_consistente
         CHECK (
             (terceiro_tripulante_id IS NULL AND terceiro_tripulante_funcao IS NULL)
@@ -337,7 +339,7 @@ CREATE TABLE IF NOT EXISTS financeiro_missoes_operacionais (
             terceiro_tripulante_id IS NULL
             OR (
                 terceiro_tripulante_id <> comandante_tripulante_id
-                AND terceiro_tripulante_id <> copiloto_tripulante_id
+                AND (copiloto_tripulante_id IS NULL OR terceiro_tripulante_id <> copiloto_tripulante_id)
             )
         ),
     CONSTRAINT financeiro_missoes_operacionais_periodo_valido

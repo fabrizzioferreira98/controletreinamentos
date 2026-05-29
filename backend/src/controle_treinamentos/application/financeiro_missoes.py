@@ -219,8 +219,8 @@ def _normalize_non_negative_int(value, *, label: str, default: int = 0) -> int:
 
 def _mission_payload(payload: dict, *, org_id: str, actor_user_id: int | None = None, require_times: bool = True) -> dict:
     comandante_id = _required_int(payload, "comandante_tripulante_id", "Comandante")
-    copiloto_id = _required_int(payload, "copiloto_tripulante_id", "Segundo tripulante")
-    if comandante_id == copiloto_id:
+    copiloto_id = _optional_int(payload.get("copiloto_tripulante_id"), label="Segundo tripulante")
+    if copiloto_id is not None and comandante_id == copiloto_id:
         raise FinanceiroDominioErro(
             "Comandante e segundo tripulante devem ser distintos.",
             code="missao_operacional_tripulantes_iguais",
@@ -237,7 +237,12 @@ def _mission_payload(payload: dict, *, org_id: str, actor_user_id: int | None = 
             "Terceiro tripulante e obrigatorio quando a funcao adicional foi informada.",
             code="missao_operacional_terceiro_tripulante_obrigatorio",
         )
-    if terceiro_id is not None and terceiro_id in {comandante_id, copiloto_id}:
+    if copiloto_id is None and terceiro_id is None:
+        raise FinanceiroDominioErro(
+            "Informe o segundo tripulante ou o terceiro tripulante da missao.",
+            code="missao_operacional_tripulante_adicional_obrigatorio",
+        )
+    if terceiro_id is not None and (terceiro_id == comandante_id or (copiloto_id is not None and terceiro_id == copiloto_id)):
         raise FinanceiroDominioErro(
             "Terceiro tripulante deve ser distinto do comandante e do segundo tripulante.",
             code="missao_operacional_terceiro_tripulante_duplicado",
@@ -1240,8 +1245,17 @@ def atualizar_missao_operacional(
         or "terceiro_tripulante_id" in data
         or "terceiro_tripulante_funcao" in data
     ):
-        comandante_id = int(data.get("comandante_tripulante_id") or before_row["comandante_tripulante_id"])
-        copiloto_id = int(data.get("copiloto_tripulante_id") or before_row["copiloto_tripulante_id"])
+        comandante_id = _optional_int(
+            data.get("comandante_tripulante_id", before_row.get("comandante_tripulante_id")),
+            label="Comandante",
+        )
+        if comandante_id is None:
+            raise FinanceiroDominioErro("Comandante e obrigatorio.", code="financeiro_campo_obrigatorio")
+        copiloto_id = (
+            _optional_int(data.get("copiloto_tripulante_id"), label="Segundo tripulante")
+            if "copiloto_tripulante_id" in data
+            else _optional_int(before_row.get("copiloto_tripulante_id"), label="Segundo tripulante")
+        )
         terceiro_id = (
             _optional_int(data.get("terceiro_tripulante_id"), label="Terceiro tripulante")
             if "terceiro_tripulante_id" in data
@@ -1252,7 +1266,7 @@ def atualizar_missao_operacional(
             if "terceiro_tripulante_funcao" in data
             else _optional_funcao(before_row.get("terceiro_tripulante_funcao"), label="Funcao do terceiro tripulante")
         )
-        if comandante_id == copiloto_id:
+        if copiloto_id is not None and comandante_id == copiloto_id:
             raise FinanceiroDominioErro(
                 "Comandante e segundo tripulante devem ser distintos.",
                 code="missao_operacional_tripulantes_iguais",
@@ -1267,11 +1281,20 @@ def atualizar_missao_operacional(
                 "Terceiro tripulante e obrigatorio quando a funcao adicional foi informada.",
                 code="missao_operacional_terceiro_tripulante_obrigatorio",
             )
-        if terceiro_id is not None and terceiro_id in {comandante_id, copiloto_id}:
+        if copiloto_id is None and terceiro_id is None:
+            raise FinanceiroDominioErro(
+                "Informe o segundo tripulante ou o terceiro tripulante da missao.",
+                code="missao_operacional_tripulante_adicional_obrigatorio",
+            )
+        if terceiro_id is not None and (
+            terceiro_id == comandante_id or (copiloto_id is not None and terceiro_id == copiloto_id)
+        ):
             raise FinanceiroDominioErro(
                 "Terceiro tripulante deve ser distinto do comandante e do segundo tripulante.",
                 code="missao_operacional_terceiro_tripulante_duplicado",
             )
+        if "copiloto_tripulante_id" in data:
+            data["copiloto_tripulante_id"] = copiloto_id
         if "terceiro_tripulante_id" in data:
             data["terceiro_tripulante_id"] = terceiro_id
         if "terceiro_tripulante_funcao" in data:
@@ -1292,7 +1315,11 @@ def atualizar_missao_operacional(
         _ensure_no_duplicate(resolved_db, data=duplicate_data, exclude_id=missao_operacional_id)
         crew_changed = (
             ("comandante_tripulante_id" in data and int(data["comandante_tripulante_id"]) != int(before_row["comandante_tripulante_id"]))
-            or ("copiloto_tripulante_id" in data and int(data["copiloto_tripulante_id"]) != int(before_row["copiloto_tripulante_id"]))
+            or (
+                "copiloto_tripulante_id" in data
+                and _optional_int(data.get("copiloto_tripulante_id"), label="Segundo tripulante")
+                != _optional_int(before_row.get("copiloto_tripulante_id"), label="Segundo tripulante")
+            )
             or (
                 "terceiro_tripulante_id" in data
                 and _optional_int(data.get("terceiro_tripulante_id"), label="Terceiro tripulante")
@@ -1317,7 +1344,7 @@ def atualizar_missao_operacional(
                 resolved_db,
                 missao_operacional_id=missao_operacional_id,
                 comandante_tripulante_id=int(updated["comandante_tripulante_id"]),
-                copiloto_tripulante_id=int(updated["copiloto_tripulante_id"]),
+                copiloto_tripulante_id=_optional_int(updated.get("copiloto_tripulante_id"), label="Segundo tripulante"),
                 terceiro_tripulante_id=_optional_int(updated.get("terceiro_tripulante_id"), label="Terceiro tripulante"),
                 terceiro_tripulante_funcao=_optional_funcao(
                     updated.get("terceiro_tripulante_funcao"),

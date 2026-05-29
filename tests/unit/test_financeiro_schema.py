@@ -63,9 +63,11 @@ def test_operational_mission_keeps_single_timeline_and_participants_have_no_time
     assert "horario_apresentacao TIMESTAMP NOT NULL" not in mission_sql
     assert "horario_abandono TIMESTAMP NOT NULL" not in mission_sql
     assert "comandante_tripulante_id INTEGER NOT NULL REFERENCES tripulantes (id)" in mission_sql
-    assert "copiloto_tripulante_id INTEGER NOT NULL REFERENCES tripulantes (id)" in mission_sql
+    assert "copiloto_tripulante_id INTEGER REFERENCES tripulantes (id)" in mission_sql
+    assert "copiloto_tripulante_id INTEGER NOT NULL REFERENCES tripulantes (id)" not in mission_sql
     assert "terceiro_tripulante_id INTEGER REFERENCES tripulantes (id)" in mission_sql
     assert "terceiro_tripulante_funcao TEXT CHECK" in mission_sql
+    assert "financeiro_missoes_operacionais_tripulacao_minima" in mission_sql
     assert "financeiro_missoes_operacionais_terceiro_consistente" in mission_sql
     assert "financeiro_missoes_operacionais_terceiro_distinto" in mission_sql
     assert "aeronave_id INTEGER REFERENCES equipamentos (id)" in mission_sql

@@ -172,6 +172,40 @@ def test_create_missao_operacional_inserts_optional_third_participant():
     assert db.executed[3][1][1:3] == (303, "comandante")
 
 
+def test_create_missao_operacional_skips_empty_second_and_inserts_third_participant():
+    mission_row = {
+        "id": 10,
+        "org_id": FINANCE_ORG_SCOPE_DEFAULT,
+        "comandante_tripulante_id": 101,
+        "copiloto_tripulante_id": None,
+        "terceiro_tripulante_id": 303,
+        "terceiro_tripulante_funcao": "copiloto",
+    }
+    db = _FakeDB(
+        [
+            _FakeCursor(row=mission_row),
+            _FakeCursor(row={"id": 1, "org_id": FINANCE_ORG_SCOPE_DEFAULT, "funcao": "comandante"}),
+            _FakeCursor(row={"id": 2, "org_id": FINANCE_ORG_SCOPE_DEFAULT, "funcao": "copiloto"}),
+        ]
+    )
+
+    result = financeiro_missoes.create_missao_operacional_with_tripulantes(
+        db,
+        data={
+            "competencia": "2026-04",
+            "data_missao": "2026-04-10",
+            "comandante_tripulante_id": 101,
+            "copiloto_tripulante_id": None,
+            "terceiro_tripulante_id": 303,
+            "terceiro_tripulante_funcao": "copiloto",
+        },
+    )
+
+    assert [item["funcao"] for item in result["participantes"]] == ["comandante", "copiloto"]
+    assert db.executed[1][1][1:3] == (101, "comandante")
+    assert db.executed[2][1][1:3] == (303, "copiloto")
+
+
 def test_replace_missao_tripulantes_is_org_scoped_and_reinserts_crew_pair():
     db = _FakeDB(
         [

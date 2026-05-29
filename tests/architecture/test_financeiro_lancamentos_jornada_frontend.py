@@ -236,7 +236,7 @@ def test_jornada_crew_pair_is_explicit_and_sent_in_preview_and_save_payloads():
     assert "const matchesCopiloto = requestedTripulanteId && requestedTripulanteId === line.copilotoTripulanteId" in page_source
     assert "function crewValidationMessages" in page_source
     assert "Informe o comandante da missão." in page_source
-    assert "Informe o segundo tripulante da missão; pode ser copiloto ou outro comandante." in page_source
+    assert "Informe o segundo tripulante ou o terceiro tripulante da missão." in page_source
     assert "Comandante e segundo tripulante não podem ser o mesmo tripulante." in page_source
     assert "comandante_tripulante_id: comandanteTripulanteId" in page_source
     assert "copiloto_tripulante_id: copilotoTripulanteId" in page_source

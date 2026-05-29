@@ -263,6 +263,21 @@ def test_criar_missao_operacional_rejects_same_commander_and_copilot():
     assert db.commit_count == 0
 
 
+def test_mission_payload_accepts_commander_and_third_without_second():
+    payload = usecases._mission_payload(
+        _payload(
+            copiloto_tripulante_id="",
+            terceiro_tripulante_id=303,
+            terceiro_tripulante_funcao="copiloto",
+        ),
+        org_id=FINANCE_ORG_SCOPE_DEFAULT,
+        actor_user_id=55,
+    )
+
+    assert payload["copiloto_tripulante_id"] is None
+    assert payload["terceiro_tripulante_id"] == 303
+
+
 def test_required_participants_accepts_two_effective_commanders():
     mission = _mission_detail()
     mission["participantes"] = [

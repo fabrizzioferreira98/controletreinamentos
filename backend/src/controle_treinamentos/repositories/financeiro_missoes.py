@@ -142,16 +142,15 @@ def insert_tripulantes_missao(
     *,
     missao_operacional_id: int,
     comandante_tripulante_id: int,
-    copiloto_tripulante_id: int,
+    copiloto_tripulante_id: int | None = None,
     terceiro_tripulante_id: int | None = None,
     terceiro_tripulante_funcao: str | None = None,
     org_id: str | None = None,
 ) -> list[dict]:
     resolved_org_id = _resolve_org_id(org_id)
-    participantes_specs = [
-        (comandante_tripulante_id, "comandante"),
-        (copiloto_tripulante_id, "copiloto"),
-    ]
+    participantes_specs = [(comandante_tripulante_id, "comandante")]
+    if copiloto_tripulante_id:
+        participantes_specs.append((copiloto_tripulante_id, "copiloto"))
     if terceiro_tripulante_id and terceiro_tripulante_funcao:
         participantes_specs.append((terceiro_tripulante_id, terceiro_tripulante_funcao))
     participantes = [
@@ -172,7 +171,7 @@ def replace_missao_tripulantes(
     *,
     missao_operacional_id: int,
     comandante_tripulante_id: int,
-    copiloto_tripulante_id: int,
+    copiloto_tripulante_id: int | None = None,
     terceiro_tripulante_id: int | None = None,
     terceiro_tripulante_funcao: str | None = None,
     org_id: str | None = None,
