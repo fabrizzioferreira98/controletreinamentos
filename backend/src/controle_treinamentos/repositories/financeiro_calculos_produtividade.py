@@ -261,7 +261,7 @@ def listar_participacoes_produtividade_por_competencia(
 ) -> list[dict]:
     resolved_org_id = _resolve_org_id(org_id)
     rows = db.execute(
-        """
+        f"""
         SELECT
             mo.id AS missao_operacional_id,
             mo.org_id,
