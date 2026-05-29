@@ -1194,8 +1194,9 @@ def _mission_payload_from_journey(
             code="finance_journey_third_crew_distinct",
             details={"field": "terceiro_tripulante_id"},
         )
+    terceiro_tripulante = None
     if terceiro_id:
-        _validate_tripulante_reference(
+        terceiro_tripulante = _validate_tripulante_reference(
             resolved_db,
             tripulante_id=terceiro_id,
             field="terceiro_tripulante_id",
@@ -1236,6 +1237,15 @@ def _mission_payload_from_journey(
             "status": "ativo",
         },
     ]
+    if terceiro_id and terceiro_funcao:
+        participantes.append(
+            {
+                "tripulante_id": terceiro_id,
+                "funcao": _effective_financial_funcao(terceiro_tripulante, terceiro_funcao),
+                "funcao_missao": terceiro_funcao,
+                "status": "ativo",
+            }
+        )
     return {
         "org_id": org_id,
         "competencia": competencia,

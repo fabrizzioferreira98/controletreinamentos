@@ -143,24 +143,26 @@ def insert_tripulantes_missao(
     missao_operacional_id: int,
     comandante_tripulante_id: int,
     copiloto_tripulante_id: int,
+    terceiro_tripulante_id: int | None = None,
+    terceiro_tripulante_funcao: str | None = None,
     org_id: str | None = None,
 ) -> list[dict]:
     resolved_org_id = _resolve_org_id(org_id)
+    participantes_specs = [
+        (comandante_tripulante_id, "comandante"),
+        (copiloto_tripulante_id, "copiloto"),
+    ]
+    if terceiro_tripulante_id and terceiro_tripulante_funcao:
+        participantes_specs.append((terceiro_tripulante_id, terceiro_tripulante_funcao))
     participantes = [
         insert_missao_tripulante(
             db,
             missao_operacional_id=missao_operacional_id,
-            tripulante_id=comandante_tripulante_id,
-            funcao="comandante",
+            tripulante_id=int(tripulante_id),
+            funcao=str(funcao),
             org_id=resolved_org_id,
-        ),
-        insert_missao_tripulante(
-            db,
-            missao_operacional_id=missao_operacional_id,
-            tripulante_id=copiloto_tripulante_id,
-            funcao="copiloto",
-            org_id=resolved_org_id,
-        ),
+        )
+        for tripulante_id, funcao in participantes_specs
     ]
     return [participante for participante in participantes if participante is not None]
 
@@ -171,6 +173,8 @@ def replace_missao_tripulantes(
     missao_operacional_id: int,
     comandante_tripulante_id: int,
     copiloto_tripulante_id: int,
+    terceiro_tripulante_id: int | None = None,
+    terceiro_tripulante_funcao: str | None = None,
     org_id: str | None = None,
 ) -> list[dict]:
     resolved_org_id = _resolve_org_id(org_id)
@@ -187,6 +191,8 @@ def replace_missao_tripulantes(
         missao_operacional_id=missao_operacional_id,
         comandante_tripulante_id=comandante_tripulante_id,
         copiloto_tripulante_id=copiloto_tripulante_id,
+        terceiro_tripulante_id=terceiro_tripulante_id,
+        terceiro_tripulante_funcao=terceiro_tripulante_funcao,
         org_id=resolved_org_id,
     )
 
@@ -198,6 +204,8 @@ def create_missao_operacional_with_tripulantes(db, *, data: dict, org_id: str | 
         missao_operacional_id=mission["id"],
         comandante_tripulante_id=mission["comandante_tripulante_id"],
         copiloto_tripulante_id=mission["copiloto_tripulante_id"],
+        terceiro_tripulante_id=mission.get("terceiro_tripulante_id"),
+        terceiro_tripulante_funcao=mission.get("terceiro_tripulante_funcao"),
         org_id=mission["org_id"],
     )
     mission["participantes"] = participants

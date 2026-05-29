@@ -82,6 +82,12 @@ def test_mission_payload_from_journey_preserves_optional_third_crew(monkeypatch)
 
     assert data["terceiro_tripulante_id"] == 303
     assert data["terceiro_tripulante_funcao"] == "comandante"
+    assert data["participantes"][-1] == {
+        "tripulante_id": 303,
+        "funcao": "comandante",
+        "funcao_missao": "comandante",
+        "status": "ativo",
+    }
 
 
 def test_criar_linha_jornada_resolves_second_effective_commander(monkeypatch):

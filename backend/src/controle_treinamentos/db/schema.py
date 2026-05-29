@@ -354,8 +354,6 @@ CREATE TABLE IF NOT EXISTS financeiro_missao_tripulantes (
     funcao TEXT NOT NULL CHECK (funcao IN ('comandante', 'copiloto')),
     status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'removido', 'cancelado')),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_financeiro_missao_tripulantes_org_missao_funcao
-        UNIQUE (org_id, missao_operacional_id, funcao),
     CONSTRAINT uq_financeiro_missao_tripulantes_org_missao_tripulante
         UNIQUE (org_id, missao_operacional_id, tripulante_id)
 );

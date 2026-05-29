@@ -73,7 +73,8 @@ def test_operational_mission_keeps_single_timeline_and_participants_have_no_time
     assert "horario_abandono" not in participant_sql
     assert "missao_operacional_id BIGINT NOT NULL REFERENCES financeiro_missoes_operacionais (id)" in participant_sql
     assert "tripulante_id INTEGER NOT NULL REFERENCES tripulantes (id)" in participant_sql
-    assert "UNIQUE (org_id, missao_operacional_id, funcao)" in participant_sql
+    assert "UNIQUE (org_id, missao_operacional_id, funcao)" not in participant_sql
+    assert "UNIQUE (org_id, missao_operacional_id, tripulante_id)" in participant_sql
 
 
 def test_finance_parameters_periods_and_calculations_support_validity_snapshots_and_memory():

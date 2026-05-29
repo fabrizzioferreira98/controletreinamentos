@@ -503,12 +503,15 @@ def _participant_from_mission_field(mission: dict, *, funcao: str, field: str) -
 
 def _required_participants(mission: dict) -> list[dict]:
     participants = _effective_participants(mission)
-    fallback_fields = {
-        "comandante": "comandante_tripulante_id",
-        "copiloto": "copiloto_tripulante_id",
-    }
+    fallback_specs = [
+        ("comandante", "comandante_tripulante_id"),
+        ("copiloto", "copiloto_tripulante_id"),
+    ]
+    terceiro_funcao = _clean_text(mission.get("terceiro_tripulante_funcao")).lower()
+    if terceiro_funcao in {"comandante", "copiloto"}:
+        fallback_specs.append((terceiro_funcao, "terceiro_tripulante_id"))
     participant_ids = {item["tripulante_id"] for item in participants}
-    for funcao, field in fallback_fields.items():
+    for funcao, field in fallback_specs:
         fallback = _participant_from_mission_field(mission, funcao=funcao, field=field)
         if fallback and fallback["tripulante_id"] not in participant_ids:
             participants.append(fallback)
@@ -1290,6 +1293,16 @@ def atualizar_missao_operacional(
         crew_changed = (
             ("comandante_tripulante_id" in data and int(data["comandante_tripulante_id"]) != int(before_row["comandante_tripulante_id"]))
             or ("copiloto_tripulante_id" in data and int(data["copiloto_tripulante_id"]) != int(before_row["copiloto_tripulante_id"]))
+            or (
+                "terceiro_tripulante_id" in data
+                and _optional_int(data.get("terceiro_tripulante_id"), label="Terceiro tripulante")
+                != _optional_int(before_row.get("terceiro_tripulante_id"), label="Terceiro tripulante")
+            )
+            or (
+                "terceiro_tripulante_funcao" in data
+                and _optional_funcao(data.get("terceiro_tripulante_funcao"), label="Funcao do terceiro tripulante")
+                != _optional_funcao(before_row.get("terceiro_tripulante_funcao"), label="Funcao do terceiro tripulante")
+            )
         )
         updated = update_missao_operacional_row(
             resolved_db,
@@ -1305,6 +1318,11 @@ def atualizar_missao_operacional(
                 missao_operacional_id=missao_operacional_id,
                 comandante_tripulante_id=int(updated["comandante_tripulante_id"]),
                 copiloto_tripulante_id=int(updated["copiloto_tripulante_id"]),
+                terceiro_tripulante_id=_optional_int(updated.get("terceiro_tripulante_id"), label="Terceiro tripulante"),
+                terceiro_tripulante_funcao=_optional_funcao(
+                    updated.get("terceiro_tripulante_funcao"),
+                    label="Funcao do terceiro tripulante",
+                ),
                 org_id=resolved_org_id,
             )
         detail = fetch_missao_operacional_detail(

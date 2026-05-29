@@ -106,6 +106,12 @@ def execute_migrations(db):
         db.execute("ALTER TABLE financeiro_missoes_operacionais ADD COLUMN IF NOT EXISTS justificativa TEXT")
         db.execute("ALTER TABLE financeiro_missoes_operacionais ADD COLUMN IF NOT EXISTS terceiro_tripulante_id INTEGER REFERENCES tripulantes (id)")
         db.execute("ALTER TABLE financeiro_missoes_operacionais ADD COLUMN IF NOT EXISTS terceiro_tripulante_funcao TEXT")
+        db.execute(
+            """
+            ALTER TABLE financeiro_missao_tripulantes
+            DROP CONSTRAINT IF EXISTS uq_financeiro_missao_tripulantes_org_missao_funcao
+            """
+        )
         db.execute("ALTER TABLE financeiro_missoes_operacionais ALTER COLUMN horario_apresentacao DROP NOT NULL")
         db.execute("ALTER TABLE financeiro_missoes_operacionais ALTER COLUMN horario_abandono DROP NOT NULL")
         db.execute(
@@ -120,6 +126,45 @@ def execute_migrations(db):
             UPDATE financeiro_missoes_operacionais
             SET pos_exec_min = 0
             WHERE pos_exec_min IS NULL OR pos_exec_min < 0
+            """
+        )
+        db.execute(
+            """
+            WITH extras AS (
+                SELECT
+                    mo.id,
+                    mo.org_id,
+                    mt.tripulante_id,
+                    CASE
+                        WHEN LOWER(TRIM(COALESCE(t.funcao_operacional, ''))) IN ('comandante', 'copiloto')
+                            THEN LOWER(TRIM(t.funcao_operacional))
+                        ELSE LOWER(TRIM(mt.funcao))
+                    END AS funcao,
+                    ROW_NUMBER() OVER (PARTITION BY mo.org_id, mo.id ORDER BY mt.id) AS rn
+                FROM financeiro_missoes_operacionais mo
+                JOIN financeiro_missao_tripulantes mt
+                  ON mt.org_id = mo.org_id
+                 AND mt.missao_operacional_id = mo.id
+                JOIN tripulantes t
+                  ON t.id = mt.tripulante_id
+                WHERE mo.deleted_at IS NULL
+                  AND mt.status = 'ativo'
+                  AND mo.terceiro_tripulante_id IS NULL
+                  AND mo.terceiro_tripulante_funcao IS NULL
+                  AND mt.tripulante_id <> mo.comandante_tripulante_id
+                  AND mt.tripulante_id <> mo.copiloto_tripulante_id
+            ), chosen AS (
+                SELECT id, org_id, tripulante_id, funcao
+                FROM extras
+                WHERE rn = 1
+                  AND funcao IN ('comandante', 'copiloto')
+            )
+            UPDATE financeiro_missoes_operacionais mo
+            SET terceiro_tripulante_id = chosen.tripulante_id,
+                terceiro_tripulante_funcao = chosen.funcao
+            FROM chosen
+            WHERE mo.id = chosen.id
+              AND mo.org_id = chosen.org_id
             """
         )
         db.execute("ALTER TABLE financeiro_missoes_operacionais ALTER COLUMN pos_exec_min SET DEFAULT 0")
