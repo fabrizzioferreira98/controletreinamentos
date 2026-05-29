@@ -325,8 +325,6 @@ CREATE TABLE IF NOT EXISTS financeiro_missoes_operacionais (
     deleted_by INTEGER REFERENCES usuarios (id),
     deleted_at TIMESTAMP,
     delete_reason TEXT,
-    CONSTRAINT financeiro_missoes_operacionais_tripulacao_minima
-        CHECK (copiloto_tripulante_id IS NOT NULL OR terceiro_tripulante_id IS NOT NULL),
     CONSTRAINT financeiro_missoes_operacionais_tripulantes_distintos
         CHECK (copiloto_tripulante_id IS NULL OR comandante_tripulante_id <> copiloto_tripulante_id),
     CONSTRAINT financeiro_missoes_operacionais_terceiro_consistente

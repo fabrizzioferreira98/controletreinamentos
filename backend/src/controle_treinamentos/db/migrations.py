@@ -174,15 +174,8 @@ def execute_migrations(db):
             """
             DO $$
             BEGIN
-                IF NOT EXISTS (
-                    SELECT 1
-                    FROM pg_constraint
-                    WHERE conname = 'financeiro_missoes_operacionais_tripulacao_minima'
-                ) THEN
-                    ALTER TABLE financeiro_missoes_operacionais
-                    ADD CONSTRAINT financeiro_missoes_operacionais_tripulacao_minima
-                    CHECK (copiloto_tripulante_id IS NOT NULL OR terceiro_tripulante_id IS NOT NULL);
-                END IF;
+                ALTER TABLE financeiro_missoes_operacionais
+                DROP CONSTRAINT IF EXISTS financeiro_missoes_operacionais_tripulacao_minima;
                 ALTER TABLE financeiro_missoes_operacionais
                 DROP CONSTRAINT IF EXISTS financeiro_missoes_operacionais_tripulantes_distintos;
                 ALTER TABLE financeiro_missoes_operacionais
