@@ -6,6 +6,7 @@ import {
   escapeAttr,
   escapeHtml,
   fileToDataUrl,
+  formatDateBr,
   formatDateTimeBr,
   formatFileSize,
   initialsForName,
@@ -30,6 +31,118 @@ import { wireCriticalFormDraftProtection } from "../../shared/forms/draft-protec
 
 const PHOTO_ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const PHOTO_MAX_BYTES = 1 * 1024 * 1024;
+
+function operationalPeriodStatusClass(status) {
+  return String(status || "").toLowerCase() === "cancelado" ? "status-gray" : "status-blue";
+}
+
+function operationalPeriodStatusLabel(status) {
+  return String(status || "").toLowerCase() === "cancelado" ? "Cancelado" : "Ativo";
+}
+
+function renderTripulanteOperationalPeriodsSection(tripulanteId, periods, capabilities = capabilitySet()) {
+  if (!tripulanteId) {
+    return `
+      <section class="panel entity-vacation-panel tripulante-vacation-panel ui-surface ui-stack" data-tripulante-section="vacations">
+        <div class="hint ui-field-help">Salve o tripulante primeiro para informar f&eacute;rias.</div>
+      </section>
+    `;
+  }
+
+  const canManagePeriods = capabilities.has("tripulantes:edit");
+  const activePeriods = periods.filter((item) => String(item?.status || "").toLowerCase() !== "cancelado");
+  const periodRows = periods
+    .map((item) => {
+      const periodoLabel = `${formatDateBr(item.data_inicio)} a ${formatDateBr(item.data_fim)}`;
+      const statusLabel = operationalPeriodStatusLabel(item.status);
+      const isActive = String(item?.status || "").toLowerCase() !== "cancelado";
+      return `
+        <tr class="tripulante-vacation-row" data-period-status="${escapeAttr(item.status || "ativo")}">
+          <td data-label="Tipo"><span class="status-pill status-blue">F&eacute;rias</span></td>
+          <td data-label="Periodo">
+            <div class="primary-cell">${escapeHtml(periodoLabel)}</div>
+            ${item.criado_em ? `<div class="secondary-cell">Registrado em ${escapeHtml(formatDateTimeBr(item.criado_em))}</div>` : ""}
+          </td>
+          <td data-label="Status"><span class="status-pill ${operationalPeriodStatusClass(item.status)}">${escapeHtml(statusLabel)}</span></td>
+          <td data-label="Observacao">${escapeHtml(item.observacao || "-")}</td>
+          <td class="actions ui-table-actions" data-label="Acoes">
+            ${
+              canManagePeriods && isActive
+                ? `<button type="button" class="link-danger tripulante-vacation-cancel" data-period-id="${escapeAttr(item.id)}" data-period-label="${escapeAttr(periodoLabel)}">Cancelar</button>`
+                : '<span class="secondary-cell">Sem a&ccedil;&atilde;o</span>'
+            }
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  return `
+    <section class="panel entity-vacation-panel tripulante-vacation-panel ui-surface ui-stack" data-tripulante-section="vacations">
+      <div class="page-header ui-block-end-sm">
+        <div>
+          <h2 class="ui-heading-reset">F&eacute;rias do tripulante</h2>
+          <p class="page-subtitle ui-subtitle-compact">Per&iacute;odos operacionais usados para indicar indisponibilidade por f&eacute;rias.</p>
+        </div>
+        <div class="entity-status-row ui-cluster">
+          <span class="status-pill status-blue">${activePeriods.length} ativo${activePeriods.length === 1 ? "" : "s"}</span>
+          <span class="status-pill status-gray">${periods.length} registro${periods.length === 1 ? "" : "s"}</span>
+        </div>
+      </div>
+
+      ${
+        canManagePeriods
+          ? `
+            <form id="tripulante-vacation-form" class="filters filters-wide tripulante-vacation-form ui-form-toolbar ui-block-end-sm">
+              <div class="tripulante-vacation-grid ui-form-grid ui-form-density-compact">
+                <label>
+                  In&iacute;cio das f&eacute;rias
+                  <input type="date" name="data_inicio" id="tripulanteVacationStart" required aria-describedby="tripulanteVacationStartFeedback">
+                  <span class="field-feedback ui-field-help" id="tripulanteVacationStartFeedback" aria-live="polite"></span>
+                </label>
+                <label>
+                  Fim das f&eacute;rias
+                  <input type="date" name="data_fim" id="tripulanteVacationEnd" required aria-describedby="tripulanteVacationEndFeedback">
+                  <span class="field-feedback ui-field-help" id="tripulanteVacationEndFeedback" aria-live="polite"></span>
+                </label>
+                <label class="ui-form-field-long">
+                  Observa&ccedil;&atilde;o
+                  <input type="text" name="observacao" maxlength="180" placeholder="Opcional">
+                </label>
+                <div class="tripulante-vacation-submit">
+                  <button type="submit" id="tripulanteVacationSubmit">Informar f&eacute;rias</button>
+                </div>
+              </div>
+              <div class="upload-state compact ui-form-upload-state tripulante-vacation-state" id="tripulanteVacationState" aria-live="polite">
+                Informe in&iacute;cio e fim para registrar um per&iacute;odo de f&eacute;rias.
+              </div>
+            </form>
+          `
+          : '<div class="upload-state compact ui-form-upload-state" data-kind="warning">Voc&ecirc; pode consultar f&eacute;rias, mas n&atilde;o tem permiss&atilde;o para alterar.</div>'
+      }
+
+      <div class="table-wrap ui-table-wrap ui-table-density-compact">
+        <table class="data-table responsive-cards tripulante-vacation-table">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th>Per&iacute;odo</th>
+              <th>Status</th>
+              <th>Observa&ccedil;&atilde;o</th>
+              <th>A&ccedil;&otilde;es</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${
+              periodRows ||
+              '<tr><td colspan="5" class="empty ui-table-state">Nenhum per&iacute;odo de f&eacute;rias informado para este tripulante.</td></tr>'
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+}
 
 function renderTripulanteFilesSection(tripulanteId, files, capabilities = capabilitySet()) {
   if (!tripulanteId) {
@@ -309,14 +422,17 @@ export async function renderTripulanteFormPage(tripulanteId = null) {
   try {
     const detailPromise = tripulanteId ? api(`/api/v1/tripulantes/${tripulanteId}`) : Promise.resolve({ data: { tripulante: null } });
     const filesPromise = tripulanteId ? api(`/api/v1/tripulantes/${tripulanteId}/files`) : Promise.resolve({ data: { items: [] } });
+    const periodsPromise = tripulanteId ? api(`/api/v1/tripulantes/${tripulanteId}/periodos-operacionais`) : Promise.resolve({ data: { items: [] } });
     const defaultOptionsPromise = api("/api/v1/tripulantes/options");
-    const [detailPayload, filesPayload, defaultOptionsResponse] = await Promise.all([
+    const [detailPayload, filesPayload, periodsPayload, defaultOptionsResponse] = await Promise.all([
       detailPromise,
       filesPromise,
+      periodsPromise,
       defaultOptionsPromise,
     ]);
     const tripulante = detailPayload.data.tripulante;
     const files = assertArray(filesPayload.data?.items, "tripulantes.files");
+    const periods = assertArray(periodsPayload.data?.items, "tripulantes.periodos_operacionais");
     let options = adaptTripulantesOptionsPayload(defaultOptionsResponse.data);
     if (tripulante?.base && !optionsContainBase(options, tripulante.base)) {
       const selectedBaseOptionsResponse = await api(`/api/v1/tripulantes/options?base=${encodeURIComponent(tripulante.base)}`);
@@ -495,6 +611,7 @@ export async function renderTripulanteFormPage(tripulanteId = null) {
           </div>
         </form>
 
+        ${renderTripulanteOperationalPeriodsSection(tripulanteId, periods, capabilities)}
         ${renderTripulanteFilesSection(tripulanteId, files, capabilities)}
         </div>
       `,
@@ -514,6 +631,8 @@ export async function renderTripulanteFormPage(tripulanteId = null) {
     const documentState = document.getElementById("tripulanteFileUploadState");
     const documentReplaceSelect = document.getElementById("tripulanteFileReplaceSelect");
     const documentSubmit = document.getElementById("tripulanteFileSubmit");
+    const vacationForm = document.getElementById("tripulante-vacation-form");
+    const vacationState = document.getElementById("tripulanteVacationState");
 
     function setFieldFeedback(input, message = "", kind = "error") {
       if (!input) return true;
@@ -535,6 +654,25 @@ export async function renderTripulanteFormPage(tripulanteId = null) {
       if (!target) return;
       target.textContent = message;
       target.dataset.kind = kind;
+    }
+
+    function setVacationState(message, kind = "") {
+      setUploadState(vacationState, message, kind);
+    }
+
+    function validateVacationPeriodForm(form) {
+      const startInput = form?.elements?.data_inicio;
+      const endInput = form?.elements?.data_fim;
+      const start = String(startInput?.value || "").trim();
+      const end = String(endInput?.value || "").trim();
+      let valid = true;
+
+      valid = setFieldFeedback(startInput, start ? "" : "Informe a data de inicio.") && valid;
+      valid = setFieldFeedback(endInput, end ? "" : "Informe a data de fim.") && valid;
+      if (start && end && end < start) {
+        valid = setFieldFeedback(endInput, "Data de fim nao pode ser anterior ao inicio.") && valid;
+      }
+      return valid;
     }
 
     function setPhotoUploadState(message, kind = "", userUploadState = "") {
@@ -1155,6 +1293,75 @@ export async function renderTripulanteFormPage(tripulanteId = null) {
           }
           renderInlineFeedback(formFeedback, buildErrorMessage(error), "error");
         }
+      });
+    });
+
+    vacationForm?.querySelectorAll("[required]").forEach((input) => {
+      input.addEventListener("blur", () => {
+        const label = input.name === "data_inicio" ? "Informe a data de inicio." : "Informe a data de fim.";
+        setFieldFeedback(input, String(input.value || "").trim() ? "" : label);
+      });
+      input.addEventListener("change", () => setFieldFeedback(input, ""));
+    });
+
+    vacationForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!tripulanteId) {
+        setVacationState("Salve o tripulante antes de informar f\u00e9rias.", "error");
+        return;
+      }
+      if (!validateVacationPeriodForm(event.currentTarget)) {
+        setVacationState("Revise as datas antes de registrar f\u00e9rias.", "error");
+        return;
+      }
+
+      const form = new FormData(event.currentTarget);
+      const payload = {
+        tipo: "ferias",
+        data_inicio: String(form.get("data_inicio") || "").trim(),
+        data_fim: String(form.get("data_fim") || "").trim(),
+        observacao: String(form.get("observacao") || "").trim(),
+      };
+      const submitButton = document.getElementById("tripulanteVacationSubmit");
+      setVacationState("Registrando f\u00e9rias...", "busy");
+      await withActionBusy(submitButton, "Registrando...", async () => {
+        try {
+          renderInlineFeedback(formFeedback, "");
+          await api(`/api/v1/tripulantes/${tripulanteId}/periodos-operacionais`, {
+            method: "POST",
+            json: payload,
+          });
+          showFlash("F\u00e9rias registradas com sucesso.", "success");
+          await renderTripulanteFormPage(tripulanteId);
+        } catch (error) {
+          const message = buildErrorMessage(error);
+          setVacationState(message, "error");
+          renderInlineFeedback(formFeedback, message, "error");
+        }
+      });
+    });
+
+    document.querySelectorAll(".tripulante-vacation-cancel").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const periodId = button.dataset.periodId;
+        if (!periodId || !tripulanteId) return;
+        if (!confirmAction({
+          title: "Cancelar per\u00edodo de f\u00e9rias?",
+          subject: button.dataset.periodLabel || "Per\u00edodo selecionado",
+          consequence: "O per\u00edodo deixa de contar como f\u00e9rias ativas para este tripulante.",
+        })) return;
+        await withActionBusy(button, "Cancelando...", async () => {
+          try {
+            renderInlineFeedback(formFeedback, "");
+            await api(`/api/v1/tripulantes/${tripulanteId}/periodos-operacionais/${periodId}`, { method: "DELETE" });
+            showFlash("Per\u00edodo de f\u00e9rias cancelado com sucesso.", "success");
+            await renderTripulanteFormPage(tripulanteId);
+          } catch (error) {
+            const message = buildErrorMessage(error);
+            setVacationState(message, "error");
+            renderInlineFeedback(formFeedback, message, "error");
+          }
+        });
       });
     });
 

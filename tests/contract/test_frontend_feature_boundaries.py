@@ -98,6 +98,8 @@ def test_dashboard_tripulantes_feature_files_exist_with_explicit_owners():
     assert "export async function renderTripulanteFormPage" in tripulantes_form_source
     assert "tripulante-form-feedback" in tripulantes_form_source
     assert "tripulante-file-form" in tripulantes_form_source
+    assert "tripulante-vacation-form" in tripulantes_form_source
+    assert "/periodos-operacionais" in tripulantes_form_source
 
     assert "export function renderTripulanteAvatar" in tripulantes_avatar_source
     assert "export function wireTripulantePhotoFallbacks" in tripulantes_avatar_source

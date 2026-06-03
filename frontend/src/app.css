@@ -8505,6 +8505,7 @@ span.nav-icon::before {
 }
 
 .tripulante-detail-page-shell .entity-form-section[data-tripulante-section],
+.tripulante-detail-page-shell .tripulante-vacation-panel[data-tripulante-section="vacations"],
 .tripulante-detail-page-shell .tripulante-document-panel[data-tripulante-section="documents"] {
   position: relative;
   overflow: hidden;
@@ -8515,6 +8516,7 @@ span.nav-icon::before {
 }
 
 .tripulante-detail-page-shell .entity-form-section[data-tripulante-section]::before,
+.tripulante-detail-page-shell .tripulante-vacation-panel[data-tripulante-section="vacations"]::before,
 .tripulante-detail-page-shell .tripulante-document-panel[data-tripulante-section="documents"]::before {
   content: "";
   position: absolute;
@@ -8535,12 +8537,17 @@ span.nav-icon::before {
   background: linear-gradient(180deg, rgba(14, 165, 233, 0.7), rgba(14, 165, 233, 0.12));
 }
 
+.tripulante-detail-page-shell .tripulante-vacation-panel[data-tripulante-section="vacations"]::before {
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.84), rgba(37, 99, 235, 0.12));
+}
+
 .tripulante-detail-page-shell .tripulante-document-panel[data-tripulante-section="documents"]::before {
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(15, 23, 42, 0.1));
 }
 
 .tripulante-detail-page-shell .form-section-header,
 .tripulante-detail-page-shell .flags-section-header,
+.tripulante-detail-page-shell .entity-vacation-panel .page-header,
 .tripulante-detail-page-shell .entity-document-panel .page-header {
   padding-bottom: var(--space-stack-md);
   border-bottom: 1px solid rgba(148, 163, 184, 0.18);
@@ -8548,10 +8555,42 @@ span.nav-icon::before {
 
 .tripulante-detail-page-shell .form-section-header h2,
 .tripulante-detail-page-shell .flags-section-header h2,
+.tripulante-detail-page-shell .entity-vacation-panel .page-header h2,
 .tripulante-detail-page-shell .entity-document-panel .page-header h2 {
   color: var(--color-foreground);
   font-size: clamp(1.02rem, 1vw, 1.18rem);
   letter-spacing: -0.01em;
+}
+
+.tripulante-detail-page-shell .tripulante-vacation-form.ui-form-toolbar {
+  align-items: stretch;
+  padding: var(--space-stack-lg);
+  border: 1px dashed rgba(37, 99, 235, 0.28);
+  border-radius: var(--radius-surface);
+  background: rgba(248, 250, 252, 0.74);
+}
+
+.tripulante-detail-page-shell .tripulante-vacation-grid.ui-form-grid {
+  align-items: end;
+  gap: var(--space-stack-md);
+}
+
+.tripulante-detail-page-shell .tripulante-vacation-submit {
+  display: flex;
+  align-items: end;
+  min-height: 100%;
+}
+
+.tripulante-detail-page-shell .tripulante-vacation-submit > button {
+  width: 100%;
+}
+
+.tripulante-detail-page-shell .tripulante-vacation-state.ui-form-upload-state {
+  margin-top: var(--space-stack-md);
+}
+
+.tripulante-detail-page-shell .tripulante-vacation-table td.actions.ui-table-actions {
+  justify-content: flex-start;
 }
 
 .tripulante-detail-page-shell .form-grid-compact.ui-form-grid {
@@ -9014,11 +9053,13 @@ span.nav-icon::before {
 @media (max-width: 640px) {
   .tripulante-detail-page-shell > .priority-page-header.ui-page-header.ui-surface,
   .tripulante-detail-page-shell .entity-form-section[data-tripulante-section],
+  .tripulante-detail-page-shell .tripulante-vacation-panel[data-tripulante-section="vacations"],
   .tripulante-detail-page-shell .tripulante-document-panel[data-tripulante-section="documents"] {
     border-radius: var(--radius-control);
   }
 
   .tripulante-detail-page-shell .tripulante-document-upload.document-upload-form,
+  .tripulante-detail-page-shell .tripulante-vacation-form.ui-form-toolbar,
   .tripulante-detail-page-shell .document-detail-shell.document-preview-card,
   .tripulante-detail-page-shell .tripulante-photo-preview-card.ui-surface,
   .tripulante-detail-page-shell .tripulante-photo-actions {

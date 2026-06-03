@@ -220,6 +220,9 @@ def test_tripulantes_flow_has_contract_adapters_and_inline_recovery():
     assert "adaptTripulantesOptionsPayload" in source
     assert "tripulante-form-feedback" in source
     assert "tripulantes-action-feedback" in source
+    assert "tripulante-vacation-form" in source
+    assert "/periodos-operacionais" in source
+    assert "tripulante-vacation-cancel" in source
     assert "renderInlineFeedback(formFeedback, buildErrorMessage(error), \"error\")" in source
 
 
@@ -237,6 +240,7 @@ def test_critical_frontend_forms_keep_validation_busy_and_error_feedback():
 
     assert "tripulante-form-feedback" in dashboard_source
     assert "tripulante-file-form" in dashboard_source
+    assert "tripulante-vacation-form" in dashboard_source
     assert "Revise os campos destacados antes de salvar." in dashboard_source
     assert 'withActionBusy(submitButton, "Salvando...", async () => {' in dashboard_source
     assert 'renderInlineFeedback(formFeedback, buildErrorMessage(error), "error")' in dashboard_source
