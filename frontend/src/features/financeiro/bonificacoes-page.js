@@ -134,6 +134,17 @@ function normalizeLower(value) {
   return normalizeText(value).toLowerCase();
 }
 
+function booleanValue(value) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  return ["1", "true", "sim", "yes", "on"].includes(normalizeLower(value));
+}
+
+function booleanValueDefault(value, fallback = false) {
+  if (value === null || value === undefined || value === "") return Boolean(fallback);
+  return booleanValue(value);
+}
+
 function formatAny(value, fallback = "-") {
   const text = normalizeText(value);
   return text || fallback;
@@ -291,6 +302,24 @@ function buildRowDraft(row) {
       sourceMission.terceiro_tripulante_funcao ||
       "",
   );
+  const legacyCoverageBase = booleanValue(
+    row.missaoCoberturaBase ??
+      sourceMission.missao_cobertura_base ??
+      sourceMission.cobertura_base ??
+      row.coberturaBase,
+  );
+  const comandanteCoberturaBase = booleanValueDefault(
+    row.comandanteCoberturaBase ?? sourceMission.comandante_cobertura_base,
+    legacyCoverageBase,
+  );
+  const copilotoCoberturaBase = booleanValueDefault(
+    row.copilotoCoberturaBase ?? sourceMission.copiloto_cobertura_base,
+    legacyCoverageBase,
+  );
+  const terceiroCoberturaBase = booleanValueDefault(
+    row.terceiroCoberturaBase ?? sourceMission.terceiro_cobertura_base,
+    legacyCoverageBase,
+  );
   return syncCrewSelectionOnLine({
     key: row.key || "new",
     isNew: Boolean(row.isNew),
@@ -323,7 +352,10 @@ function buildRowDraft(row) {
     abandono: row.abandono || "",
     posExecMin: row.posExecMin || "0",
     quantidadePernoites: row.quantidadePernoites ?? row.sourceMission?.quantidade_pernoites ?? "0",
-    coberturaBase: Boolean(row.coberturaBase ?? row.sourceMission?.cobertura_base),
+    coberturaBase: booleanValue(row.coberturaBase ?? row.sourceMission?.cobertura_base),
+    comandanteCoberturaBase,
+    copilotoCoberturaBase,
+    terceiroCoberturaBase,
     pernoitesRemuneraveis: row.pernoitesRemuneraveis || 0,
     valorPernoiteComumTotal: row.valorPernoiteComumTotal || 0,
     operacaoEspecial: row.operacaoEspecial || row.sourceMission?.operacao_especial || "",
@@ -359,6 +391,64 @@ function pernoiteSummaryMarkup(row) {
     ? `${remuneraveis} remuneravel(is) · ${formatCurrencyBr(total)}`
     : `${remuneraveis} remuneravel(is) · parametro pendente`;
   return `<strong>Pernoite comum</strong><small>${escapeHtml(detail)}</small>`;
+}
+
+function coverageEntries(row = {}) {
+  const sourceMission = row.sourceMission || {};
+  return [
+    {
+      field: "comandanteCoberturaBase",
+      shortLabel: "CMD",
+      label: "Comandante",
+      tripulanteId: normalizeText(row.comandanteTripulanteId || sourceMission.comandante_tripulante_id),
+      name: row.comandanteTripulanteNome || sourceMission.comandante_nome || tripulanteNameById(row.comandanteTripulanteId || sourceMission.comandante_tripulante_id),
+      checked: booleanValue(row.comandanteCoberturaBase ?? sourceMission.comandante_cobertura_base),
+    },
+    {
+      field: "copilotoCoberturaBase",
+      shortLabel: "COP",
+      label: "Segundo tripulante",
+      tripulanteId: normalizeText(row.copilotoTripulanteId || sourceMission.copiloto_tripulante_id),
+      name: row.copilotoTripulanteNome || sourceMission.copiloto_nome || tripulanteNameById(row.copilotoTripulanteId || sourceMission.copiloto_tripulante_id),
+      checked: booleanValue(row.copilotoCoberturaBase ?? sourceMission.copiloto_cobertura_base),
+    },
+    {
+      field: "terceiroCoberturaBase",
+      shortLabel: "3º",
+      label: "Terceiro tripulante",
+      tripulanteId: normalizeText(row.terceiroTripulanteId || sourceMission.terceiro_tripulante_id),
+      name: row.terceiroTripulanteNome || sourceMission.terceiro_tripulante_nome || tripulanteNameById(row.terceiroTripulanteId || sourceMission.terceiro_tripulante_id),
+      checked: booleanValue(row.terceiroCoberturaBase ?? sourceMission.terceiro_cobertura_base),
+    },
+  ].filter((item) => Number(item.tripulanteId || 0) > 0);
+}
+
+function coverageSummaryMarkup(row) {
+  const entries = coverageEntries(row).filter((item) => item.checked);
+  if (!entries.length) return '<span class="jornada-coverage-empty">-</span>';
+  return `
+    <div class="jornada-coverage-summary">
+      ${entries.map((item) => `
+        <span title="${escapeAttr(`${item.label}: ${formatAny(item.name, `ID ${item.tripulanteId}`)}`)}">${escapeHtml(item.shortLabel)}</span>
+      `).join("")}
+    </div>
+  `;
+}
+
+function coverageControlsMarkup(draft) {
+  const entries = coverageEntries(draft);
+  if (!entries.length) return '<span class="jornada-coverage-empty">-</span>';
+  return `
+    <div class="jornada-coverage-controls">
+      ${entries.map((item) => `
+        <label title="${escapeAttr(`${item.label}: ${formatAny(item.name, `ID ${item.tripulanteId}`)}`)}">
+          <input type="checkbox" data-jornada-field="${escapeAttr(item.field)}" ${item.checked ? "checked" : ""}>
+          <span>${escapeHtml(item.shortLabel)}</span>
+          <small>${escapeHtml(formatAny(item.name, `ID ${item.tripulanteId}`))}</small>
+        </label>
+      `).join("")}
+    </div>
+  `;
 }
 
 function findRow(key) {
@@ -1467,7 +1557,7 @@ function renderReadOnlyRow(row, index) {
       <td data-label="Contratante">${escapeHtml(formatAny(row.contratante))}</td>
       <td data-label="Trecho">${escapeHtml(formatAny(row.trecho))}</td>
       <td data-label="Pernoites" class="jornada-pernoite-cell">${pernoiteSummaryMarkup(row)}</td>
-      <td data-label="Cob. base">${row.coberturaBase ? "Sim" : "Nao"}</td>
+      <td data-label="Cobertura">${coverageSummaryMarkup(row)}</td>
       <td data-label="Cond. especial">${escapeHtml(formatAny(row.operacaoEspecial))}</td>
       <td data-label="Apresentação">${escapeHtml(formatAny(row.apresentacao))}</td>
       <td data-label="Abandono">${escapeHtml(formatAny(row.abandono))}</td>
@@ -1521,7 +1611,7 @@ function renderEditableRow(row, index) {
       <td data-label="Contratante"><input type="text" data-jornada-field="contratante" value="${escapeAttr(draft.contratante)}"></td>
       <td data-label="Trecho"><input type="text" data-jornada-field="trecho" value="${escapeAttr(draft.trecho)}"></td>
       <td data-label="Pernoites"><input type="number" min="0" data-jornada-field="quantidadePernoites" value="${escapeAttr(draft.quantidadePernoites)}"></td>
-      <td data-label="Cob. base"><input type="checkbox" data-jornada-field="coberturaBase" ${draft.coberturaBase ? "checked" : ""} aria-label="Cobertura de base"></td>
+      <td data-label="Cobertura">${coverageControlsMarkup(derivedDraft)}</td>
       <td data-label="Cond. especial"><input type="text" data-jornada-field="operacaoEspecial" value="${escapeAttr(draft.operacaoEspecial)}" placeholder="Ex.: Palmas turbo-helice"></td>
       <td data-label="Apresentação"><input type="time" data-jornada-field="apresentacao" value="${escapeAttr(draft.apresentacao)}"></td>
       <td data-label="Abandono"><input type="time" data-jornada-field="abandono" value="${escapeAttr(draft.abandono)}"></td>
@@ -1607,7 +1697,7 @@ function renderGrid() {
               <th>Contratante</th>
               <th>Trecho</th>
               <th>Pernoites</th>
-              <th>Cob. base</th>
+              <th>Cobertura</th>
               <th>Cond. especial</th>
               <th>Apresentação</th>
               <th>Abandono</th>
@@ -1849,11 +1939,18 @@ function syncCrewFieldsOnRow(rowElement, line) {
   if (!rowElement) return;
   const tripulanteTarget = rowElement.querySelector('[data-jornada-derived="tripulante"]');
   const funcaoTarget = rowElement.querySelector('[data-jornada-derived="funcao"]');
+  const coverageTarget = rowElement.querySelector('[data-label="Cobertura"]');
   if (tripulanteTarget) {
     tripulanteTarget.textContent = formatAny(line.tripulanteNome || tripulanteNameById(line.tripulanteId));
   }
   if (funcaoTarget) {
     funcaoTarget.textContent = functionLabel(line.funcao);
+  }
+  if (coverageTarget) {
+    const nextCoverageMarkup = coverageControlsMarkup(line);
+    if (coverageTarget.innerHTML !== nextCoverageMarkup) {
+      coverageTarget.innerHTML = nextCoverageMarkup;
+    }
   }
 }
 
@@ -1909,11 +2006,37 @@ function syncEquipmentSelectionOnRow(rowElement) {
   }
 }
 
+function coverageParticipantsFromDraft(draft, quantidadePernoites) {
+  const normalizedDraft = syncCrewSelectionOnLine({ ...draft });
+  const quantityAllowsCoverage = nonNegativeNumber(quantidadePernoites) > 0;
+  return [
+    {
+      tripulante_id: normalizeText(normalizedDraft.comandanteTripulanteId),
+      funcao: effectiveCrewFuncaoForId(normalizedDraft.comandanteTripulanteId, "comandante", normalizedDraft),
+      funcao_missao: "comandante",
+      cobertura_base: quantityAllowsCoverage && booleanValue(normalizedDraft.comandanteCoberturaBase),
+    },
+    {
+      tripulante_id: normalizeText(normalizedDraft.copilotoTripulanteId),
+      funcao: effectiveCrewFuncaoForId(normalizedDraft.copilotoTripulanteId, "copiloto", normalizedDraft),
+      funcao_missao: "copiloto",
+      cobertura_base: quantityAllowsCoverage && booleanValue(normalizedDraft.copilotoCoberturaBase),
+    },
+    {
+      tripulante_id: normalizeText(normalizedDraft.terceiroTripulanteId),
+      funcao: normalizeCrewFuncao(normalizedDraft.terceiroTripulanteFuncao || "copiloto"),
+      funcao_missao: normalizeCrewFuncao(normalizedDraft.terceiroTripulanteFuncao || "copiloto"),
+      cobertura_base: quantityAllowsCoverage && booleanValue(normalizedDraft.terceiroCoberturaBase),
+    },
+  ].filter((item) => item.tripulante_id);
+}
+
 function previewPayloadFromDraft(draft) {
   const sourceMission = draft.sourceMission || {};
   const normalizedDraft = syncCrewSelectionOnLine({ ...draft });
   const quantidadePernoites = nonNegativeNumber(draft.quantidadePernoites);
-  const coberturaBase = quantidadePernoites > 0 && Boolean(draft.coberturaBase);
+  const participantes = coverageParticipantsFromDraft(normalizedDraft, quantidadePernoites);
+  const coberturaBase = participantes.some((item) => Boolean(item.cobertura_base));
   const aircraftCleared = Boolean(draft.aircraftCleared);
   const aeronaveId = aircraftCleared ? "" : (draft.aeronaveId || sourceMission.aeronave_id || "");
   const aircraftCategory = aircraftCleared
@@ -1954,6 +2077,7 @@ function previewPayloadFromDraft(draft) {
     quantidade_pernoites: quantidadePernoites,
     cobertura_base: coberturaBase,
     tipo_pernoite: pernoiteTypeFromValues(quantidadePernoites, coberturaBase),
+    participantes,
     operacao_especial: draft.operacaoEspecial || sourceMission.operacao_especial || "",
     justificativa: draft.justificativa || "",
     observacoes: draft.observacao,
@@ -2080,7 +2204,8 @@ async function runPreview(key, draft) {
 function updatePayloadFromDraft(draft) {
   const normalizedDraft = syncCrewSelectionOnLine({ ...draft });
   const quantidadePernoites = nonNegativeNumber(draft.quantidadePernoites);
-  const coberturaBase = quantidadePernoites > 0 && Boolean(draft.coberturaBase);
+  const participantes = coverageParticipantsFromDraft(normalizedDraft, quantidadePernoites);
+  const coberturaBase = participantes.some((item) => Boolean(item.cobertura_base));
   const aircraftCleared = Boolean(draft.aircraftCleared);
   const aircraftCategory = aircraftCleared ? "" : (draft.categoriaFinanceiraAeronave || draft.tipo || "");
   const comandanteTripulanteId = normalizeText(normalizedDraft.comandanteTripulanteId);
@@ -2119,6 +2244,7 @@ function updatePayloadFromDraft(draft) {
     quantidade_pernoites: quantidadePernoites,
     cobertura_base: coberturaBase,
     tipo_pernoite: pernoiteTypeFromValues(quantidadePernoites, coberturaBase),
+    participantes,
     observacao: draft.observacao,
     observacoes: draft.observacao,
     justificativa: draft.justificativa,

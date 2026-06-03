@@ -166,6 +166,8 @@ def test_list_detail_and_participations_are_org_scoped():
     assert detail_params[0] == FINANCE_ORG_SCOPE_DEFAULT
     assert "FROM financeiro_missao_tripulantes mt" in participations_query
     assert "JOIN financeiro_missoes_operacionais mo" in participations_query
+    assert "mt.cobertura_base AS cobertura_base" in participations_query
+    assert "mo.cobertura_base AS missao_cobertura_base" in participations_query
     assert "AND mo.status <> 'cancelada'" in participations_query
     assert "{_EFFECTIVE_CREW_FUNCTION_SQL}" not in participations_query
     assert "CASE" in participations_query

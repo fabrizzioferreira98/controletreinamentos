@@ -406,6 +406,22 @@ def test_atualizar_missao_operacional_replaces_participants_when_crew_changes(mo
             "copiloto_tripulante_id": 303,
             "terceiro_tripulante_id": None,
             "terceiro_tripulante_funcao": None,
+            "participantes": [
+                {
+                    "tripulante_id": 101,
+                    "funcao": "comandante",
+                    "funcao_missao": "comandante",
+                    "cobertura_base": False,
+                    "status": "ativo",
+                },
+                {
+                    "tripulante_id": 303,
+                    "funcao": "copiloto",
+                    "funcao_missao": "copiloto",
+                    "cobertura_base": False,
+                    "status": "ativo",
+                },
+            ],
             "org_id": FINANCE_ORG_SCOPE_DEFAULT,
         }
     ]

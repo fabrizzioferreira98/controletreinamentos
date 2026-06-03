@@ -352,6 +352,7 @@ CREATE TABLE IF NOT EXISTS financeiro_missao_tripulantes (
     missao_operacional_id BIGINT NOT NULL REFERENCES financeiro_missoes_operacionais (id) ON DELETE CASCADE,
     tripulante_id INTEGER NOT NULL REFERENCES tripulantes (id),
     funcao TEXT NOT NULL CHECK (funcao IN ('comandante', 'copiloto')),
+    cobertura_base BOOLEAN NOT NULL DEFAULT FALSE,
     status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'removido', 'cancelado')),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_financeiro_missao_tripulantes_org_missao_tripulante
@@ -809,6 +810,7 @@ _REQUIRED_COLUMNS_BY_TABLE = {
         "missao_operacional_id",
         "tripulante_id",
         "funcao",
+        "cobertura_base",
         "status",
         "created_at",
     ],

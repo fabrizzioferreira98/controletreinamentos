@@ -86,6 +86,7 @@ def test_mission_payload_from_journey_preserves_optional_third_crew(monkeypatch)
         "tripulante_id": 303,
         "funcao": "comandante",
         "funcao_missao": "comandante",
+        "cobertura_base": False,
         "status": "ativo",
     }
 

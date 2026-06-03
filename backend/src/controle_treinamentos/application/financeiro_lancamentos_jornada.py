@@ -97,6 +97,26 @@ def _bool(value, default: bool = False) -> bool:
     return text in {"1", "true", "sim", "yes", "on"}
 
 
+def _participant_coverages_from_payload(
+    participantes: list | tuple | None,
+    *,
+    quantidade_pernoites: int,
+    default: bool,
+) -> dict[int, bool]:
+    coverages: dict[int, bool] = {}
+    for item in participantes or []:
+        if not isinstance(item, dict):
+            continue
+        tripulante_id = _int(item.get("tripulante_id"))
+        if not tripulante_id:
+            continue
+        coverages[tripulante_id] = quantidade_pernoites > 0 and _bool(
+            item.get("cobertura_base"),
+            default=default,
+        )
+    return coverages
+
+
 def _decimal(value) -> Decimal:
     return Decimal(str(value or "0")).quantize(Decimal("0.01"))
 
@@ -421,6 +441,10 @@ def _serialize_line(row: dict, *, competencia_fechada: bool = False) -> dict:
         "houve_pernoite": _bool(row.get("houve_pernoite")),
         "quantidade_pernoites": _int(row.get("quantidade_pernoites")),
         "cobertura_base": _bool(row.get("cobertura_base")),
+        "missao_cobertura_base": _bool(row.get("missao_cobertura_base")),
+        "comandante_cobertura_base": _bool(row.get("comandante_cobertura_base")),
+        "copiloto_cobertura_base": _bool(row.get("copiloto_cobertura_base")),
+        "terceiro_cobertura_base": _bool(row.get("terceiro_cobertura_base")),
         "tipo_pernoite": _tipo_pernoite(row),
         "pernoites_remuneraveis": (
             max(0, _int(row.get("quantidade_pernoites")) - 1)
@@ -443,6 +467,10 @@ def _serialize_line(row: dict, *, competencia_fechada: bool = False) -> dict:
         "valor_noturno": _money(_decimal(row.get("valor_adicional_noturno")) + valor_domingo_noturno),
         "valor_diurno_domingo_feriado": _money(valor_domingo_diurno),
         "valor_noturno_domingo_feriado": _money(valor_domingo_noturno),
+        "valor_cobertura_base": _money(row.get("valor_cobertura_base")),
+        "valor_pernoite_comum_total": _money(row.get("valor_pernoite_comum")),
+        "valor_produtividade_total": _money(row.get("produtividade_total_devido")),
+        "produtividade_status": _text(row.get("produtividade_status")),
         "total": _money(total),
         "status": status,
         "calculation_status": _text(row.get("calculo_status")) or "pendente",
@@ -1231,11 +1259,21 @@ def _mission_payload_from_journey(
         payload.get("cobertura_base"),
         default=_bool((existing or {}).get("cobertura_base")),
     )
+    explicit_coverages = _participant_coverages_from_payload(
+        payload.get("participantes") if isinstance(payload.get("participantes"), list) else None,
+        quantidade_pernoites=quantidade_pernoites,
+        default=cobertura_base,
+    )
+
+    def coverage_for(tripulante_id: int) -> bool:
+        return bool(explicit_coverages.get(int(tripulante_id), cobertura_base))
+
     participantes = [
         {
             "tripulante_id": comandante_id,
             "funcao": _effective_financial_funcao(comandante_tripulante, "comandante"),
             "funcao_missao": "comandante",
+            "cobertura_base": coverage_for(comandante_id),
             "status": "ativo",
         }
     ]
@@ -1245,6 +1283,7 @@ def _mission_payload_from_journey(
                 "tripulante_id": copiloto_id,
                 "funcao": _effective_financial_funcao(copiloto_tripulante, "copiloto"),
                 "funcao_missao": "copiloto",
+                "cobertura_base": coverage_for(copiloto_id),
                 "status": "ativo",
             }
         )
@@ -1254,9 +1293,11 @@ def _mission_payload_from_journey(
                 "tripulante_id": terceiro_id,
                 "funcao": _effective_financial_funcao(terceiro_tripulante, terceiro_funcao),
                 "funcao_missao": terceiro_funcao,
+                "cobertura_base": coverage_for(terceiro_id),
                 "status": "ativo",
             }
         )
+    cobertura_base = any(_bool(item.get("cobertura_base")) for item in participantes)
     return {
         "org_id": org_id,
         "competencia": competencia,

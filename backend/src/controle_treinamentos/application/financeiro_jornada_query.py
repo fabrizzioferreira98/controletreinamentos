@@ -13,6 +13,7 @@ from ..repositories.financeiro_lancamentos_jornada import (
     contar_linhas_jornada_periodo,
     fetch_equipamento_basico,
     fetch_linha_jornada,
+    fetch_linha_jornada_por_missao,
     fetch_tripulante_basico,
     listar_feriados_por_datas,
     listar_linhas_jornada,
@@ -152,6 +153,21 @@ def consultar_feriados_jornada(db, *, org_id: str | None = None, datas: list[str
 
 def consultar_linha_jornada(db, *, linha_id: int, org_id: str | None = None) -> dict | None:
     return fetch_linha_jornada(db, linha_id=int(linha_id), org_id=_resolve_org_id(org_id))
+
+
+def consultar_linha_jornada_por_missao(
+    db,
+    *,
+    missao_operacional_id: int,
+    org_id: str | None = None,
+    tripulante_id: int | None = None,
+) -> dict | None:
+    return fetch_linha_jornada_por_missao(
+        db,
+        missao_operacional_id=int(missao_operacional_id),
+        org_id=_resolve_org_id(org_id),
+        tripulante_id=tripulante_id,
+    )
 
 
 def consultar_tripulante_basico(db, *, tripulante_id: int) -> dict | None:

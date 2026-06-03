@@ -269,6 +269,10 @@ def test_finance_bootstrap_creates_fks_constraints_and_indexes(bootstrapped_db):
         bootstrapped_db,
         "financeiro_missoes_operacionais",
     )
+    assert "financeiro_missoes_operacionais_tripulacao_minima" in _constraint_names(
+        bootstrapped_db,
+        "financeiro_missoes_operacionais",
+    )
     assert "financeiro_missoes_operacionais_horarios_validos" in _constraint_names(
         bootstrapped_db,
         "financeiro_missoes_operacionais",
@@ -345,13 +349,20 @@ def test_finance_bootstrap_enforces_core_constraints_with_controlled_inserts(boo
         """,
         (mission["id"], refs["comandante_id"]),
     )
-    _savepoint_rejects(
-        bootstrapped_db,
+    bootstrapped_db.execute(
         """
         INSERT INTO financeiro_missao_tripulantes (missao_operacional_id, tripulante_id, funcao)
         VALUES (%s, %s, 'comandante')
         """,
         (mission["id"], refs["copiloto_id"]),
+    )
+    _savepoint_rejects(
+        bootstrapped_db,
+        """
+        INSERT INTO financeiro_missao_tripulantes (missao_operacional_id, tripulante_id, funcao)
+        VALUES (%s, %s, 'copiloto')
+        """,
+        (mission["id"], refs["comandante_id"]),
     )
 
     _savepoint_rejects(

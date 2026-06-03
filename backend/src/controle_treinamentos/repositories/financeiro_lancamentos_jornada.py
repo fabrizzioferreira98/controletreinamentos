@@ -39,7 +39,9 @@ def _line_select_sql(extra_where: str = "") -> str:
             e.categoria_financeira AS aeronave_categoria_financeira,
             mo.categoria_financeira_aeronave,
             mo.comandante_tripulante_id,
+            cmt.nome AS comandante_tripulante_nome,
             mo.copiloto_tripulante_id,
+            cop.nome AS copiloto_tripulante_nome,
             mo.terceiro_tripulante_id,
             mo.terceiro_tripulante_funcao,
             tt.nome AS terceiro_tripulante_nome,
@@ -49,7 +51,11 @@ def _line_select_sql(extra_where: str = "") -> str:
             mo.trecho,
             mo.houve_pernoite,
             mo.quantidade_pernoites,
-            mo.cobertura_base,
+            mt.cobertura_base,
+            mo.cobertura_base AS missao_cobertura_base,
+            cmd_mt.cobertura_base AS comandante_cobertura_base,
+            cop_mt.cobertura_base AS copiloto_cobertura_base,
+            ter_mt.cobertura_base AS terceiro_cobertura_base,
             mo.operacao_especial,
             mo.justificativa,
             mo.status AS missao_status,
@@ -80,15 +86,38 @@ def _line_select_sql(extra_where: str = "") -> str:
             ch.parametros_usados,
             ch.status AS calculo_status,
             ch.calculation_version,
-            ch.calculated_at
+            ch.calculated_at,
+            cp.valor_cobertura_base,
+            cp.valor_pernoite_comum,
+            cp.total_devido AS produtividade_total_devido,
+            cp.status AS produtividade_status
         FROM financeiro_missao_tripulantes mt
         JOIN financeiro_missoes_operacionais mo
           ON mo.id = mt.missao_operacional_id
          AND mo.org_id = mt.org_id
         JOIN tripulantes t
           ON t.id = mt.tripulante_id
+        LEFT JOIN tripulantes cmt
+          ON cmt.id = mo.comandante_tripulante_id
+        LEFT JOIN tripulantes cop
+          ON cop.id = mo.copiloto_tripulante_id
         LEFT JOIN tripulantes tt
           ON tt.id = mo.terceiro_tripulante_id
+        LEFT JOIN financeiro_missao_tripulantes cmd_mt
+          ON cmd_mt.org_id = mt.org_id
+         AND cmd_mt.missao_operacional_id = mt.missao_operacional_id
+         AND cmd_mt.tripulante_id = mo.comandante_tripulante_id
+         AND cmd_mt.status = 'ativo'
+        LEFT JOIN financeiro_missao_tripulantes cop_mt
+          ON cop_mt.org_id = mt.org_id
+         AND cop_mt.missao_operacional_id = mt.missao_operacional_id
+         AND cop_mt.tripulante_id = mo.copiloto_tripulante_id
+         AND cop_mt.status = 'ativo'
+        LEFT JOIN financeiro_missao_tripulantes ter_mt
+          ON ter_mt.org_id = mt.org_id
+         AND ter_mt.missao_operacional_id = mt.missao_operacional_id
+         AND ter_mt.tripulante_id = mo.terceiro_tripulante_id
+         AND ter_mt.status = 'ativo'
         LEFT JOIN equipamentos e
           ON e.id = mo.aeronave_id
         LEFT JOIN financeiro_calculos_horarios ch
@@ -97,6 +126,12 @@ def _line_select_sql(extra_where: str = "") -> str:
          AND ch.tripulante_id = mt.tripulante_id
          AND ch.funcao = {_EFFECTIVE_CREW_FUNCTION_SQL}
          AND ch.status <> 'obsoleto'
+        LEFT JOIN financeiro_calculos_produtividade cp
+          ON cp.org_id = mt.org_id
+         AND cp.competencia = mo.competencia
+         AND cp.tripulante_id = mt.tripulante_id
+         AND cp.funcao = {_EFFECTIVE_CREW_FUNCTION_SQL}
+         AND cp.status <> 'obsoleto'
         {where}
         ORDER BY mo.data_missao ASC, mo.id ASC, CASE {_EFFECTIVE_CREW_FUNCTION_SQL} WHEN 'comandante' THEN 1 ELSE 2 END, mt.id ASC
     """
@@ -393,6 +428,29 @@ def fetch_linha_jornada(db, *, linha_id: int, org_id: str | None = None) -> dict
         _line_select_sql("mt.id = %s AND mt.org_id = %s AND mo.deleted_at IS NULL"),
         (int(linha_id), resolved_org_id),
     ).fetchone()
+    return dict(row) if row else None
+
+
+def fetch_linha_jornada_por_missao(
+    db,
+    *,
+    missao_operacional_id: int,
+    org_id: str | None = None,
+    tripulante_id: int | None = None,
+) -> dict | None:
+    resolved_org_id = _resolve_org_id(org_id)
+    clauses = [
+        "mo.id = %s",
+        "mt.org_id = %s",
+        "mo.deleted_at IS NULL",
+        "mo.status <> 'cancelada'",
+        "mt.status = 'ativo'",
+    ]
+    params: list = [int(missao_operacional_id), resolved_org_id]
+    if tripulante_id:
+        clauses.append("mt.tripulante_id = %s")
+        params.append(int(tripulante_id))
+    row = db.execute(_line_select_sql(" AND ".join(clauses)) + " LIMIT 1", tuple(params)).fetchone()
     return dict(row) if row else None
 
 

@@ -113,6 +113,25 @@ def execute_migrations(db):
             DROP CONSTRAINT IF EXISTS uq_financeiro_missao_tripulantes_org_missao_funcao
             """
         )
+        db.execute(
+            """
+            ALTER TABLE financeiro_missao_tripulantes
+            ADD COLUMN IF NOT EXISTS cobertura_base BOOLEAN NOT NULL DEFAULT FALSE
+            """
+        )
+        db.execute(
+            """
+            UPDATE financeiro_missao_tripulantes mt
+            SET cobertura_base = TRUE
+            FROM financeiro_missoes_operacionais mo
+            WHERE mo.id = mt.missao_operacional_id
+              AND mo.org_id = mt.org_id
+              AND mo.deleted_at IS NULL
+              AND mo.cobertura_base = TRUE
+              AND COALESCE(mo.quantidade_pernoites, 0) > 0
+              AND mt.cobertura_base = FALSE
+            """
+        )
         db.execute("ALTER TABLE financeiro_missoes_operacionais ALTER COLUMN horario_apresentacao DROP NOT NULL")
         db.execute("ALTER TABLE financeiro_missoes_operacionais ALTER COLUMN horario_abandono DROP NOT NULL")
         db.execute(

@@ -75,6 +75,18 @@ def _dict_or_none(row) -> dict | None:
     return dict(row) if row else None
 
 
+def _participant_coverages_from_data(data: dict) -> dict[int, bool]:
+    coverages: dict[int, bool] = {}
+    for item in data.get("participantes") or []:
+        try:
+            tripulante_id = int(item.get("tripulante_id") or 0)
+        except (TypeError, ValueError):
+            tripulante_id = 0
+        if tripulante_id > 0:
+            coverages[tripulante_id] = bool(item.get("cobertura_base", False))
+    return coverages
+
+
 def create_missao_operacional(db, *, data: dict, org_id: str | None = None) -> dict:
     resolved_org_id = _resolve_org_id(org_id or data.get("org_id"))
     payload = {column: data.get(column) for column in _MISSION_COLUMNS}
@@ -105,6 +117,7 @@ def insert_missao_tripulante(
     missao_operacional_id: int,
     tripulante_id: int,
     funcao: str,
+    cobertura_base: bool = False,
     org_id: str | None = None,
     status: str = "ativo",
 ) -> dict | None:
@@ -116,9 +129,10 @@ def insert_missao_tripulante(
             missao_operacional_id,
             tripulante_id,
             funcao,
+            cobertura_base,
             status
         )
-        SELECT %s, mo.id, %s, %s, %s
+        SELECT %s, mo.id, %s, %s, %s, %s
         FROM financeiro_missoes_operacionais mo
         WHERE mo.id = %s
           AND mo.org_id = %s
@@ -129,6 +143,7 @@ def insert_missao_tripulante(
             resolved_org_id,
             int(tripulante_id),
             funcao,
+            bool(cobertura_base),
             status,
             int(missao_operacional_id),
             resolved_org_id,
@@ -145,9 +160,11 @@ def insert_tripulantes_missao(
     copiloto_tripulante_id: int | None = None,
     terceiro_tripulante_id: int | None = None,
     terceiro_tripulante_funcao: str | None = None,
+    participantes: list[dict] | None = None,
     org_id: str | None = None,
 ) -> list[dict]:
     resolved_org_id = _resolve_org_id(org_id)
+    coverages = _participant_coverages_from_data({"participantes": participantes or []})
     participantes_specs = [(comandante_tripulante_id, "comandante")]
     if copiloto_tripulante_id:
         participantes_specs.append((copiloto_tripulante_id, "copiloto"))
@@ -159,6 +176,7 @@ def insert_tripulantes_missao(
             missao_operacional_id=missao_operacional_id,
             tripulante_id=int(tripulante_id),
             funcao=str(funcao),
+            cobertura_base=coverages.get(int(tripulante_id), False),
             org_id=resolved_org_id,
         )
         for tripulante_id, funcao in participantes_specs
@@ -174,6 +192,7 @@ def replace_missao_tripulantes(
     copiloto_tripulante_id: int | None = None,
     terceiro_tripulante_id: int | None = None,
     terceiro_tripulante_funcao: str | None = None,
+    participantes: list[dict] | None = None,
     org_id: str | None = None,
 ) -> list[dict]:
     resolved_org_id = _resolve_org_id(org_id)
@@ -192,6 +211,7 @@ def replace_missao_tripulantes(
         copiloto_tripulante_id=copiloto_tripulante_id,
         terceiro_tripulante_id=terceiro_tripulante_id,
         terceiro_tripulante_funcao=terceiro_tripulante_funcao,
+        participantes=participantes,
         org_id=resolved_org_id,
     )
 
@@ -205,6 +225,7 @@ def create_missao_operacional_with_tripulantes(db, *, data: dict, org_id: str | 
         copiloto_tripulante_id=mission["copiloto_tripulante_id"],
         terceiro_tripulante_id=mission.get("terceiro_tripulante_id"),
         terceiro_tripulante_funcao=mission.get("terceiro_tripulante_funcao"),
+        participantes=data.get("participantes"),
         org_id=mission["org_id"],
     )
     mission["participantes"] = participants
@@ -305,6 +326,7 @@ def list_missao_tripulantes(
             mt.tripulante_id,
             mt.funcao AS funcao_missao,
             {_EFFECTIVE_CREW_FUNCTION_SQL} AS funcao,
+            mt.cobertura_base,
             mt.status,
             mt.created_at,
             t.nome AS tripulante_nome,
@@ -330,6 +352,32 @@ def list_missao_tripulantes(
         (int(missao_operacional_id), resolved_org_id),
     ).fetchall()
     return [dict(row) for row in rows]
+
+
+def update_missao_tripulantes_cobertura(
+    db,
+    *,
+    missao_operacional_id: int,
+    coverages_by_tripulante_id: dict[int, bool],
+    org_id: str | None = None,
+) -> list[dict]:
+    resolved_org_id = _resolve_org_id(org_id)
+    updated: list[dict] = []
+    for tripulante_id, cobertura_base in coverages_by_tripulante_id.items():
+        row = db.execute(
+            """
+            UPDATE financeiro_missao_tripulantes
+            SET cobertura_base = %s
+            WHERE missao_operacional_id = %s
+              AND org_id = %s
+              AND tripulante_id = %s
+            RETURNING *
+            """,
+            (bool(cobertura_base), int(missao_operacional_id), resolved_org_id, int(tripulante_id)),
+        ).fetchone()
+        if row:
+            updated.append(dict(row))
+    return updated
 
 
 def fetch_missao_operacional_detail(

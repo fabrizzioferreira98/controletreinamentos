@@ -141,6 +141,7 @@ def test_serialize_finance_mission_participant_has_no_participant_hours():
         "mission_id": 101,
         "tripulante_id": 11,
         "funcao": "comandante",
+        "cobertura_base": False,
         "hourly_bonus_calculation_id": 900,
         "calculation_status": "calculado",
         "total_calculado": "350.75",

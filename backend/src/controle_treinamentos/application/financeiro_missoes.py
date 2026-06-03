@@ -33,6 +33,7 @@ from ..repositories.financeiro_missoes import (
     remover_missao_tripulantes,
     replace_missao_tripulantes,
     soft_delete_missao_operacional,
+    update_missao_tripulantes_cobertura,
 )
 from ..repositories.financeiro_missoes import (
     create_missao_operacional_with_tripulantes,
@@ -167,6 +168,75 @@ def _bool_value(value) -> bool:
     return str(value or "").strip().lower() in {"1", "true", "on", "yes", "sim"}
 
 
+def _normalize_participantes_cobertura(
+    participantes: list | tuple | None,
+    *,
+    quantidade_pernoites: int,
+    default: bool = False,
+) -> list[dict]:
+    normalized = []
+    for item in participantes or []:
+        if not isinstance(item, dict):
+            continue
+        tripulante_id = _optional_int(item.get("tripulante_id"), label="Tripulante")
+        if tripulante_id is None:
+            continue
+        normalized.append(
+            {
+                **item,
+                "tripulante_id": tripulante_id,
+                "cobertura_base": quantidade_pernoites > 0
+                and _bool_value(item.get("cobertura_base", default)),
+            }
+        )
+    return normalized
+
+
+def _participantes_cobertura_from_fields(
+    mission: dict,
+    *,
+    quantidade_pernoites: int,
+    default: bool = False,
+) -> list[dict]:
+    specs = [
+        (mission.get("comandante_tripulante_id"), "comandante"),
+        (mission.get("copiloto_tripulante_id"), "copiloto"),
+    ]
+    terceiro_funcao = _clean_text(mission.get("terceiro_tripulante_funcao")).lower()
+    if terceiro_funcao in {"comandante", "copiloto"}:
+        specs.append((mission.get("terceiro_tripulante_id"), terceiro_funcao))
+
+    participantes = []
+    seen: set[int] = set()
+    for tripulante_raw, funcao in specs:
+        tripulante_id = _optional_int(tripulante_raw, label="Tripulante")
+        if tripulante_id is None or tripulante_id in seen:
+            continue
+        seen.add(tripulante_id)
+        participantes.append(
+            {
+                "tripulante_id": tripulante_id,
+                "funcao": funcao,
+                "funcao_missao": funcao,
+                "cobertura_base": quantidade_pernoites > 0 and bool(default),
+                "status": "ativo",
+            }
+        )
+    return participantes
+
+
+def _cobertura_missao_from_participantes(participantes: list[dict]) -> bool:
+    return any(_bool_value(item.get("cobertura_base")) for item in participantes)
+
+
+def _coberturas_por_tripulante(participantes: list[dict]) -> dict[int, bool]:
+    return {
+        int(item["tripulante_id"]): _bool_value(item.get("cobertura_base"))
+        for item in participantes
+        if item.get("tripulante_id") not in (None, "")
+    }
+
+
 def _special_operation_text(value) -> str | None:
     # TODO(financeiro): modelar operacao_especial como codigo/enum antes de validar condicoes financeiras reconhecidas.
     if isinstance(value, bool):
@@ -277,6 +347,15 @@ def _mission_payload(payload: dict, *, org_id: str, actor_user_id: int | None = 
     pos_exec_min = _normalize_non_negative_int(payload.get("pos_exec_min"), label="Pos execucao em minutos")
     houve_pernoite = quantidade_pernoites > 0 and _bool_value(payload.get("houve_pernoite", True))
     cobertura_base = quantidade_pernoites > 0 and _bool_value(payload.get("cobertura_base"))
+    participantes_payload = (
+        _normalize_participantes_cobertura(
+            payload.get("participantes"),
+            quantidade_pernoites=quantidade_pernoites,
+            default=cobertura_base,
+        )
+        if isinstance(payload.get("participantes"), list)
+        else []
+    )
 
     data = {
         "org_id": org_id,
@@ -306,6 +385,12 @@ def _mission_payload(payload: dict, *, org_id: str, actor_user_id: int | None = 
         "created_by": actor_user_id,
         "updated_by": actor_user_id,
     }
+    data["participantes"] = participantes_payload or _participantes_cobertura_from_fields(
+        data,
+        quantidade_pernoites=quantidade_pernoites,
+        default=cobertura_base,
+    )
+    data["cobertura_base"] = _cobertura_missao_from_participantes(data["participantes"])
     return data
 
 
@@ -502,6 +587,7 @@ def _participant_from_mission_field(mission: dict, *, funcao: str, field: str) -
         "missao_operacional_id": mission.get("id"),
         "tripulante_id": tripulante_id,
         "funcao": funcao,
+        "cobertura_base": bool(mission.get("cobertura_base")),
         "status": "ativo",
     }
 
@@ -1233,6 +1319,18 @@ def atualizar_missao_operacional(
         data["quantidade_pernoites"] = quantidade_pernoites
         data["houve_pernoite"] = quantidade_pernoites > 0 and _bool_value(data.get("houve_pernoite", True))
         data["cobertura_base"] = quantidade_pernoites > 0 and _bool_value(data.get("cobertura_base", before_row.get("cobertura_base")))
+    if isinstance(payload.get("participantes"), list):
+        quantidade_pernoites = _normalize_non_negative_int(
+            data.get("quantidade_pernoites", before_row.get("quantidade_pernoites")),
+            label="Quantidade de pernoites",
+        )
+        participantes_cobertura = _normalize_participantes_cobertura(
+            payload.get("participantes"),
+            quantidade_pernoites=quantidade_pernoites,
+            default=_bool_value(data.get("cobertura_base", before_row.get("cobertura_base"))),
+        )
+        data["participantes"] = participantes_cobertura
+        data["cobertura_base"] = _cobertura_missao_from_participantes(participantes_cobertura)
     if "operacao_especial" in data:
         data["operacao_especial"] = _special_operation_text(data.get("operacao_especial"))
     if "justificativa" in data:
@@ -1339,7 +1437,20 @@ def atualizar_missao_operacional(
         )
         if not updated:
             raise MissaoOperacionalNaoEncontradaErro()
+        participant_coverages = _coberturas_por_tripulante(data.get("participantes") or [])
+        participant_coverage_changed = bool(participant_coverages)
         if crew_changed:
+            participantes_para_replace = data.get("participantes")
+            if not participantes_para_replace:
+                participantes_para_replace = _participantes_cobertura_from_fields(
+                    updated,
+                    quantidade_pernoites=_normalize_non_negative_int(
+                        updated.get("quantidade_pernoites"),
+                        label="Quantidade de pernoites",
+                    ),
+                    default=bool(updated.get("cobertura_base")),
+                )
+                participant_coverages = _coberturas_por_tripulante(participantes_para_replace)
             replace_missao_tripulantes(
                 resolved_db,
                 missao_operacional_id=missao_operacional_id,
@@ -1350,8 +1461,36 @@ def atualizar_missao_operacional(
                     updated.get("terceiro_tripulante_funcao"),
                     label="Funcao do terceiro tripulante",
                 ),
+                participantes=participantes_para_replace,
                 org_id=resolved_org_id,
             )
+            participant_coverage_changed = participant_coverage_changed or "cobertura_base" in data
+        elif participant_coverages:
+            update_missao_tripulantes_cobertura(
+                resolved_db,
+                missao_operacional_id=missao_operacional_id,
+                coverages_by_tripulante_id=participant_coverages,
+                org_id=resolved_org_id,
+            )
+        elif "cobertura_base" in data:
+            current_detail = fetch_missao_operacional_detail(
+                resolved_db,
+                missao_operacional_id=missao_operacional_id,
+                org_id=resolved_org_id,
+            ) or {}
+            legacy_coverages = {
+                int(item["tripulante_id"]): bool(data.get("cobertura_base"))
+                for item in current_detail.get("participantes", [])
+                if item.get("tripulante_id") not in (None, "")
+            }
+            if legacy_coverages:
+                update_missao_tripulantes_cobertura(
+                    resolved_db,
+                    missao_operacional_id=missao_operacional_id,
+                    coverages_by_tripulante_id=legacy_coverages,
+                    org_id=resolved_org_id,
+                )
+                participant_coverage_changed = True
         detail = fetch_missao_operacional_detail(
             resolved_db,
             missao_operacional_id=missao_operacional_id,
@@ -1360,9 +1499,11 @@ def atualizar_missao_operacional(
         before = serialize_finance_mission(before_row)
         after = _serialize_mission_detail(detail)
         changed = _changed_fields(dict(before_row), data)
+        if participant_coverage_changed and "participantes" not in changed:
+            changed.append("participantes")
         invalidated_calculations = []
         invalidated_productivity = []
-        if any(field in _MISSION_CALCULATION_IMPACT_FIELDS for field in changed):
+        if any(field in _MISSION_CALCULATION_IMPACT_FIELDS for field in changed) or participant_coverage_changed:
             invalidated_calculations = invalidar_calculos_horarios_vigentes_da_missao(
                 resolved_db,
                 missao_operacional_id=missao_operacional_id,

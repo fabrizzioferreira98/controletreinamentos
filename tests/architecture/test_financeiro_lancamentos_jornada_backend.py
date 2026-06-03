@@ -93,6 +93,9 @@ def test_jornada_reuses_existing_financial_tables_with_gapfix_columns():
     assert "financeiro_missao_tripulantes" in repository_source
     assert "financeiro_calculos_horarios" in repository_source
     assert "financeiro_calculos_produtividade" in repository_source
+    assert "cmt.nome AS comandante_tripulante_nome" in repository_source
+    assert "cop.nome AS copiloto_tripulante_nome" in repository_source
+    assert "tt.nome AS terceiro_tripulante_nome" in repository_source
     assert "data_final" in schema_source
     assert "pos_exec_min" in schema_source
     assert "justificativa" in schema_source
@@ -120,6 +123,25 @@ def test_jornada_reuses_existing_financial_tables_with_gapfix_columns():
     assert "recalcular_missao_operacional" in app_source
     assert "recalcular_competencia_financeira" in app_source
     assert "CREATE TABLE IF NOT EXISTS financeiro_lancamentos_jornada" not in schema_source
+
+
+def test_jornada_repository_joins_position_coverage_aliases():
+    repository_source = read(REPOSITORY)
+
+    for alias in ("cmd_mt", "cop_mt", "ter_mt"):
+        assert f"{alias}.cobertura_base" in repository_source
+        assert f"LEFT JOIN financeiro_missao_tripulantes {alias}" in repository_source
+
+
+def test_jornada_grid_exposes_productivity_overnight_values():
+    repository_source = read(REPOSITORY)
+    app_source = read(APP)
+
+    assert "LEFT JOIN financeiro_calculos_produtividade cp" in repository_source
+    assert "cp.valor_cobertura_base" in repository_source
+    assert "cp.valor_pernoite_comum" in repository_source
+    assert '"valor_pernoite_comum_total"' in app_source
+    assert '"valor_cobertura_base"' in app_source
 
 
 def test_jornada_api_contract_exposes_resource_family():

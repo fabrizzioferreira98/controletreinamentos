@@ -31,6 +31,17 @@ function normalizeLower(value) {
   return normalizeText(value).toLowerCase();
 }
 
+function booleanValue(value) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  return ["1", "true", "sim", "yes", "on"].includes(normalizeLower(value));
+}
+
+function booleanValueDefault(value, fallback = false) {
+  if (value === null || value === undefined || value === "") return Boolean(fallback);
+  return booleanValue(value);
+}
+
 function numericValue(value) {
   const amount = Number(value ?? 0);
   return Number.isFinite(amount) ? amount : 0;
@@ -167,6 +178,10 @@ function rowFromNativeLine(item = {}, index = 0) {
   const copilotoTripulanteId = Number(item.copiloto_tripulante_id || 0) || 0;
   const terceiroTripulanteId = Number(item.terceiro_tripulante_id || 0) || 0;
   const terceiroTripulanteFuncao = normalizeText(item.terceiro_tripulante_funcao);
+  const legacyCoverageBase = booleanValue(item.missao_cobertura_base ?? item.cobertura_base);
+  const comandanteCoberturaBase = booleanValueDefault(item.comandante_cobertura_base, legacyCoverageBase);
+  const copilotoCoberturaBase = booleanValueDefault(item.copiloto_cobertura_base, legacyCoverageBase);
+  const terceiroCoberturaBase = booleanValueDefault(item.terceiro_cobertura_base, legacyCoverageBase);
   return {
     key: lineId ? `line-${lineId}` : lineKey({ missionId, tripulanteId, funcao, index }),
     id: lineId,
@@ -198,11 +213,18 @@ function rowFromNativeLine(item = {}, index = 0) {
     abandono: normalizeText(item.hora_abandono || item.horario_abandono),
     posExecMin: numericValue(item.pos_exec_min),
     quantidadePernoites: numericValue(item.quantidade_pernoites),
-    coberturaBase: Boolean(item.cobertura_base),
+    coberturaBase: booleanValue(item.cobertura_base),
+    missaoCoberturaBase: legacyCoverageBase,
+    comandanteCoberturaBase,
+    copilotoCoberturaBase,
+    terceiroCoberturaBase,
     tipoPernoite: normalizeText(item.tipo_pernoite),
     pernoitesRemuneraveis: numericValue(item.pernoites_remuneraveis),
+    valorCoberturaBase: numericValue(item.valor_cobertura_base),
     valorPernoiteComumUnitario: numericValue(item.valor_pernoite_comum_unitario),
     valorPernoiteComumTotal: numericValue(item.valor_pernoite_comum_total),
+    valorProdutividadeTotal: numericValue(item.valor_produtividade_total),
+    produtividadeStatus: normalizeText(item.produtividade_status),
     operacaoEspecial: normalizeText(item.operacao_especial),
     justificativa: normalizeText(item.justificativa),
     observacao: normalizeText(item.observacao || item.observacoes),
@@ -241,6 +263,10 @@ function rowFromNativeLine(item = {}, index = 0) {
       houve_pernoite: item.houve_pernoite,
       quantidade_pernoites: item.quantidade_pernoites,
       cobertura_base: item.cobertura_base,
+      missao_cobertura_base: legacyCoverageBase,
+      comandante_cobertura_base: comandanteCoberturaBase,
+      copiloto_cobertura_base: copilotoCoberturaBase,
+      terceiro_cobertura_base: terceiroCoberturaBase,
       chamado: item.numero_db,
       operacao_especial: item.operacao_especial,
       justificativa: item.justificativa,
@@ -340,6 +366,19 @@ function rowFromMissionAndCalculation({
   const copilotoTripulanteId = Number(mission?.copiloto_tripulante_id || calculation?.copiloto_tripulante_id || 0) || 0;
   const terceiroTripulanteId = Number(mission?.terceiro_tripulante_id || calculation?.terceiro_tripulante_id || 0) || 0;
   const terceiroTripulanteFuncao = normalizeText(mission?.terceiro_tripulante_funcao || calculation?.terceiro_tripulante_funcao);
+  const legacyCoverageBase = booleanValue(mission?.cobertura_base ?? calculation?.cobertura_base);
+  const comandanteCoberturaBase = booleanValueDefault(mission?.comandante_cobertura_base, legacyCoverageBase);
+  const copilotoCoberturaBase = booleanValueDefault(mission?.copiloto_cobertura_base, legacyCoverageBase);
+  const terceiroCoberturaBase = booleanValueDefault(mission?.terceiro_cobertura_base, legacyCoverageBase);
+  const lineCoverageBase = (
+    resolvedTripulanteId === comandanteTripulanteId
+      ? comandanteCoberturaBase
+      : resolvedTripulanteId === copilotoTripulanteId
+        ? copilotoCoberturaBase
+        : resolvedTripulanteId === terceiroTripulanteId
+          ? terceiroCoberturaBase
+          : legacyCoverageBase
+  );
   return {
     key: lineKey({ missionId, tripulanteId: resolvedTripulanteId, funcao: resolvedFuncao, index }),
     id: missionId ? `mission-${missionId}-${resolvedTripulanteId || index}-${normalizeLower(resolvedFuncao)}` : `calc-${index}`,
@@ -369,16 +408,23 @@ function rowFromMissionAndCalculation({
     abandono: normalizeText(mission?.horario_abandono || calculation?.horario_abandono),
     posExecMin: normalizeText(mission?.pos_exec_min || calculation?.pos_exec_min || calculation?.minutos_pos || "0"),
     quantidadePernoites: numericValue(mission?.quantidade_pernoites || calculation?.quantidade_pernoites),
-    coberturaBase: Boolean(mission?.cobertura_base || calculation?.cobertura_base),
+    coberturaBase: lineCoverageBase,
+    missaoCoberturaBase: legacyCoverageBase,
+    comandanteCoberturaBase,
+    copilotoCoberturaBase,
+    terceiroCoberturaBase,
     tipoPernoite: numericValue(mission?.quantidade_pernoites || calculation?.quantidade_pernoites) <= 0
       ? "sem_pernoite"
-      : Boolean(mission?.cobertura_base || calculation?.cobertura_base)
+      : lineCoverageBase
         ? "cobertura_base"
         : "pernoite_comum",
-    pernoitesRemuneraveis: Boolean(mission?.cobertura_base || calculation?.cobertura_base)
+    pernoitesRemuneraveis: lineCoverageBase
       ? 0
       : remunerableOvernightCount(mission?.quantidade_pernoites || calculation?.quantidade_pernoites),
+    valorCoberturaBase: numericValue(calculation?.valor_cobertura_base),
     valorPernoiteComumTotal: numericValue(calculation?.valor_pernoite_comum),
+    valorProdutividadeTotal: numericValue(calculation?.valor_produtividade_total || calculation?.total_devido),
+    produtividadeStatus: normalizeText(calculation?.produtividade_status),
     operacaoEspecial: normalizeText(mission?.operacao_especial || calculation?.operacao_especial),
     justificativa: normalizeText(mission?.justificativa || calculation?.justificativa || calculation?.motivo || ""),
     observacao: normalizeText(mission?.observacoes || calculation?.observacoes || calculation?.observacao),
@@ -394,7 +440,14 @@ function rowFromMissionAndCalculation({
     isDomingo: Boolean(calculation?.domingo || calculation?.domingo_feriado),
     isFeriado: Boolean(calculation?.feriado || calculation?.domingo_feriado),
     hasException: Boolean(calculation?.pendencias?.length || calculation?.warnings?.length || calculation?.bloqueios?.length),
-    sourceMission: mission || {},
+    sourceMission: {
+      ...(mission || {}),
+      cobertura_base: legacyCoverageBase,
+      missao_cobertura_base: legacyCoverageBase,
+      comandante_cobertura_base: comandanteCoberturaBase,
+      copiloto_cobertura_base: copilotoCoberturaBase,
+      terceiro_cobertura_base: terceiroCoberturaBase,
+    },
     sourceCalculation: calculation || {},
   };
 }

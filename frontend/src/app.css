@@ -14546,6 +14546,66 @@ span.nav-icon::before {
   line-height: 1.25;
 }
 
+.financeiro-jornada-page .jornada-coverage-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 82px;
+}
+
+.financeiro-jornada-page .jornada-coverage-summary span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  min-height: 24px;
+  padding: 2px 7px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.financeiro-jornada-page .jornada-coverage-empty {
+  color: #94a3b8;
+}
+
+.financeiro-jornada-page .jornada-coverage-controls {
+  display: grid;
+  gap: 6px;
+  min-width: 150px;
+}
+
+.financeiro-jornada-page .jornada-coverage-controls label {
+  display: grid;
+  grid-template-columns: auto 34px minmax(70px, 1fr);
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.financeiro-jornada-page .jornada-coverage-controls input {
+  width: 16px;
+  min-height: 16px;
+  margin: 0;
+}
+
+.financeiro-jornada-page .jornada-coverage-controls span {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #334155;
+}
+
+.financeiro-jornada-page .jornada-coverage-controls small {
+  overflow: hidden;
+  color: #64748b;
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .financeiro-jornada-page .jornada-edit-row {
   background: #fff6fa;
 }
@@ -14559,6 +14619,12 @@ span.nav-icon::before {
   min-height: 40px;
   padding: 8px 10px;
   font-size: 0.86rem;
+}
+
+.financeiro-jornada-page .jornada-edit-row .jornada-coverage-controls input {
+  width: 16px;
+  min-height: 16px;
+  padding: 0;
 }
 
 .financeiro-jornada-page .jornada-edit-row td {

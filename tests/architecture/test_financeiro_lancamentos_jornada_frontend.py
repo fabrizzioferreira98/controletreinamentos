@@ -143,7 +143,7 @@ def test_jornada_visual_contract_contains_required_blocks_and_columns():
         "Abandono",
         "Contratante",
         "Pernoites",
-        "Cob. base",
+        "Cobertura",
         "Cond. especial",
         "operacaoEspecial",
         "data_final",
