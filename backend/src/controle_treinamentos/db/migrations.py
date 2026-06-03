@@ -124,6 +124,16 @@ def execute_migrations(db):
             )
             """
         )
+        db.execute("ALTER TABLE tripulante_periodos_operacionais ADD COLUMN IF NOT EXISTS tipo TEXT NOT NULL DEFAULT 'ferias'")
+        db.execute("ALTER TABLE tripulante_periodos_operacionais ADD COLUMN IF NOT EXISTS data_inicio DATE")
+        db.execute("ALTER TABLE tripulante_periodos_operacionais ADD COLUMN IF NOT EXISTS data_fim DATE")
+        db.execute("ALTER TABLE tripulante_periodos_operacionais ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'ativo'")
+        db.execute("ALTER TABLE tripulante_periodos_operacionais ADD COLUMN IF NOT EXISTS observacao TEXT")
+        db.execute("ALTER TABLE tripulante_periodos_operacionais ADD COLUMN IF NOT EXISTS criado_por INTEGER REFERENCES usuarios (id)")
+        db.execute("ALTER TABLE tripulante_periodos_operacionais ADD COLUMN IF NOT EXISTS criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP")
+        db.execute("ALTER TABLE tripulante_periodos_operacionais ADD COLUMN IF NOT EXISTS cancelado_por INTEGER REFERENCES usuarios (id)")
+        db.execute("ALTER TABLE tripulante_periodos_operacionais ADD COLUMN IF NOT EXISTS cancelado_em TIMESTAMP")
+        db.execute("ALTER TABLE tripulante_periodos_operacionais ADD COLUMN IF NOT EXISTS motivo_status TEXT")
         db.execute(
             """
             CREATE INDEX IF NOT EXISTS idx_tripulante_periodos_operacionais_tripulante

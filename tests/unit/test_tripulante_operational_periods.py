@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from backend.src.controle_treinamentos.application import tripulante_operational_periods as periods_app
@@ -180,3 +182,10 @@ def test_operational_period_lifecycle_create_list_and_cancel(monkeypatch):
     assert cancelled["operation"] == "cancelled"
     assert cancelled["item"]["status"] == "cancelado"
     assert periods_app.list_tripulante_operational_periods(tripulante_id=11)["items"][0]["status"] == "cancelado"
+
+
+def test_operational_periods_migration_repairs_partial_existing_table():
+    source = Path("backend/src/controle_treinamentos/db/migrations.py").read_text(encoding="utf-8")
+
+    for column in ("criado_em", "cancelado_por", "cancelado_em", "motivo_status"):
+        assert f"ALTER TABLE tripulante_periodos_operacionais ADD COLUMN IF NOT EXISTS {column}" in source
