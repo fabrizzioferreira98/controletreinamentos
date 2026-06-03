@@ -101,6 +101,48 @@ def execute_migrations(db):
         db.conn.rollback()
 
     try:
+        db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS tripulante_periodos_operacionais (
+                id BIGSERIAL PRIMARY KEY,
+                tripulante_id INTEGER NOT NULL REFERENCES tripulantes (id),
+                tipo TEXT NOT NULL DEFAULT 'ferias' CHECK (tipo IN ('ferias')),
+                data_inicio DATE NOT NULL,
+                data_fim DATE NOT NULL,
+                status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'cancelado')),
+                observacao TEXT,
+                criado_por INTEGER REFERENCES usuarios (id),
+                criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                cancelado_por INTEGER REFERENCES usuarios (id),
+                cancelado_em TIMESTAMP,
+                motivo_status TEXT,
+                CONSTRAINT tripulante_periodos_operacionais_periodo_valido CHECK (data_fim >= data_inicio),
+                CONSTRAINT tripulante_periodos_operacionais_cancelamento_consistente CHECK (
+                    (status <> 'cancelado' AND cancelado_em IS NULL)
+                    OR (status = 'cancelado' AND cancelado_em IS NOT NULL)
+                )
+            )
+            """
+        )
+        db.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_tripulante_periodos_operacionais_tripulante
+            ON tripulante_periodos_operacionais (tripulante_id, data_inicio DESC, id DESC)
+            """
+        )
+        db.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_tripulante_periodos_operacionais_ativos
+            ON tripulante_periodos_operacionais (tripulante_id, data_inicio, data_fim)
+            WHERE status <> 'cancelado'
+            """
+        )
+        db.commit()
+    except Exception as e:
+        current_app.logger.warning(f"Could not migrate tripulante operational periods table: {e}")
+        db.conn.rollback()
+
+    try:
         db.execute("ALTER TABLE financeiro_missoes_operacionais ADD COLUMN IF NOT EXISTS data_final DATE")
         db.execute("ALTER TABLE financeiro_missoes_operacionais ADD COLUMN IF NOT EXISTS pos_exec_min INTEGER NOT NULL DEFAULT 0")
         db.execute("ALTER TABLE financeiro_missoes_operacionais ADD COLUMN IF NOT EXISTS justificativa TEXT")

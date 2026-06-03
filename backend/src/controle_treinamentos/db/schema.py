@@ -190,6 +190,26 @@ CREATE TABLE IF NOT EXISTS pernoites_operacionais (
     observacoes TEXT
 );
 
+CREATE TABLE IF NOT EXISTS tripulante_periodos_operacionais (
+    id BIGSERIAL PRIMARY KEY,
+    tripulante_id INTEGER NOT NULL REFERENCES tripulantes (id),
+    tipo TEXT NOT NULL DEFAULT 'ferias' CHECK (tipo IN ('ferias')),
+    data_inicio DATE NOT NULL,
+    data_fim DATE NOT NULL,
+    status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'cancelado')),
+    observacao TEXT,
+    criado_por INTEGER REFERENCES usuarios (id),
+    criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    cancelado_por INTEGER REFERENCES usuarios (id),
+    cancelado_em TIMESTAMP,
+    motivo_status TEXT,
+    CONSTRAINT tripulante_periodos_operacionais_periodo_valido CHECK (data_fim >= data_inicio),
+    CONSTRAINT tripulante_periodos_operacionais_cancelamento_consistente CHECK (
+        (status <> 'cancelado' AND cancelado_em IS NULL)
+        OR (status = 'cancelado' AND cancelado_em IS NOT NULL)
+    )
+);
+
 CREATE TABLE IF NOT EXISTS treinamento_anexos_pdf (
     id BIGSERIAL PRIMARY KEY,
     treinamento_id INTEGER NOT NULL REFERENCES treinamentos (id) ON DELETE CASCADE,
@@ -523,6 +543,11 @@ CREATE INDEX IF NOT EXISTS idx_notificacoes_treinamento_treinamento_gatilho_data
 ON notificacoes_treinamento (treinamento_id, gatilho, (CAST(enviado_em AS DATE)));
 CREATE INDEX IF NOT EXISTS idx_pernoites_data_tipo ON pernoites_operacionais (data_pernoite, tipo_pernoite);
 CREATE INDEX IF NOT EXISTS idx_pernoites_tripulante ON pernoites_operacionais (tripulante_id);
+CREATE INDEX IF NOT EXISTS idx_tripulante_periodos_operacionais_tripulante
+ON tripulante_periodos_operacionais (tripulante_id, data_inicio DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_tripulante_periodos_operacionais_ativos
+ON tripulante_periodos_operacionais (tripulante_id, data_inicio, data_fim)
+WHERE status <> 'cancelado';
 CREATE INDEX IF NOT EXISTS idx_tripulantes_base_lower ON tripulantes (LOWER(base));
 CREATE INDEX IF NOT EXISTS idx_treinamento_anexos_treinamento ON treinamento_anexos_pdf (treinamento_id, enviado_em DESC);
 CREATE INDEX IF NOT EXISTS idx_treinamento_anexos_status ON treinamento_anexos_pdf (status);
@@ -687,6 +712,20 @@ _REQUIRED_COLUMNS_BY_TABLE = {
         "observacao",
     ],
     "pernoites_operacionais": ["id", "tripulante_id", "data_pernoite", "tipo_pernoite", "quantidade", "observacoes"],
+    "tripulante_periodos_operacionais": [
+        "id",
+        "tripulante_id",
+        "tipo",
+        "data_inicio",
+        "data_fim",
+        "status",
+        "observacao",
+        "criado_por",
+        "criado_em",
+        "cancelado_por",
+        "cancelado_em",
+        "motivo_status",
+    ],
     "treinamento_anexos_pdf": [
         "id",
         "treinamento_id",

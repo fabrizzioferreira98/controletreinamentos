@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash
 from backend.src.controle_treinamentos import create_app
 from backend.src.controle_treinamentos.blueprints.cadastros import api_routes as tripulantes_api
 from backend.src.controle_treinamentos.contracts.tripulantes import serialize_tripulante_detail
+from backend.src.controle_treinamentos.core.domain_errors import DomainNotFoundError, DomainValidationError
 
 
 class _SingleCursor:
@@ -202,11 +203,11 @@ def test_api_tripulante_operational_periods_list_keeps_edit_form_compat(monkeypa
 
     captured = {}
 
-    def fake_get_tripulante_detail_read_model(**kwargs):
+    def fake_list_tripulante_operational_periods(**kwargs):
         captured.update(kwargs)
-        return _sample_tripulante(tripulante_id=11)
+        return {"items": []}
 
-    monkeypatch.setattr(tripulantes_api, "get_tripulante_detail_read_model", fake_get_tripulante_detail_read_model)
+    monkeypatch.setattr(tripulantes_api, "list_tripulante_operational_periods", fake_list_tripulante_operational_periods)
 
     response = client.get("/api/v1/tripulantes/11/periodos-operacionais")
 
@@ -223,7 +224,10 @@ def test_api_tripulante_operational_periods_list_preserves_missing_tripulante_40
     client = app.test_client()
     _authenticate_client(client, monkeypatch)
 
-    monkeypatch.setattr(tripulantes_api, "get_tripulante_detail_read_model", lambda **_kwargs: None)
+    def fake_list_tripulante_operational_periods(**_kwargs):
+        raise DomainNotFoundError("Tripulante n\u00e3o encontrado.", code="tripulante_not_found")
+
+    monkeypatch.setattr(tripulantes_api, "list_tripulante_operational_periods", fake_list_tripulante_operational_periods)
 
     response = client.get("/api/v1/tripulantes/999/periodos-operacionais")
 
@@ -231,6 +235,125 @@ def test_api_tripulante_operational_periods_list_preserves_missing_tripulante_40
     payload = response.get_json()
     assert payload["success"] is False
     assert payload["code"] == "tripulante_not_found"
+
+
+def test_api_tripulante_operational_periods_create_returns_created_contract(monkeypatch):
+    app = create_app()
+    client = app.test_client()
+    _authenticate_client(client, monkeypatch)
+
+    captured = {}
+
+    def fake_create_tripulante_operational_period(**kwargs):
+        captured.update(kwargs)
+        return {
+            "item": {
+                "id": 41,
+                "tripulante_id": kwargs["tripulante_id"],
+                "tipo": "ferias",
+                "data_inicio": kwargs["payload"]["data_inicio"],
+                "data_fim": kwargs["payload"]["data_fim"],
+                "status": "ativo",
+                "observacao": kwargs["payload"]["observacao"],
+            }
+        }
+
+    monkeypatch.setattr(tripulantes_api, "create_tripulante_operational_period", fake_create_tripulante_operational_period)
+
+    csrf_token = client.get("/api/v1/session").get_json()["csrf_token"]
+    response = client.post(
+        "/api/v1/tripulantes/11/periodos-operacionais",
+        json={
+            "tipo": "ferias",
+            "data_inicio": "2026-06-01",
+            "data_fim": "2026-06-10",
+            "observacao": "Ferias aprovadas RH",
+        },
+        headers={"X-CSRFToken": csrf_token, "X-Request-ID": "webreq-contract-unicode"},
+    )
+
+    assert response.status_code == 201
+    assert response.content_type.startswith("application/json")
+    payload = response.get_json()
+    assert payload["success"] is True
+    assert payload["code"] == "tripulante_periodo_operacional_created"
+    assert payload["item"]["id"] == 41
+    assert payload["item"]["tripulante_id"] == 11
+    assert payload["item"]["data_inicio"] == "2026-06-01"
+    assert payload["item"]["data_fim"] == "2026-06-10"
+    assert payload["item"]["status"] == "ativo"
+    assert payload["item"]["observacao"] == "Ferias aprovadas RH"
+    assert captured["tripulante_id"] == 11
+    assert captured["actor_user_id"] == 21
+
+
+def test_api_tripulante_operational_periods_create_returns_validation_error(monkeypatch):
+    app = create_app()
+    client = app.test_client()
+    _authenticate_client(client, monkeypatch)
+
+    def fake_create_tripulante_operational_period(**_kwargs):
+        raise DomainValidationError(
+            "Data de fim das f\u00e9rias n\u00e3o pode ser anterior \u00e0 data de in\u00edcio.",
+            code="tripulante_periodo_operacional_validation_error",
+        )
+
+    monkeypatch.setattr(tripulantes_api, "create_tripulante_operational_period", fake_create_tripulante_operational_period)
+
+    csrf_token = client.get("/api/v1/session").get_json()["csrf_token"]
+    response = client.post(
+        "/api/v1/tripulantes/11/periodos-operacionais",
+        json={"tipo": "ferias", "data_inicio": "2026-06-10", "data_fim": "2026-06-01"},
+        headers={"X-CSRFToken": csrf_token},
+    )
+
+    assert response.status_code == 400
+    payload = response.get_json()
+    assert payload["success"] is False
+    assert payload["code"] == "tripulante_periodo_operacional_validation_error"
+    assert "f\u00e9rias" in payload["message"]
+    assert "\u00c3" not in payload["message"]
+
+
+def test_api_tripulante_operational_periods_delete_cancels_contract(monkeypatch):
+    app = create_app()
+    client = app.test_client()
+    _authenticate_client(client, monkeypatch)
+
+    captured = {}
+
+    def fake_cancel_tripulante_operational_period(**kwargs):
+        captured.update(kwargs)
+        return {
+            "operation": "cancelled",
+            "item": {
+                "id": kwargs["periodo_id"],
+                "tripulante_id": kwargs["tripulante_id"],
+                "tipo": "ferias",
+                "data_inicio": "2026-06-01",
+                "data_fim": "2026-06-10",
+                "status": "cancelado",
+                "observacao": "Ferias aprovadas RH",
+            },
+        }
+
+    monkeypatch.setattr(tripulantes_api, "cancel_tripulante_operational_period", fake_cancel_tripulante_operational_period)
+
+    csrf_token = client.get("/api/v1/session").get_json()["csrf_token"]
+    response = client.delete(
+        "/api/v1/tripulantes/11/periodos-operacionais/41",
+        headers={"X-CSRFToken": csrf_token},
+    )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["success"] is True
+    assert payload["code"] == "tripulante_periodo_operacional_cancelled"
+    assert payload["operation"] == "cancelled"
+    assert payload["item"]["status"] == "cancelado"
+    assert captured["tripulante_id"] == 11
+    assert captured["periodo_id"] == 41
+    assert captured["actor_user_id"] == 21
 
 
 def test_api_tripulante_create_returns_created_contract(monkeypatch):

@@ -29,6 +29,11 @@ from ....application.tripulante_media import (
     save_tripulante_photo,
     upload_tripulante_file,
 )
+from ....application.tripulante_operational_periods import (
+    cancel_tripulante_operational_period,
+    create_tripulante_operational_period,
+    list_tripulante_operational_periods,
+)
 from ....application.tripulantes import (
     TripulanteConflictError,
     TripulanteNotFoundError,
@@ -73,6 +78,14 @@ def _json_payload() -> dict:
     if not isinstance(payload, dict):
         return {}
     return payload
+
+
+def _current_user_id() -> int | None:
+    raw_user_id = getattr(current_user, "id", None)
+    try:
+        return int(raw_user_id)
+    except (TypeError, ValueError):
+        return None
 
 
 def _normalize_file_payload(payload: dict, *, source: str) -> dict:
@@ -186,41 +199,55 @@ def api_tripulante_get(tripulante_id: int):
 @cadastros_bp.route("/api/v1/tripulantes/<int:tripulante_id>/periodos-operacionais", methods=["GET"])
 @permission_required("tripulantes:view", "relatorio_individual:view")
 def api_tripulante_operational_periods_list(tripulante_id: int):
-    row = get_tripulante_detail_read_model(tripulante_id=tripulante_id)
-    if not row:
-        return error_payload("Tripulante nÃ£o encontrado.", status=404, code="tripulante_not_found")
+    try:
+        result = list_tripulante_operational_periods(tripulante_id=tripulante_id)
+    except DomainError as exc:
+        return domain_error_payload(exc)
     return {
         "success": True,
         "status": 200,
         "code": "tripulante_periodos_operacionais_ok",
-        "items": [],
+        "items": result["items"],
     }, 200
 
 
 @cadastros_bp.route("/api/v1/tripulantes/<int:tripulante_id>/periodos-operacionais", methods=["POST"])
 @permission_required("tripulantes:edit")
 def api_tripulante_operational_periods_create(tripulante_id: int):
-    row = get_tripulante_detail_read_model(tripulante_id=tripulante_id)
-    if not row:
-        return error_payload("Tripulante nÃ£o encontrado.", status=404, code="tripulante_not_found")
-    return error_payload(
-        "Cadastro de perÃ­odos operacionais ainda nÃ£o estÃ¡ habilitado neste backend.",
-        status=501,
-        code="tripulante_periodos_operacionais_not_implemented",
-    )
+    try:
+        result = create_tripulante_operational_period(
+            tripulante_id=tripulante_id,
+            payload=_json_payload(),
+            actor_user_id=_current_user_id(),
+        )
+    except DomainError as exc:
+        return domain_error_payload(exc)
+    return {
+        "success": True,
+        "status": 201,
+        "code": "tripulante_periodo_operacional_created",
+        "item": result["item"],
+    }, 201
 
 
 @cadastros_bp.route("/api/v1/tripulantes/<int:tripulante_id>/periodos-operacionais/<int:periodo_id>", methods=["DELETE"])
 @permission_required("tripulantes:edit")
 def api_tripulante_operational_periods_delete(tripulante_id: int, periodo_id: int):
-    row = get_tripulante_detail_read_model(tripulante_id=tripulante_id)
-    if not row:
-        return error_payload("Tripulante nÃ£o encontrado.", status=404, code="tripulante_not_found")
-    return error_payload(
-        "Cadastro de perÃ­odos operacionais ainda nÃ£o estÃ¡ habilitado neste backend.",
-        status=501,
-        code="tripulante_periodos_operacionais_not_implemented",
-    )
+    try:
+        result = cancel_tripulante_operational_period(
+            tripulante_id=tripulante_id,
+            periodo_id=periodo_id,
+            actor_user_id=_current_user_id(),
+        )
+    except DomainError as exc:
+        return domain_error_payload(exc)
+    return {
+        "success": True,
+        "status": 200,
+        "code": "tripulante_periodo_operacional_cancelled",
+        "operation": result["operation"],
+        "item": result["item"],
+    }, 200
 
 
 @cadastros_bp.route("/api/v1/tripulantes", methods=["POST"])
