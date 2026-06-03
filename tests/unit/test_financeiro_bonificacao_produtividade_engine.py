@@ -543,6 +543,80 @@ def test_sem_missoes_mantem_piso_mensal_pela_categoria_do_tripulante():
     assert result["memoria_calculo"]["inputs"]["categoria_garantia_minima"] == CANONICAL_CATEGORY_B
 
 
+def test_ferias_operacionais_reduzem_garantia_minima_proporcionalmente():
+    result = _calculate(
+        tripulante=_tripulante(
+            categoria_operacional="B",
+            ferias_operacionais=[
+                {
+                    "id": 77,
+                    "tipo": "ferias",
+                    "status": "ativo",
+                    "data_inicio": "2026-04-01",
+                    "data_fim": "2026-04-15",
+                    "observacao": "Ferias aprovadas",
+                }
+            ],
+        ),
+        missions=[],
+        params=_params(),
+    )
+
+    ferias = result["memoria_calculo"]["inputs"]["ferias_operacionais"]
+    guarantee_step = next(step for step in result["memoria_calculo"]["steps"] if step["rule_key"] == "garantia_minima")
+
+    assert result["garantia_minima"] == Decimal("3000.00")
+    assert result["total_devido"] == Decimal("3000.00")
+    assert ferias["total_dias_competencia"] == 30
+    assert ferias["dias_ferias_na_competencia"] == 15
+    assert ferias["dias_elegiveis_garantia"] == 15
+    assert ferias["fator_garantia"] == "0.5000"
+    assert guarantee_step["resultado_intermediario"]["garantia_minima_integral"] == "6000.00"
+    assert guarantee_step["resultado_intermediario"]["garantia_minima"] == "3000.00"
+
+
+def test_ferias_operacionais_consolidam_sobreposicoes_e_ignoram_canceladas():
+    result = _calculate(
+        tripulante=_tripulante(
+            categoria_operacional="B",
+            ferias_operacionais=[
+                {"id": 1, "tipo": "ferias", "status": "ativo", "data_inicio": "2026-03-20", "data_fim": "2026-04-05"},
+                {"id": 2, "tipo": "ferias", "status": "ativo", "data_inicio": "2026-04-05", "data_fim": "2026-04-10"},
+                {"id": 3, "tipo": "ferias", "status": "cancelado", "data_inicio": "2026-04-11", "data_fim": "2026-04-20"},
+                {"id": 4, "tipo": "atestado", "status": "ativo", "data_inicio": "2026-04-21", "data_fim": "2026-04-25"},
+            ],
+        ),
+        missions=[],
+        params=_params(),
+    )
+
+    ferias = result["memoria_calculo"]["inputs"]["ferias_operacionais"]
+
+    assert result["garantia_minima"] == Decimal("4000.00")
+    assert result["total_devido"] == Decimal("4000.00")
+    assert ferias["dias_ferias_na_competencia"] == 10
+    assert ferias["dias_elegiveis_garantia"] == 20
+    assert ferias["intervalos_consolidados"] == [{"data_inicio": "2026-04-01", "data_fim": "2026-04-10"}]
+
+
+def test_produtividade_calculada_pode_superar_garantia_proporcional_por_ferias():
+    result = _calculate(
+        tripulante=_tripulante(
+            categoria_operacional="B",
+            ferias_operacionais=[
+                {"tipo": "ferias", "status": "ativo", "data_inicio": "2026-04-01", "data_fim": "2026-04-15"}
+            ],
+        ),
+        missions=[_mission(categoria_financeira_aeronave="b")],
+        params=_params(missao_categoria_b_comandante="4000"),
+    )
+
+    assert result["produtividade_calculada"] == Decimal("4000.00")
+    assert result["garantia_minima"] == Decimal("3000.00")
+    assert result["excedente"] == Decimal("1000.00")
+    assert result["total_devido"] == Decimal("4000.00")
+
+
 def test_categoria_operacional_nao_elegivel_nao_inventa_piso_e_gera_aviso():
     result = _calculate(
         tripulante=_tripulante(categoria_operacional="N/A"),
@@ -766,7 +840,7 @@ def test_memoria_de_calculo_contem_entradas_formulas_parametros_e_resultados():
     )
     memory = result["memoria_calculo"]
 
-    assert memory["calculation_version"] == "finance-productivity-v1"
+    assert memory["calculation_version"] == "finance-productivity-v2-ferias-prorata"
     assert memory["source"]["type"] == "finance_productivity_competence"
     assert memory["participant"] == {"tripulante_id": 101, "funcao": "comandante"}
     assert memory["inputs"]["competencia"] == "2026-04"

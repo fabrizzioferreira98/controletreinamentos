@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from decimal import Decimal
+
 import pytest
 
 from backend.src.controle_treinamentos.application import financeiro_bonificacoes
@@ -158,6 +160,11 @@ def test_recalcular_produtividade_competencia_persiste_memoria_e_audit_log(monke
         ]
 
     monkeypatch.setattr(financeiro_bonificacoes, "listar_parametros_financeiros_rows", _list_parameters)
+    monkeypatch.setattr(
+        financeiro_bonificacoes,
+        "listar_periodos_ferias_produtividade_por_competencia",
+        lambda *args, **kwargs: [],
+    )
 
     def _save(_db, *, data, org_id=None):
         saved_payloads.append(data)
@@ -216,6 +223,11 @@ def test_recalcular_produtividade_competencia_persiste_piso_para_tripulante_sem_
             _parameter("garantia_minima", "3000.00", funcao="copiloto", categoria="categoria b"),
         ],
     )
+    monkeypatch.setattr(
+        financeiro_bonificacoes,
+        "listar_periodos_ferias_produtividade_por_competencia",
+        lambda *args, **kwargs: [],
+    )
 
     def _save(_db, *, data, org_id=None):
         saved_payloads.append(data)
@@ -232,6 +244,82 @@ def test_recalcular_produtividade_competencia_persiste_piso_para_tripulante_sem_
     assert result["totals"]["total_devido"] == "3000.00"
     assert saved_payloads[0]["produtividade_calculada"] == 0
     assert saved_payloads[0]["garantia_minima"] == 3000
+
+
+def test_recalcular_produtividade_competencia_aplica_piso_proporcional_por_ferias(monkeypatch):
+    db = _FakeDB()
+    saved_payloads = []
+    vacation_calls = []
+
+    monkeypatch.setattr(financeiro_bonificacoes, "validar_competencia_aberta_para_mutacao", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        financeiro_bonificacoes,
+        "listar_participacoes_produtividade_por_competencia",
+        lambda *args, **kwargs: [],
+    )
+    monkeypatch.setattr(
+        financeiro_bonificacoes,
+        "listar_tripulantes_elegiveis_produtividade",
+        lambda *args, **kwargs: [
+            {
+                "tripulante_id": 202,
+                "tripulante_nome": "Comandante Ferias",
+                "funcao": "comandante",
+                "tripulante_categoria_operacional": "B",
+                "tripulante_sdea_ativo": 0,
+                "tripulante_instrutor_ativo": 0,
+                "tripulante_checador_ativo": 0,
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        financeiro_bonificacoes,
+        "listar_parametros_financeiros_rows",
+        lambda *args, **kwargs: [
+            _parameter("missao_categoria_b", "600.00", funcao="comandante", categoria="categoria b"),
+            _parameter("garantia_minima", "6000.00", funcao="comandante", categoria="categoria b"),
+        ],
+    )
+
+    def _list_vacations(*args, **kwargs):
+        vacation_calls.append(kwargs)
+        return [
+            {
+                "id": 91,
+                "tripulante_id": 202,
+                "tipo": "ferias",
+                "status": "ativo",
+                "data_inicio": "2026-04-01",
+                "data_fim": "2026-04-15",
+                "observacao": "Ferias aprovadas",
+            }
+        ]
+
+    monkeypatch.setattr(
+        financeiro_bonificacoes,
+        "listar_periodos_ferias_produtividade_por_competencia",
+        _list_vacations,
+    )
+
+    def _save(_db, *, data, org_id=None):
+        saved_payloads.append(data)
+        row = _productivity_row(id=89, **data)
+        row["tripulante_nome"] = "Comandante Ferias"
+        return row
+
+    monkeypatch.setattr(financeiro_bonificacoes, "salvar_calculo_produtividade", _save)
+    monkeypatch.setattr(financeiro_bonificacoes, "record_audit_event", lambda *args, **kwargs: None)
+
+    result = recalcular_produtividade_competencia("2026-04", actor_user_id=501, db=db)
+    ferias = saved_payloads[0]["memoria_calculo"]["inputs"]["ferias_operacionais"]
+
+    assert result["totals"]["participant_count"] == 1
+    assert result["totals"]["total_devido"] == "3000.00"
+    assert saved_payloads[0]["garantia_minima"] == Decimal("3000.00")
+    assert saved_payloads[0]["total_devido"] == Decimal("3000.00")
+    assert ferias["dias_ferias_na_competencia"] == 15
+    assert ferias["dias_elegiveis_garantia"] == 15
+    assert vacation_calls[0]["tripulante_ids"] == [202]
 
 
 def test_recalcular_produtividade_competencia_bloqueia_competencia_fechada(monkeypatch):

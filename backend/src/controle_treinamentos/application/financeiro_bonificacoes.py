@@ -19,6 +19,7 @@ from ..repositories.financeiro_calculos_produtividade import (
     detalhar_calculo_produtividade_por_tripulante,
     listar_calculos_produtividade,
     listar_participacoes_produtividade_por_competencia,
+    listar_periodos_ferias_produtividade_por_competencia,
     listar_tripulantes_elegiveis_produtividade,
     salvar_calculo_produtividade,
 )
@@ -148,6 +149,37 @@ def _seed_floor_groups_without_missions(groups: list[dict], tripulantes: list[di
             "missoes": [],
         }
     return list(grouped.values())
+
+
+def _group_tripulante_id(group: dict) -> int | None:
+    tripulante = group.get("tripulante") or {}
+    raw_id = tripulante.get("tripulante_id") or tripulante.get("id")
+    if raw_id in (None, ""):
+        return None
+    try:
+        return int(raw_id)
+    except (TypeError, ValueError):
+        return None
+
+
+def _attach_operational_vacations(groups: list[dict], periods: list[dict]) -> list[dict]:
+    by_tripulante: dict[int, list[dict]] = {}
+    for row in periods:
+        raw_tripulante_id = row.get("tripulante_id")
+        if raw_tripulante_id in (None, ""):
+            continue
+        try:
+            tripulante_id = int(raw_tripulante_id)
+        except (TypeError, ValueError):
+            continue
+        by_tripulante.setdefault(tripulante_id, []).append(dict(row))
+    for group in groups:
+        tripulante = group.get("tripulante") or {}
+        tripulante_id = _group_tripulante_id(group)
+        if tripulante_id is None:
+            continue
+        tripulante["ferias_operacionais"] = by_tripulante.get(tripulante_id, [])
+    return groups
 
 
 def _fetch_productivity_parameters(db, *, competencia: str, org_id: str) -> list[dict]:
@@ -412,6 +444,19 @@ def recalcular_produtividade_competencia(
             floor_tripulantes,
             org_id=resolved_org_id,
         )
+        tripulante_ids = sorted(
+            {
+                tripulante_id
+                for tripulante_id in (_group_tripulante_id(group) for group in groups)
+                if tripulante_id is not None
+            }
+        )
+        vacation_periods = listar_periodos_ferias_produtividade_por_competencia(
+            resolved_db,
+            tripulante_ids=tripulante_ids,
+            competencia=resolved_competencia,
+        )
+        groups = _attach_operational_vacations(groups, vacation_periods)
         for group in groups:
             calculation = calcular_bonificacao_produtividade(
                 competencia=resolved_competencia,

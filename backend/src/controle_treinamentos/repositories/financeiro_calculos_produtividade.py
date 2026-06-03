@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from calendar import monthrange
 from decimal import Decimal
 
 from ..contracts.financeiro import FINANCE_ORG_SCOPE_DEFAULT
@@ -53,6 +54,12 @@ def _json_default(value):
 
 def _json_text(value) -> str:
     return json.dumps(value or {}, default=_json_default, ensure_ascii=False)
+
+
+def _competencia_bounds(competencia: str) -> tuple[str, str]:
+    year, month = [int(part) for part in str(competencia).split("-", 1)]
+    last_day = monthrange(year, month)[1]
+    return f"{year:04d}-{month:02d}-01", f"{year:04d}-{month:02d}-{last_day:02d}"
 
 
 def salvar_calculo_produtividade(db, *, data: dict, org_id: str | None = None) -> dict:
@@ -351,5 +358,38 @@ def listar_tripulantes_elegiveis_produtividade(
         ORDER BY t.nome ASC, t.id ASC
         """,
         (),
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def listar_periodos_ferias_produtividade_por_competencia(
+    db,
+    *,
+    tripulante_ids: list[int] | tuple[int, ...] | set[int],
+    competencia: str,
+) -> list[dict]:
+    ids = sorted({int(item) for item in tripulante_ids if item not in (None, "")})
+    if not ids:
+        return []
+    competencia_inicio, competencia_fim = _competencia_bounds(competencia)
+    rows = db.execute(
+        """
+        SELECT
+            id,
+            tripulante_id,
+            tipo,
+            data_inicio,
+            data_fim,
+            status,
+            observacao
+        FROM tripulante_periodos_operacionais
+        WHERE tripulante_id = ANY(%s)
+          AND tipo = 'ferias'
+          AND status = 'ativo'
+          AND data_inicio <= %s
+          AND data_fim >= %s
+        ORDER BY tripulante_id ASC, data_inicio ASC, id ASC
+        """,
+        (ids, competencia_fim, competencia_inicio),
     ).fetchall()
     return [dict(row) for row in rows]

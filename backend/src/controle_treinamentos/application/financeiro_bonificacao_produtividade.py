@@ -21,7 +21,7 @@ from .financeiro_governanca_parametros import (
     parametro_elegivel_fechamento_real,
 )
 
-CALCULATION_VERSION = "finance-productivity-v1"
+CALCULATION_VERSION = "finance-productivity-v2-ferias-prorata"
 MONEY_QUANTIZER = Decimal("0.01")
 MONETARY_PARAMETER_UNIT = "valor"
 
@@ -172,6 +172,11 @@ def calcular_bonificacao_produtividade(
     )
     tripulante_id = _resolve_int(tripulante.get("id") or tripulante.get("tripulante_id"))
     flags = _tripulante_flags(tripulante, competencia_inicio=reference_date, competencia_fim=competence_end)
+    ferias_garantia = _ferias_garantia_info(
+        tripulante,
+        competencia_inicio=reference_date,
+        competencia_fim=competence_end,
+    )
     contagens = _mission_counts(
         missoes_operacionais,
         cobertura_base=cobertura_base,
@@ -252,6 +257,7 @@ def calcular_bonificacao_produtividade(
     categoria_aplicavel = _categoria_aplicavel(contagens)
     categoria_garantia_minima = _categoria_garantia_minima_tripulante(tripulante)
     garantia_parameter = None
+    garantia_minima_integral = Decimal("0.00")
     garantia_minima = Decimal("0.00")
     if categoria_garantia_minima:
         garantia_parameter = _find_parameter(
@@ -262,7 +268,11 @@ def calcular_bonificacao_produtividade(
             allow_general_function=False,
             allow_general_category=False,
         )
-        garantia_minima = _money(_parameter_decimal(garantia_parameter))
+        garantia_minima_integral = _money(_parameter_decimal(garantia_parameter))
+        garantia_minima = _apply_garantia_ferias_proration(
+            garantia_minima_integral,
+            ferias_garantia=ferias_garantia,
+        )
         parametros_usados.append(_parameter_reference(garantia_parameter))
 
     produtividade_calculada = _money(
@@ -288,6 +298,7 @@ def calcular_bonificacao_produtividade(
         "valor_pernoite_comum": valor_pernoite_comum,
         "valor_excecao_palmas": valor_excecao_palmas,
         "produtividade_calculada": produtividade_calculada,
+        "garantia_minima_integral": garantia_minima_integral,
         "garantia_minima": garantia_minima,
         "excedente": excedente,
         "total_devido": total_devido,
@@ -302,6 +313,7 @@ def calcular_bonificacao_produtividade(
         contagens=contagens,
         categoria_aplicavel=categoria_aplicavel,
         categoria_garantia_minima=categoria_garantia_minima,
+        ferias_garantia=ferias_garantia,
         parametros_usados=parametros_usados,
         valores=valores,
         parametro_pernoite_comum=parametro_pernoite_comum,
@@ -392,6 +404,10 @@ def _parse_reference_date(value) -> date | None:
 
 def _month_end(value: date) -> date:
     return date(value.year, value.month, monthrange(value.year, value.month)[1])
+
+
+def _competence_days(*, competencia_inicio: date, competencia_fim: date) -> int:
+    return max(0, (competencia_fim - competencia_inicio).days + 1)
 
 
 def _optional_text(value) -> str | None:
@@ -540,6 +556,84 @@ def _period_overlaps_competence(start_value, end_value, *, competencia_inicio: d
     if end is not None and end < competencia_inicio:
         return False
     return True
+
+
+def _tripulante_periodos_ferias(tripulante: dict[str, Any]) -> list[dict[str, Any]]:
+    raw_periods = (
+        tripulante.get("ferias_operacionais")
+        or tripulante.get("periodos_operacionais")
+        or tripulante.get("tripulante_periodos_operacionais")
+        or []
+    )
+    if not isinstance(raw_periods, (list, tuple)):
+        return []
+    return [dict(item) for item in raw_periods if isinstance(item, dict)]
+
+
+def _ferias_garantia_info(
+    tripulante: dict[str, Any],
+    *,
+    competencia_inicio: date,
+    competencia_fim: date,
+) -> dict[str, Any]:
+    total_dias = _competence_days(competencia_inicio=competencia_inicio, competencia_fim=competencia_fim)
+    intervals: list[tuple[date, date, dict[str, Any]]] = []
+    for row in _tripulante_periodos_ferias(tripulante):
+        tipo = str(row.get("tipo") or "ferias").strip().lower()
+        status = str(row.get("status") or "ativo").strip().lower()
+        if tipo != "ferias" or status != "ativo":
+            continue
+        start = _parse_reference_date(row.get("data_inicio") or row.get("inicio"))
+        end = _parse_reference_date(row.get("data_fim") or row.get("fim")) or start
+        if start is None or end is None or end < start:
+            continue
+        clipped_start = max(start, competencia_inicio)
+        clipped_end = min(end, competencia_fim)
+        if clipped_end < clipped_start:
+            continue
+        intervals.append((clipped_start, clipped_end, row))
+
+    merged: list[tuple[date, date]] = []
+    for start, end, _row in sorted(intervals, key=lambda item: (item[0], item[1])):
+        if not merged or start > merged[-1][1]:
+            merged.append((start, end))
+            continue
+        previous_start, previous_end = merged[-1]
+        merged[-1] = (previous_start, max(previous_end, end))
+
+    dias_ferias = sum((end - start).days + 1 for start, end in merged)
+    dias_ferias = min(total_dias, max(0, dias_ferias))
+    dias_elegiveis = max(0, total_dias - dias_ferias)
+    fator = Decimal(dias_elegiveis) / Decimal(total_dias or 1)
+    return {
+        "total_dias_competencia": total_dias,
+        "dias_ferias_na_competencia": dias_ferias,
+        "dias_elegiveis_garantia": dias_elegiveis,
+        "fator_garantia": format(fator.quantize(Decimal("0.0001")), "f"),
+        "periodos_considerados": [
+            {
+                "id": _resolve_int(row.get("id")),
+                "data_inicio": _date_text(row.get("data_inicio") or row.get("inicio")),
+                "data_fim": _date_text(row.get("data_fim") or row.get("fim")),
+                "observacao": _optional_text(row.get("observacao")),
+            }
+            for _start, _end, row in intervals
+        ],
+        "intervalos_consolidados": [
+            {"data_inicio": start.isoformat(), "data_fim": end.isoformat()}
+            for start, end in merged
+        ],
+    }
+
+
+def _apply_garantia_ferias_proration(value: Decimal, *, ferias_garantia: dict[str, Any]) -> Decimal:
+    total_dias = int(ferias_garantia.get("total_dias_competencia") or 0)
+    dias_elegiveis = int(ferias_garantia.get("dias_elegiveis_garantia") or 0)
+    if total_dias <= 0 or dias_elegiveis >= total_dias:
+        return _money(value)
+    if dias_elegiveis <= 0:
+        return Decimal("0.00")
+    return _money(value * Decimal(dias_elegiveis) / Decimal(total_dias))
 
 
 def _active_checador_designations(
@@ -954,6 +1048,7 @@ def _build_memory(
     contagens: dict[str, int],
     categoria_aplicavel: str,
     categoria_garantia_minima: str | None,
+    ferias_garantia: dict[str, Any],
     parametros_usados: list[dict[str, Any]],
     valores: dict[str, Decimal],
     parametro_pernoite_comum: dict[str, Any] | None,
@@ -980,6 +1075,7 @@ def _build_memory(
             "contagens_agregadas": contagens,
             "categoria_aplicavel": categoria_aplicavel,
             "categoria_garantia_minima": categoria_garantia_minima,
+            "ferias_operacionais": ferias_garantia,
             "politica_total_devido": (
                 "max(produtividade_calculada, garantia_minima)"
                 if aplicar_garantia_minima
@@ -1102,24 +1198,38 @@ def _build_memory(
                 entrada_usada={
                     "aplicar_garantia_minima": aplicar_garantia_minima,
                     "categoria_garantia_minima": categoria_garantia_minima,
+                    "ferias_operacionais": ferias_garantia,
                 },
                 parametro_usado=None,
                 formula_conceitual=(
-                    "total_devido = max(produtividade_calculada, garantia_minima)"
-                    if aplicar_garantia_minima
-                    else "total_devido = produtividade_calculada"
+                    (
+                        "garantia_minima = garantia_minima_integral * dias_elegiveis_garantia / "
+                        "total_dias_competencia; total_devido = max(produtividade_calculada, garantia_minima)"
+                    )
+                    if aplicar_garantia_minima and int(ferias_garantia.get("dias_ferias_na_competencia") or 0) > 0
+                    else (
+                        "total_devido = max(produtividade_calculada, garantia_minima)"
+                        if aplicar_garantia_minima
+                        else "total_devido = produtividade_calculada"
+                    )
                 ),
                 resultado_intermediario={
                     "produtividade_calculada": _decimal_text(valores["produtividade_calculada"]),
+                    "garantia_minima_integral": _decimal_text(valores["garantia_minima_integral"]),
                     "garantia_minima": _decimal_text(valores["garantia_minima"]),
                     "excedente": _decimal_text(valores["excedente"]),
+                    "dias_ferias_na_competencia": ferias_garantia.get("dias_ferias_na_competencia"),
+                    "dias_elegiveis_garantia": ferias_garantia.get("dias_elegiveis_garantia"),
+                    "total_dias_competencia": ferias_garantia.get("total_dias_competencia"),
+                    "fator_garantia": ferias_garantia.get("fator_garantia"),
                 },
                 resultado_final={
                     "total_devido": _decimal_text(valores["total_devido"]),
                     "excedente": _decimal_text(valores["excedente"]),
                 },
                 notes=[
-                    "Garantia minima usa a categoria operacional/cadastral do tripulante, nao a categoria da missao."
+                    "Garantia minima usa a categoria operacional/cadastral do tripulante, nao a categoria da missao.",
+                    "Ferias operacionais reduzem proporcionalmente a garantia minima pelos dias dentro da competencia.",
                 ],
             ),
         ],

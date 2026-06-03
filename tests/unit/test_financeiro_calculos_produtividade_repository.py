@@ -172,3 +172,44 @@ def test_list_detail_and_participations_are_org_scoped():
     assert "{_EFFECTIVE_CREW_FUNCTION_SQL}" not in participations_query
     assert "CASE" in participations_query
     assert participations_params[0] == FINANCE_ORG_SCOPE_DEFAULT
+
+
+def test_listar_periodos_ferias_produtividade_filtra_competencia_e_periodos_ativos():
+    vacation_row = {
+        "id": 41,
+        "tripulante_id": 101,
+        "tipo": "ferias",
+        "status": "ativo",
+        "data_inicio": "2026-04-01",
+        "data_fim": "2026-04-15",
+    }
+    db = _FakeDB([_FakeCursor(rows=[vacation_row])])
+
+    rows = financeiro_calculos_produtividade.listar_periodos_ferias_produtividade_por_competencia(
+        db,
+        tripulante_ids=[101, 202, 101],
+        competencia="2026-04",
+    )
+
+    query, params = db.executed[0]
+    assert rows == [vacation_row]
+    assert "FROM tripulante_periodos_operacionais" in query
+    assert "tripulante_id = ANY(%s)" in query
+    assert "tipo = 'ferias'" in query
+    assert "status = 'ativo'" in query
+    assert "data_inicio <= %s" in query
+    assert "data_fim >= %s" in query
+    assert params == ([101, 202], "2026-04-30", "2026-04-01")
+
+
+def test_listar_periodos_ferias_produtividade_sem_ids_nao_consulta_banco():
+    db = _FakeDB([])
+
+    rows = financeiro_calculos_produtividade.listar_periodos_ferias_produtividade_por_competencia(
+        db,
+        tripulante_ids=[],
+        competencia="2026-04",
+    )
+
+    assert rows == []
+    assert db.executed == []
